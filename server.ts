@@ -1,13 +1,15 @@
 /**
  * ============================================================================
- * Scann-eat dev server  —  photo in, score out
+ * Scann-eat local dev server  —  photo in, score out
  * ============================================================================
  *
- * Zero-dep HTTP server (Node 22+ native TS) that:
- *   - Serves the static PWA shell from /web
+ * Zero-dep HTTP server (Node 22+ native TS) that mirrors the Vercel setup
+ * for local development without needing `vercel dev`:
+ *   - Serves the static PWA shell from /public
  *   - Exposes POST /api/score: { imageBase64, mime? } → full ScoreAudit
  *
- * Keeps the Groq API key on the server. The browser never sees it.
+ * In production, /api/score is handled by api/score.ts as a Vercel Function
+ * and the static files are served directly from /public by Vercel's CDN.
  *
  * Run:   GROQ_API_KEY=... node --experimental-strip-types server.ts
  * ============================================================================
@@ -23,7 +25,7 @@ import { scoreProduct } from './scoring-engine.ts';
 
 const PORT = Number(process.env.PORT ?? 5173);
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)));
-const WEB_DIR = join(ROOT, 'web');
+const WEB_DIR = join(ROOT, 'public');
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
 
 const MIME: Record<string, string> = {
