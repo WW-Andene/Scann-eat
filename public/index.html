@@ -11,9 +11,33 @@
   </head>
   <body>
     <header>
+      <button id="settings-btn" class="settings-btn" type="button" aria-label="Réglages">&#9881;</button>
       <h1>Scann-eat</h1>
       <p class="tagline">Photographie une étiquette → note de 0 à 100</p>
     </header>
+
+    <dialog id="settings-dialog" class="settings-dialog">
+      <form method="dialog">
+        <h2>Réglages</h2>
+        <label>
+          Clé API Groq
+          <input id="settings-key" type="password" placeholder="gsk_…" autocomplete="off" />
+        </label>
+        <p class="hint">Stockée uniquement sur ton appareil (localStorage). Nécessaire dans l'APK ou en mode direct.</p>
+        <label>
+          Mode
+          <select id="settings-mode">
+            <option value="auto">Auto (serveur, fallback direct)</option>
+            <option value="server">Serveur uniquement</option>
+            <option value="direct">Direct Groq (clé requise)</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button id="settings-cancel" type="button" class="secondary">Annuler</button>
+          <button id="settings-save" type="submit">Enregistrer</button>
+        </div>
+      </form>
+    </dialog>
 
     <main>
       <section class="capture">

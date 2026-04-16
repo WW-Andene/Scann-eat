@@ -1,3 +1,14 @@
+/**
+ * Scann-eat PWA entry.
+ *
+ * Runs in two modes, auto-selected per request:
+ *   - "server": POST /api/score (Vercel Function). Default when hosted.
+ *   - "direct": import the engine bundle and call Groq from the browser with
+ *               a user-provided key stored in localStorage. Used inside the
+ *               APK (Capacitor shell) and on the web when the user explicitly
+ *               enables it.
+ */
+
 const $ = (id) => document.getElementById(id);
 
 const fileInput = $('file-input');
@@ -10,8 +21,40 @@ const errorEl = $('error');
 const resultEl = $('result');
 const resetBtn = $('reset-btn');
 
+const settingsBtn = $('settings-btn');
+const settingsDialog = $('settings-dialog');
+const keyInput = $('settings-key');
+const modeSelect = $('settings-mode');
+const settingsSave = $('settings-save');
+const settingsCancel = $('settings-cancel');
+
+const LS_KEY = 'scanneat.groq_key';
+const LS_MODE = 'scanneat.mode'; // 'auto' | 'server' | 'direct'
+
+const isCapacitor = !!globalThis.Capacitor?.isNativePlatform?.();
+
 let currentBase64 = null;
 let currentMime = null;
+
+let engineMod = null;
+async function loadEngine() {
+  if (engineMod) return engineMod;
+  engineMod = await import('/engine.bundle.js');
+  return engineMod;
+}
+
+function getMode() {
+  const saved = localStorage.getItem(LS_MODE);
+  if (saved === 'server' || saved === 'direct') return saved;
+  return isCapacitor ? 'direct' : 'auto';
+}
+
+function getKey() {
+  return localStorage.getItem(LS_KEY) || '';
+}
+
+function show(el) { el.hidden = false; }
+function hide(el) { el.hidden = true; }
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -26,8 +69,66 @@ async function fileToBase64(file) {
   });
 }
 
-function show(el) { el.hidden = false; }
-function hide(el) { el.hidden = true; }
+async function scanViaServer() {
+  const res = await fetch('/api/score', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageBase64: currentBase64, mime: currentMime }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function scanViaDirect() {
+  const key = getKey();
+  if (!key) throw new Error('Aucune clé Groq configurée. Ouvre les réglages.');
+  const { parseLabel, scoreProduct } = await loadEngine();
+  const { product, warnings } = await parseLabel(
+    { base64: currentBase64, mime: currentMime || 'image/jpeg' },
+    { apiKey: key },
+  );
+  const audit = scoreProduct(product);
+  return { product, audit, warnings };
+}
+
+async function scanImage() {
+  hide(errorEl);
+  hide(resultEl);
+  show(statusEl);
+  statusText.textContent = 'Analyse en cours…';
+
+  const mode = getMode();
+  try {
+    let data;
+    if (mode === 'direct') {
+      data = await scanViaDirect();
+    } else if (mode === 'server') {
+      data = await scanViaServer();
+    } else {
+      try {
+        data = await scanViaServer();
+      } catch (err) {
+        if (getKey()) {
+          statusText.textContent = 'Serveur indisponible, appel direct Groq…';
+          data = await scanViaDirect();
+        } else {
+          throw err;
+        }
+      }
+    }
+    hide(statusEl);
+    renderAudit(data.audit, data.warnings);
+    renderIngredients(data.product);
+    show(resultEl);
+  } catch (err) {
+    hide(statusEl);
+    errorEl.textContent = `Erreur: ${err.message}`;
+    show(errorEl);
+  }
+}
 
 function renderAudit(audit, warnings) {
   $('grade-el').textContent = audit.grade;
@@ -93,34 +194,6 @@ function renderList(id, items, emptyLabel) {
   }
 }
 
-async function scanImage() {
-  hide(errorEl);
-  hide(resultEl);
-  show(statusEl);
-  statusText.textContent = 'Analyse en cours…';
-
-  try {
-    const res = await fetch('/api/score', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: currentBase64, mime: currentMime }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `HTTP ${res.status}`);
-    }
-    const { audit, product, warnings } = await res.json();
-    hide(statusEl);
-    renderAudit(audit, warnings);
-    renderIngredients(product);
-    show(resultEl);
-  } catch (err) {
-    hide(statusEl);
-    errorEl.textContent = `Erreur: ${err.message}`;
-    show(errorEl);
-  }
-}
-
 fileInput.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
@@ -146,6 +219,26 @@ resetBtn.addEventListener('click', () => {
   hide(errorEl);
 });
 
-if ('serviceWorker' in navigator) {
+settingsBtn?.addEventListener('click', () => {
+  keyInput.value = getKey();
+  modeSelect.value = localStorage.getItem(LS_MODE) || (isCapacitor ? 'direct' : 'auto');
+  settingsDialog.showModal();
+});
+
+settingsSave?.addEventListener('click', (e) => {
+  e.preventDefault();
+  const key = keyInput.value.trim();
+  if (key) localStorage.setItem(LS_KEY, key);
+  else localStorage.removeItem(LS_KEY);
+  localStorage.setItem(LS_MODE, modeSelect.value);
+  settingsDialog.close();
+});
+
+settingsCancel?.addEventListener('click', (e) => {
+  e.preventDefault();
+  settingsDialog.close();
+});
+
+if ('serviceWorker' in navigator && !isCapacitor) {
   navigator.serviceWorker.register('/service-worker.js').catch(() => {});
 }

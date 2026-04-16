@@ -28,6 +28,66 @@ body {
 header {
   padding: 1.5rem 1rem 0.5rem;
   text-align: center;
+  position: relative;
+}
+.settings-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1.1rem;
+  border: 1px solid #2a3d37;
+  cursor: pointer;
+}
+.settings-btn:hover { background: #1b2a25; }
+
+.settings-dialog {
+  border: none;
+  border-radius: 16px;
+  padding: 1.25rem;
+  background: var(--panel);
+  color: var(--text);
+  max-width: 420px;
+  width: calc(100vw - 2rem);
+}
+.settings-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+.settings-dialog h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+.settings-dialog label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.settings-dialog input,
+.settings-dialog select {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.7rem;
+  background: #0f1a14;
+  color: var(--text);
+  border: 1px solid #2a3d37;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid #2a3d37;
 }
 header h1 {
   margin: 0;

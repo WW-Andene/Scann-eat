@@ -1,0 +1,10 @@
+node_modules/
+android/
+public/engine.bundle.js
+dist/
+*.log
+.env
+.env.*
+.DS_Store
+.vscode/
+.idea/
