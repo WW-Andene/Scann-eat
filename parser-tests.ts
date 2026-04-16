@@ -1,14 +1,15 @@
 /**
  * ============================================================================
- * OCR PARSER — DETERMINISTIC TESTS
+ * OCR PARSER — TESTS
  * ============================================================================
  *
- * Exercises the parts of ocr-parser.ts that do NOT require an API key:
- *   - splitIngredients      (bracket-aware comma split)
- *   - extractPercentage     (French comma decimals)
- *   - extractENumber        (E250 / E 250 / E-250 / E150a variants)
- *   - enrichIngredient      (food vs additive inference, whole-food flag)
- *   - parseIngredientsText  (end-to-end text pipeline)
+ * Two layers:
+ *   1. Deterministic helpers — splitIngredients, extractPercentage,
+ *      extractENumber, enrichIngredient, parseIngredientsText.
+ *   2. Full parseLabel pipeline with mocked fetch — exercises JSON parsing,
+ *      the coercion layer, inferNamedOils, warnings, and HTTP error paths.
+ *
+ * No API key required for either layer.
  *
  * Run on Node 22+ with native TS stripping:
  *   node --test --experimental-strip-types parser-tests.ts
@@ -19,13 +20,14 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 
 import {
   enrichIngredient,
   extractENumber,
   extractPercentage,
   parseIngredientsText,
+  parseLabel,
   splitIngredients,
 } from './ocr-parser.ts';
 
@@ -248,5 +250,229 @@ describe('parseIngredientsText', () => {
     assert.equal(out.length, 2);
     assert.equal(out[0].name, 'chocolat (sucre, pâte de cacao 45%, beurre de cacao)');
     assert.equal(out[1].name, 'lait');
+  });
+});
+
+// ============================================================================
+// parseLabel — full pipeline with mocked fetch
+// ============================================================================
+
+type MockResponse = {
+  ok: boolean;
+  status: number;
+  json: () => Promise<unknown>;
+  text: () => Promise<string>;
+};
+
+type MockFetch = (url: string, init?: RequestInit) => Promise<MockResponse>;
+
+const originalFetch = globalThis.fetch;
+let lastFetchBody: string | null = null;
+
+function mockGroqReply(content: unknown): MockFetch {
+  return async (_url, init) => {
+    lastFetchBody = typeof init?.body === 'string' ? init.body : null;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: JSON.stringify(content) } }],
+      }),
+      text: async () => '',
+    };
+  };
+}
+
+function mockGroqError(status: number, body: string): MockFetch {
+  return async () => ({
+    ok: false,
+    status,
+    json: async () => ({}),
+    text: async () => body,
+  });
+}
+
+function installFetch(mock: MockFetch) {
+  (globalThis as { fetch: unknown }).fetch = mock;
+}
+
+describe('parseLabel (mocked fetch)', () => {
+  before(() => {
+    process.env.GROQ_API_KEY = 'test-key';
+  });
+
+  after(() => {
+    (globalThis as { fetch: unknown }).fetch = originalFetch;
+  });
+
+  it('happy path: sandwich label → scorable ProductInput', async () => {
+    installFetch(
+      mockGroqReply({
+        name: 'Sandwich Jambon-Emmental',
+        category: 'sandwich',
+        nova_class: 4,
+        weight_g: 150,
+        origin: 'France',
+        organic: false,
+        has_health_claims: false,
+        has_misleading_marketing: false,
+        ingredients: [
+          { name: 'pain (farine de blé, eau, levain, sel)', category: 'food' },
+          { name: 'jambon de porc 17,4%', percentage: 17.4, category: 'food' },
+          { name: 'emmental 12%', percentage: 12, category: 'food' },
+          {
+            name: 'conservateur: nitrite de sodium',
+            e_number: 'E250',
+            category: 'additive',
+          },
+        ],
+        nutrition: {
+          energy_kcal: 245,
+          fat_g: 9.5,
+          saturated_fat_g: 3.1,
+          carbs_g: 28,
+          sugars_g: 2.4,
+          added_sugars_g: 1.0,
+          fiber_g: 2.8,
+          protein_g: 11.2,
+          salt_g: 1.4,
+          trans_fat_g: null,
+        },
+      }),
+    );
+
+    const { product, warnings } = await parseLabel({ base64: 'ZmFrZQ==' });
+
+    assert.equal(product.name, 'Sandwich Jambon-Emmental');
+    assert.equal(product.category, 'sandwich');
+    assert.equal(product.nova_class, 4);
+    assert.equal(product.weight_g, 150);
+    assert.equal(product.origin, 'France');
+    assert.equal(product.origin_transparent, true);
+    assert.equal(product.ingredients.length, 4);
+
+    const nitrite = product.ingredients.find((i) => i.e_number === 'E250');
+    assert.ok(nitrite, 'nitrite ingredient should survive coercion');
+    assert.equal(nitrite!.category, 'additive');
+
+    assert.equal(product.nutrition.energy_kcal, 245);
+    assert.equal(product.nutrition.trans_fat_g, null);
+    assert.equal(warnings.length, 0);
+
+    // Confirm the request body includes the image data URL.
+    assert.ok(lastFetchBody?.includes('data:image/jpeg;base64,ZmFrZQ=='));
+  });
+
+  it('coerces string numerics and invalid enums without throwing', async () => {
+    installFetch(
+      mockGroqReply({
+        name: 'Weird Response',
+        category: 'not-a-real-category',
+        nova_class: '3',
+        ingredients: [{ name: 'eau' }],
+        nutrition: {
+          energy_kcal: '120',
+          fat_g: '1.5',
+          saturated_fat_g: 0,
+          carbs_g: '20,5',
+          sugars_g: 'oops',
+          fiber_g: 1,
+          protein_g: 3,
+          salt_g: 0.1,
+        },
+      }),
+    );
+
+    const { product } = await parseLabel({ base64: 'ZmFrZQ==' });
+    assert.equal(product.category, 'other');
+    assert.equal(product.nova_class, 3);
+    assert.equal(product.nutrition.energy_kcal, 120);
+    assert.equal(product.nutrition.fat_g, 1.5);
+    assert.equal(product.nutrition.carbs_g, 20.5);
+    assert.equal(product.nutrition.sugars_g, 0); // unparseable → coerced to 0
+  });
+
+  it('flags generic "huile végétale" and sets named_oils=false', async () => {
+    installFetch(
+      mockGroqReply({
+        name: 'Biscuit',
+        category: 'snack_sweet',
+        nova_class: 4,
+        ingredients: [
+          { name: 'farine de blé' },
+          { name: 'sucre' },
+          { name: 'huile végétale (colza, palme)' },
+        ],
+        nutrition: {
+          energy_kcal: 480,
+          fat_g: 20,
+          saturated_fat_g: 10,
+          carbs_g: 65,
+          sugars_g: 25,
+          fiber_g: 2,
+          protein_g: 6,
+          salt_g: 0.5,
+        },
+      }),
+    );
+
+    const { product } = await parseLabel({ base64: 'ZmFrZQ==' });
+    assert.equal(product.named_oils, false);
+  });
+
+  it('emits warnings when ingredients and nutrition are missing', async () => {
+    installFetch(
+      mockGroqReply({
+        name: '',
+        category: 'other',
+        nova_class: 4,
+        ingredients: [],
+        nutrition: {
+          energy_kcal: 0,
+          fat_g: 0,
+          saturated_fat_g: 0,
+          carbs_g: 0,
+          sugars_g: 0,
+          fiber_g: 0,
+          protein_g: 0,
+          salt_g: 0,
+        },
+      }),
+    );
+
+    const { warnings } = await parseLabel({ base64: 'ZmFrZQ==' });
+    assert.ok(warnings.some((w) => /ingredients/i.test(w)));
+    assert.ok(warnings.some((w) => /nutrition/i.test(w)));
+    assert.ok(warnings.some((w) => /name/i.test(w)));
+  });
+
+  it('surfaces HTTP errors from Groq', async () => {
+    installFetch(mockGroqError(500, 'internal server error'));
+    await assert.rejects(
+      () => parseLabel({ base64: 'ZmFrZQ==' }),
+      /Groq API 500/,
+    );
+  });
+
+  it('throws a clear error on malformed JSON from the LLM', async () => {
+    installFetch(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: 'not json at all' } }],
+      }),
+      text: async () => '',
+    }));
+    await assert.rejects(
+      () => parseLabel({ base64: 'ZmFrZQ==' }),
+      /did not return valid JSON/,
+    );
+  });
+
+  it('rejects zero-image and >4-image calls', async () => {
+    installFetch(mockGroqReply({}));
+    await assert.rejects(() => parseLabel([]), /no images/);
+    const five = Array.from({ length: 5 }, () => ({ base64: 'ZmFrZQ==' }));
+    await assert.rejects(() => parseLabel(five), /max 4 images/);
   });
 });
