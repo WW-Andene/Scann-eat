@@ -1,0 +1,10 @@
+.git
+.gitignore
+.github
+parser-tests.ts
+Dockerfile
+.dockerignore
+fly.toml
+node_modules
+npm-debug.log
+.DS_Store
