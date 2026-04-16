@@ -24,14 +24,14 @@
 import {
   ADDITIVES_DB,
   normalize,
-} from './scoring-engine';
+} from './scoring-engine.ts';
 import type {
   Ingredient,
   NovaClass,
   NutritionPer100g,
   ProductCategory,
   ProductInput,
-} from './scoring-engine';
+} from './scoring-engine.ts';
 
 // ============================================================================
 // SECTION 1: CONSTANTS (shared with engine by intent, duplicated to keep
@@ -209,11 +209,20 @@ export function splitIngredients(raw: string): string[] {
   const parts: string[] = [];
   let depth = 0;
   let buf = '';
-  for (const ch of raw) {
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
     if (ch === '(' || ch === '[') depth++;
     else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
 
-    if ((ch === ',' || ch === ';') && depth === 0) {
+    const isDelimiter = (ch === ',' || ch === ';') && depth === 0;
+    if (isDelimiter) {
+      // French decimal: keep "17,4" intact when digits flank the comma.
+      const prev = raw[i - 1];
+      const next = raw[i + 1];
+      if (ch === ',' && prev && /\d/.test(prev) && next && /\d/.test(next)) {
+        buf += ch;
+        continue;
+      }
       if (buf.trim()) parts.push(buf.trim());
       buf = '';
     } else {
