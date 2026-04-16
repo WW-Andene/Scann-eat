@@ -1,0 +1,13 @@
+{
+  "name": "Scann-eat",
+  "short_name": "Scann-eat",
+  "description": "Photo-to-score food label analyzer",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1a14",
+  "theme_color": "#0f1a14",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1a14" />
+    <title>Scann-eat</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Scann-eat</h1>
+      <p class="tagline">Photographie une étiquette → note de 0 à 100</p>
+    </header>
+
+    <main>
+      <section class="capture">
+        <label class="capture-btn" for="file-input">
+          <span class="icon" aria-hidden="true">&#128247;</span>
+          <span class="label">Prendre / choisir une photo</span>
+          <input
+            id="file-input"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+          />
+        </label>
+        <p id="hint" class="hint">Front + dos du paquet dans une seule image si possible.</p>
+      </section>
+
+      <section id="preview" class="preview" hidden>
+        <img id="preview-img" alt="Preview" />
+        <button id="scan-btn" type="button">Analyser</button>
+      </section>
+
+      <section id="status" class="status" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <span id="status-text">Analyse en cours…</span>
+      </section>
+
+      <section id="error" class="error" hidden></section>
+
+      <section id="result" class="result" hidden>
+        <div class="score-card">
+          <div class="grade" id="grade-el">—</div>
+          <div class="score">
+            <strong id="score-el">—</strong>
+            <small>/ 100</small>
+          </div>
+          <div class="verdict" id="verdict-el"></div>
+        </div>
+
+        <div class="product">
+          <h2 id="product-name">—</h2>
+          <p class="category" id="product-category"></p>
+        </div>
+
+        <div class="flags">
+          <div class="flag-col">
+            <h3>Drapeaux rouges</h3>
+            <ul id="red-flags"></ul>
+          </div>
+          <div class="flag-col">
+            <h3>Drapeaux verts</h3>
+            <ul id="green-flags"></ul>
+          </div>
+        </div>
+
+        <details class="pillars">
+          <summary>Détail par pilier</summary>
+          <ul id="pillar-list"></ul>
+        </details>
+
+        <details class="raw">
+          <summary>Ingrédients détectés</summary>
+          <ol id="ingredient-list"></ol>
+        </details>
+
+        <button id="reset-btn" type="button">Scanner un autre produit</button>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
