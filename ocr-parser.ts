@@ -156,11 +156,14 @@ async function callVisionLLM(
     })),
   ];
 
+  // NOTE: response_format: json_object is intentionally NOT set — Groq rejects
+  // it on vision (multimodal) calls with "response_format does not support
+  // image inputs". We instead instruct the model to return raw JSON and strip
+  // any accidental markdown fences in extractJSON().
   const body = {
     model: opts.model ?? DEFAULT_MODEL,
     temperature: opts.temperature ?? 0.1,
     max_tokens: opts.maxTokens ?? 2048,
-    response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userContent },
@@ -386,6 +389,22 @@ function inferNamedOils(ingredients: Ingredient[]): boolean {
   return !hasGeneric;
 }
 
+/**
+ * Strip optional markdown fences (```json … ```) and leading prose so we can
+ * JSON.parse the model's output even when it ignores the "raw JSON" instruction.
+ */
+export function extractJSON(raw: string): string {
+  const trimmed = raw.trim();
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch) return fenceMatch[1].trim();
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1);
+  }
+  return trimmed;
+}
+
 // ============================================================================
 // SECTION 6: MAIN ENTRY — parseLabel
 // ============================================================================
@@ -412,9 +431,9 @@ export async function parseLabel(
 
   let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(extractJSON(raw));
   } catch (e) {
-    throw new Error(`parseLabel: LLM did not return valid JSON. First 200 chars: ${raw.slice(0, 200)}`);
+    throw new Error(`parseLabel: LLM did not return valid JSON. First 300 chars: ${raw.slice(0, 300)}`);
   }
 
   const warnings: string[] = [];

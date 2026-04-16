@@ -125,6 +125,7 @@ async function scanImage() {
     show(resultEl);
   } catch (err) {
     hide(statusEl);
+    console.error('[scan] failed', err);
     errorEl.textContent = `Erreur: ${err.message}`;
     show(errorEl);
   }

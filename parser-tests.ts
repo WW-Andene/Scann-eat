@@ -25,6 +25,7 @@ import { after, before, describe, it } from 'node:test';
 import {
   enrichIngredient,
   extractENumber,
+  extractJSON,
   extractPercentage,
   parseIngredientsText,
   parseLabel,
@@ -250,6 +251,32 @@ describe('parseIngredientsText', () => {
     assert.equal(out.length, 2);
     assert.equal(out[0].name, 'chocolat (sucre, pâte de cacao 45%, beurre de cacao)');
     assert.equal(out[1].name, 'lait');
+  });
+});
+
+// ============================================================================
+// extractJSON — tolerate markdown fences and surrounding prose
+// ============================================================================
+
+describe('extractJSON', () => {
+  it('returns plain JSON unchanged', () => {
+    const raw = '{"a": 1}';
+    assert.equal(extractJSON(raw), '{"a": 1}');
+  });
+
+  it('strips ```json fences', () => {
+    const raw = '```json\n{"a": 1}\n```';
+    assert.equal(extractJSON(raw).trim(), '{"a": 1}');
+  });
+
+  it('strips bare ``` fences', () => {
+    const raw = '```\n{"a": 1}\n```';
+    assert.equal(extractJSON(raw).trim(), '{"a": 1}');
+  });
+
+  it('extracts the JSON object when surrounded by prose', () => {
+    const raw = 'Voici la fiche produit:\n{"a": 1, "b": 2}\nFin.';
+    assert.equal(extractJSON(raw), '{"a": 1, "b": 2}');
   });
 });
 
