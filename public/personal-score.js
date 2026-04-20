@@ -21,8 +21,11 @@
  * meat regardless of how well-scored it is on other axes.
  */
 
-import { checkDiet, DIET_DEFS } from '/diets.js';
-import { bmi, bmiCategory, hasMinimalProfile } from '/profile.js';
+import { checkDiet, DIET_DEFS } from './diets.js';
+import {
+  bmi, bmiCategory, hasMinimalProfile,
+  dailyTargets, proteinPRI_g,
+} from './profile.js';
 
 /**
  * @returns {{
@@ -58,6 +61,14 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
         category: 'diet',
       });
       dietReason = r.reason;
+    } else if (r.certified) {
+      adjustments.push({
+        points: +5,
+        reason: lang === 'en'
+          ? `${DIET_DEFS[profile.diet].label_en} certification detected: ${r.preferredHits.slice(0, 2).join(', ')}`
+          : `Certification ${DIET_DEFS[profile.diet].label_fr} détectée : ${r.preferredHits.slice(0, 2).join(', ')}`,
+        category: 'diet',
+      });
     } else if (r.preferredHits.length > 0) {
       adjustments.push({
         points: +3,
@@ -140,13 +151,24 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
         category: 'activity',
       });
     }
-    // Soften the sugar penalty by +3 if moderate sugar (5–15g) — athletes tolerate more carbs.
     if (product.nutrition.sugars_g > 5 && product.nutrition.sugars_g <= 15) {
       adjustments.push({
         points: +2,
         reason: lang === 'en'
-          ? `Moderate-sugar product — active lifestyle can use carbs`
+          ? `Moderate-sugar product — active lifestyle uses carbs`
           : `Sucres modérés — ton activité justifie un apport glucidique`,
+        category: 'activity',
+      });
+    }
+  }
+  if (profile.activity === 'light' || profile.activity === 'moderate') {
+    // Neutral band: protein bonus halved, sugar penalty halved.
+    if (product.nutrition.protein_g >= 15) {
+      adjustments.push({
+        points: +1,
+        reason: lang === 'en'
+          ? `High protein — useful for moderate-activity adults (EFSA PRI 0.83 g/kg/day)`
+          : `Protéines élevées — utiles pour un niveau d'activité modéré (PRI EFSA 0,83 g/kg/j)`,
         category: 'activity',
       });
     }
@@ -159,6 +181,61 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
           ? `Sedentary lifestyle — sugar penalty amplified (higher insulin-resistance risk)`
           : `Mode de vie sédentaire — pénalité sucres amplifiée (risque accru de résistance insulinique)`,
         category: 'activity',
+      });
+    }
+  }
+
+  // ===== PROTEIN PRI (uses weight_kg + age_years) =====
+  const priTarget = proteinPRI_g(profile);
+  if (priTarget != null) {
+    const per100 = product.nutrition.protein_g;
+    // "Protein-dense" = a 100 g serving covers ≥20 % of the user's daily PRI.
+    const pctOfPRI = (per100 / priTarget) * 100;
+    if (pctOfPRI >= 20) {
+      adjustments.push({
+        points: +2,
+        reason: lang === 'en'
+          ? `100 g covers ${pctOfPRI.toFixed(0)} % of your daily protein target (${priTarget} g, EFSA PRI adjusted for your weight/age)`
+          : `100 g couvre ${pctOfPRI.toFixed(0)} % de ton besoin protéique journalier (${priTarget} g, PRI EFSA ajusté à ton poids/âge)`,
+        category: 'bmi',
+      });
+    }
+  }
+
+  // ===== DAILY TARGET CONTEXT (uses weight_kg + height_cm + age_years + activity) =====
+  const targets = dailyTargets(profile);
+  if (targets) {
+    // Single-serving cost: if a 100 g portion uses ≥50 % of the user's daily
+    // sat-fat budget, that's a strong personalized red flag.
+    const satFatPct = (product.nutrition.saturated_fat_g / Math.max(1, targets.sat_fat_g_max)) * 100;
+    if (satFatPct >= 50) {
+      adjustments.push({
+        points: -4,
+        reason: lang === 'en'
+          ? `100 g uses ${satFatPct.toFixed(0)} % of your daily sat-fat budget (${targets.sat_fat_g_max} g from TDEE×10 %E, WHO 2023)`
+          : `100 g consomme ${satFatPct.toFixed(0)} % de ton budget AGS journalier (${targets.sat_fat_g_max} g selon TDEE×10 %E, OMS 2023)`,
+        category: 'bmi',
+      });
+    }
+    const sugars = product.nutrition.added_sugars_g ?? product.nutrition.sugars_g;
+    const sugarPct = (sugars / Math.max(1, targets.free_sugars_g_max)) * 100;
+    if (sugarPct >= 50) {
+      adjustments.push({
+        points: -4,
+        reason: lang === 'en'
+          ? `100 g uses ${sugarPct.toFixed(0)} % of your daily free-sugar budget (${targets.free_sugars_g_max} g from TDEE×10 %E, WHO 2015; ideal ${targets.free_sugars_g_ideal} g at 5 %E)`
+          : `100 g consomme ${sugarPct.toFixed(0)} % de ton budget sucres libres (${targets.free_sugars_g_max} g selon TDEE×10 %E, OMS 2015 ; idéal ${targets.free_sugars_g_ideal} g à 5 %E)`,
+        category: 'bmi',
+      });
+    }
+    const saltPct = (product.nutrition.salt_g / targets.salt_g_max) * 100;
+    if (saltPct >= 30) {
+      adjustments.push({
+        points: -3,
+        reason: lang === 'en'
+          ? `100 g uses ${saltPct.toFixed(0)} % of the WHO 5 g/day salt ceiling`
+          : `100 g consomme ${saltPct.toFixed(0)} % du plafond OMS de 5 g/j de sel`,
+        category: 'bmi',
       });
     }
   }

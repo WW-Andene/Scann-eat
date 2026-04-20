@@ -45,20 +45,26 @@ export const DIET_DEFS = {
     label_fr: 'Végan',
     label_en: 'Vegan',
     forbidden: [
-      // Everything in vegetarian's list
-      /\b(viande|porc|b[oœ]euf|poulet|dinde|canard|agneau|veau|lard|lardon|jambon|saucisse|chorizo|merguez|bacon|boudin|confit|rillette|pat[eé]|foie gras|gelati?ne(?! halal)|pr[eé]sure animale|collag[eè]ne|pepsine)\b/i,
+      // Meat / fish / shellfish
+      /\b(viande|porc|b[oœ]euf|poulet|dinde|canard|agneau|veau|lard|lardon|jambon|saucisse|chorizo|merguez|bacon|boudin|confit|rillette|pat[eé]|foie gras|gelati?ne(?! v[eé]g[eé]tale)|pr[eé]sure animale|collag[eè]ne|pepsine|isinglass|colle de poisson)\b/i,
       /\b(poisson|saumon|thon|cabillaud|sardine|maquereau|anchois|hareng|crustac[eé]|crevette|homard|crabe|hu[iî]tre|moule|calmar|poulpe)\b/i,
-      // Plus dairy, eggs, honey, beeswax
-      /\b(lait|lactos[eé]rum|petit[- ]lait|cr[eè]me|beurre|fromage|yaourt|yoghourt|skyr|k[eé]fir|cas[eé]ine|lactalbumine|whey|mati[eè]re grasse laiti[eè]re|poudre de lait|beurre clarifi[eé]|ghee|mascarpone|ricotta|mozzarella|parmesan|emmental)\b/i,
+      // Dairy
+      /\b(lait(?! de (coco|soja|amande|avoine|riz))|lactos[eé]rum|petit[- ]lait|cr[eè]me(?! v[eé]g[eé]tale)|beurre(?! de cacahu[eè]te| d'arachide| de coco)|fromage|yaourt|yoghourt|skyr|k[eé]fir|cas[eé]ine|lactalbumine|whey|mati[eè]re grasse laiti[eè]re|poudre de lait|beurre clarifi[eé]|ghee|mascarpone|ricotta|mozzarella|parmesan|emmental)\b/i,
+      // Eggs
       /\b(oeufs?|œufs?|jaune d'?oeuf|blanc d'?oeuf|ovalbumine|lysozyme|ovomuco[iï]de)\b/i,
+      // Bee / insect products
       /\b(miel|propolis|gel[eé]e royale|cire d'abeille|beeswax)\b/i,
-      /\bE901\b/i, // E901 beeswax
-      /\bE904\b/i, // E904 shellac (from insects)
-      /\bE120\b/i, // E120 carmine
-      /\b(cochenille|carmin)\b/i,
+      /\bE90[134]\b/i,     // E901 beeswax, E904 shellac, E903 carnauba (actually plant) — E901/E904 are animal/insect
+      /\bE120\b/i,         // carmine
+      /\bE542\b/i,         // bone phosphate
+      /\bE631\b/i, /\bE635\b/i, // disodium 5'-ribonucleotides — often fish/animal-derived
+      /\b(cochenille|carmin|phosphate osseux|lanoline)\b/i,
     ],
-    note_fr: 'Exclut tout produit animal : viande, poisson, œufs, lait, miel et dérivés (carmin E120, gélatine, cire d\'abeille E901, shellac E904).',
-    note_en: 'Excludes any animal product: meat, fish, eggs, dairy, honey and derivatives (carmine E120, gelatin, beeswax E901, shellac E904).',
+    preferred: [
+      /\b(v[eé]gan|v-label|vegan|plant-based|100% v[eé]g[eé]tal)\b/i,
+    ],
+    note_fr: 'Exclut tout produit animal : viande, poisson, œufs, lait, miel, colle de poisson (isinglass), phosphate osseux E542, ribonucléotides E631/E635, carmin E120, gélatine, cire d\'abeille E901, shellac E904. Certification V-Label reconnue → bonus.',
+    note_en: 'Excludes any animal product: meat, fish, eggs, dairy, honey, isinglass, bone phosphate E542, ribonucleotides E631/E635, carmine E120, gelatin, beeswax E901, shellac E904. V-Label certification → bonus.',
   },
 
   pescatarian: {
@@ -87,24 +93,44 @@ export const DIET_DEFS = {
     label_fr: 'Halal',
     label_en: 'Halal',
     forbidden: [
-      /\b(porc|lard|lardon|jambon|saucisson|bacon|salami|chorizo|pepperoni|couenne|boudin|saindoux)\b/i,
-      /\b(alcool|[eé]thanol|vin|bi[eè]re|liqueur|rhum|whisky|gin|vodka|spiritueux)\b/i,
-      /\b(gelati?ne(?! (halal|v[eé]g[eé]tale|v[eé]g)))\b/i,
-      /\b(pr[eé]sure animale|pepsine(?! halal))\b/i,
+      // Pork + derivatives
+      /\b(porc|cochon|lard|lardon|jambon|saucisson|bacon|salami|chorizo|pepperoni|couenne|boudin|saindoux|suif|andouille|pancetta|pi[eé]tement de porc|pied de porc|oreille de porc|groin|boyau de porc|foie de porc|jambonneau|rosette|coppa|speck|guanciale|mortadelle|hot[- ]dog|nugget)\b/i,
+      // Ambiguous animal fat (must specify halal source)
+      /\b(graisse animale(?! halal)|mati[eè]re grasse animale(?! halal))\b/i,
+      // Alcohol & derivatives (wine/spirit/beer lineage)
+      /\b(alcool|[eé]thanol|ethyl alcohol|vin(?! blanc de cuisson sans alcool)|bi[eè]re|biere|liqueur|rhum|whisky|whiskey|gin|vodka|spiritueux|kirsch|marc|cognac|armagnac|calvados|porto|champagne|x[eé]r[eé]s|amaretto|eau[- ]de[- ]vie|saki?|sake|grappa|tequila|mezcal|absinthe|chartreuse|b[eé]n[eé]dictine)\b/i,
+      // Gelatin / rennet / pepsin — allowed only when explicitly halal or vegetal
+      /\b(gelati?ne(?!\s+(halal|v[eé]g[eé]tale|v[eé]g|de poisson)))\b/i,
+      /\b(pr[eé]sure animale(?! halal)|pepsine(?! halal))\b/i,
+      // Animal-derived emulsifiers / mono-diglycerides when source not declared
+      // (E471 / E472 can be animal or vegetal — require explicit plant source)
+      /\b(mono[- ]et diglyc[eé]rides(?! d['']origine v[eé]g[eé]tale))\b/i,
+      // Insects / shellac / carmine (debated; conservatively excluded by many halal scholars)
+      /\b(cochenille|carmin|shellac|gomme[- ]laque)\b/i,
+      /\bE1(20|200|201|202)\b/i, // E120 carmine, E901-904 waxes handled separately
     ],
-    note_fr: 'Pas de porc ni dérivés, pas d\'alcool, gélatine/présure doivent être certifiées halal (non vérifiable depuis l\'étiquette seule).',
-    note_en: 'No pork or derivatives, no alcohol; gelatin/rennet must be halal-certified (not verifiable from label alone).',
+    // Any of these in the product name / ingredients counts as certified → preferred bonus
+    preferred: [
+      /\b(halal|certifi[eé] halal|AVS|AFCAI|ARGML|HMC|halal[- ]certified)\b/i,
+    ],
+    note_fr: 'Pas de porc ni dérivés, pas d\'alcool ni dérivés, gélatine/présure doivent être halal ou végétales, émulsifiants (E471/E472) doivent déclarer une origine végétale. Certification reconnue (AVS / AFCAI / HMC) donne un bonus ; elle ne peut pas être vérifiée depuis l\'étiquette seule (méthode d\'abattage).',
+    note_en: 'No pork or derivatives, no alcohol or derivatives; gelatin/rennet must be halal or vegetal; emulsifiers (E471/E472) must declare a plant source. Recognized certification (AVS / AFCAI / HMC / HMC-UK) earns a bonus; cannot be fully verified from the label alone (slaughter method).',
   },
 
   kosher: {
     label_fr: 'Casher',
     label_en: 'Kosher',
     forbidden: [
-      /\b(porc|lard|lardon|jambon|saucisson|bacon|salami|chorizo|pepperoni|saindoux)\b/i,
-      /\b(crustac[eé]|crevette|homard|crabe|langouste|hu[iî]tre|moule|calmar|encornet|poulpe)\b/i,
+      /\b(porc|cochon|lard|lardon|jambon|saucisson|bacon|salami|chorizo|pepperoni|saindoux|suif|pancetta|couenne)\b/i,
+      /\b(crustac[eé]|crevette|homard|crabe|langouste|langoustine|[eé]crevisse|hu[iî]tre|moule|calmar|encornet|poulpe|p[eé]toncle|palourde|bigorneau|bulot)\b/i,
+      /\b(lapin|li[eè]vre|cheval|sanglier|chameau|autruche)\b/i, // non-kosher land animals
+      /\b(anguille|requin|esturgeon)\b/i, // fish without scales = treif
     ],
-    note_fr: 'Pas de porc ni fruits de mer. La certification kasher (séparation viande-lait, shechita) n\'est pas vérifiable depuis l\'étiquette.',
-    note_en: 'No pork or shellfish. Full kosher certification (meat-dairy separation, shechita slaughter) is not verifiable from the label.',
+    preferred: [
+      /\b(casher|kasher|kosher|OU|OK|Star-K|KOF-K|COR|SCS[- ]?Loubavitch)\b/,
+    ],
+    note_fr: 'Pas de porc, mollusques/crustacés, poissons sans écailles (requin, esturgeon, anguille), viande non ruminante (lapin, cheval). Certification (OU, OK, Star-K, KOF-K) donne un bonus ; la séparation viande-lait et shechita ne peuvent pas être vérifiées depuis l\'étiquette.',
+    note_en: 'No pork, no shellfish/molluscs, no scaleless fish (shark, sturgeon, eel), no non-ruminant meat (rabbit, horse). Certification (OU, OK, Star-K, KOF-K) earns a bonus; meat-dairy separation and shechita cannot be verified from the label.',
   },
 
   gluten_free: {
@@ -191,36 +217,38 @@ export function checkDiet(product, dietKey, customDiet, lang = 'fr') {
 
   const violations = [];
   const preferredHits = [];
+  const productName = product.name || '';
+  // Haystack = product name + every ingredient name joined — certification text
+  // ("Certifié halal", "V-Label", "OU") usually appears in the product name,
+  // not as an ingredient.
+  const haystacks = [productName, ...product.ingredients.map((i) => i.name)];
+
+  const testAny = (re) => haystacks.find((h) => re.test(h));
 
   // Custom diet: use user-provided patterns.
   if (dietKey === 'custom' && customDiet) {
     for (const pattern of customDiet.forbidden || []) {
       try {
         const re = new RegExp(pattern, 'i');
-        for (const ing of product.ingredients) {
-          if (re.test(ing.name)) { violations.push(ing.name); break; }
-        }
+        const hit = testAny(re);
+        if (hit) violations.push(hit);
       } catch { /* bad regex, skip */ }
     }
     for (const pattern of customDiet.preferred || []) {
       try {
         const re = new RegExp(pattern, 'i');
-        for (const ing of product.ingredients) {
-          if (re.test(ing.name)) { preferredHits.push(ing.name); break; }
-        }
+        const hit = testAny(re);
+        if (hit) preferredHits.push(hit);
       } catch { /* skip */ }
     }
   } else {
-    // Standard diet rules
     for (const re of def.forbidden || []) {
-      for (const ing of product.ingredients) {
-        if (re.test(ing.name)) { violations.push(ing.name); break; }
-      }
+      const hit = testAny(re);
+      if (hit) violations.push(hit);
     }
     for (const re of def.preferred || []) {
-      for (const ing of product.ingredients) {
-        if (re.test(ing.name)) { preferredHits.push(ing.name); break; }
-      }
+      const hit = testAny(re);
+      if (hit) preferredHits.push(hit);
     }
   }
 
@@ -238,13 +266,25 @@ export function checkDiet(product, dietKey, customDiet, lang = 'fr') {
     }
   }
 
+  // Certification override — for halal, kosher, vegan, gluten_free, the
+  // presence of an explicit certification mark on the product name / ingredient
+  // list is evidence that the overall product IS compliant, even when an
+  // individual ingredient pattern might have matched (e.g. "gélatine" labeled
+  // gélatine halal is often written in a way the regex missed).
+  const hasCertification = preferredHits.length > 0;
+  const certificationOverride =
+    hasCertification && ['halal', 'kosher', 'vegan', 'gluten_free'].includes(dietKey);
+
+  const compliant = certificationOverride || violations.length === 0;
   return {
-    compliant: violations.length === 0,
-    violations,
+    compliant,
+    violations: certificationOverride ? [] : violations,
     preferredHits,
-    reason: violations.length > 0
-      ? (lang === 'en' ? `Not ${def.label_en}: ${violations.slice(0, 3).join(', ')}` :
-         `Non ${def.label_fr} : ${violations.slice(0, 3).join(', ')}`)
-      : null,
+    certified: hasCertification,
+    reason: compliant
+      ? null
+      : (lang === 'en'
+          ? `Not ${def.label_en}: ${violations.slice(0, 3).join(', ')}`
+          : `Non ${def.label_fr} : ${violations.slice(0, 3).join(', ')}`),
   };
 }
