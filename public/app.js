@@ -523,4 +523,75 @@ if (compareArmed()) {
   if (compareNextBtn) compareNextBtn.textContent = '✓ En attente du prochain scan';
 }
 
+// ---------- Auto-update (APK only) ----------
+
+const GITHUB_REPO = 'WW-Andene/Scann-eat';
+const UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
+const LS_DISMISSED_VERSION = 'scanneat.dismissed_update';
+
+const updateBanner = $('update-banner');
+const updateInstallBtn = $('update-install-btn');
+const updateDismissBtn = $('update-dismiss-btn');
+const updateVersionEl = $('update-version');
+
+async function currentCommit() {
+  try {
+    const res = await fetch('/version.json', { cache: 'no-cache' });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return typeof body.commit === 'string' ? body.commit : null;
+  } catch {
+    return null;
+  }
+}
+
+async function latestRelease() {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+      { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-cache' },
+    );
+    if (!res.ok) return null;
+    const release = await res.json();
+    const apkAsset = (release.assets || []).find((a) => /\.apk$/i.test(a.name));
+    if (!apkAsset) return null;
+    return {
+      tag: release.tag_name,
+      commit: (release.tag_name || '').replace(/^build-/, ''),
+      apkUrl: apkAsset.browser_download_url,
+      notes: release.body || '',
+      publishedAt: release.published_at,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function checkForUpdate() {
+  // Only run inside the APK — the web shell updates itself on reload.
+  if (!isCapacitor) return;
+  const [current, latest] = await Promise.all([currentCommit(), latestRelease()]);
+  if (!current || !latest) return;
+  if (latest.commit === current) return; // already up to date
+  if (localStorage.getItem(LS_DISMISSED_VERSION) === latest.tag) return;
+
+  updateVersionEl.textContent = latest.tag;
+  updateInstallBtn.setAttribute('href', latest.apkUrl);
+  show(updateBanner);
+}
+
+updateDismissBtn?.addEventListener('click', () => {
+  const tag = updateVersionEl.textContent || '';
+  if (tag) localStorage.setItem(LS_DISMISSED_VERSION, tag);
+  hide(updateBanner);
+});
+
+checkForUpdate();
+setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
+if (typeof document.addEventListener === 'function') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkForUpdate();
+  });
+}
+
 renderQueue();

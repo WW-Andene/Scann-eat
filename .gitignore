@@ -1,6 +1,7 @@
 node_modules/
 android/
 public/engine.bundle.js
+public/version.json
 dist/
 *.log
 .env

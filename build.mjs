@@ -1,12 +1,30 @@
 /**
- * Bundles the TS engine (scoring-engine.ts + ocr-parser.ts) into a single
- * browser-friendly ESM file at public/engine.bundle.js.
+ * Bundles the TS engine (scoring-engine.ts + ocr-parser.ts + off.ts) into a
+ * single browser-friendly ESM file at public/engine.bundle.js.
  *
- * Used by the standalone APK build and by `vercel dev` / `npm run dev` for
- * client-side direct-mode Groq calls (when the user provides their own key).
+ * Also writes public/version.json with the current git commit so the running
+ * app (web or APK) can self-compare against the latest GitHub Release and
+ * offer an in-place update.
  */
 
 import { build } from 'esbuild';
+import { execSync } from 'node:child_process';
+import { writeFile } from 'node:fs/promises';
+
+let commit = process.env.APP_COMMIT;
+if (!commit) {
+  try {
+    commit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    commit = 'dev';
+  }
+}
+const builtAt = new Date().toISOString();
+
+await writeFile(
+  'public/version.json',
+  JSON.stringify({ commit, built_at: builtAt }, null, 2) + '\n',
+);
 
 await build({
   stdin: {
@@ -27,3 +45,6 @@ await build({
   minify: false,
   logLevel: 'info',
 });
+
+console.log(`[build] commit=${commit}`);
+
