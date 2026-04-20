@@ -267,6 +267,18 @@
         </div>
       </section>
 
+      <section id="daily-dashboard" class="daily-dashboard" hidden>
+        <div class="dashboard-header">
+          <h2><span data-i18n="todayTitle">Aujourd'hui</span> · <span id="dashboard-date"></span></h2>
+          <button id="clear-today" class="secondary compact" type="button" data-i18n="clearToday">Effacer</button>
+        </div>
+        <ul id="dashboard-rows" class="dashboard-rows"></ul>
+        <details class="dashboard-log" id="dashboard-log" hidden>
+          <summary data-i18n="todayEntries">Aliments loggés</summary>
+          <ul id="dashboard-entries"></ul>
+        </details>
+      </section>
+
       <section id="recent-scans" class="recent-scans" hidden>
         <div class="recent-header">
           <h2 data-i18n="recentScans">Scans récents</h2>
@@ -354,6 +366,23 @@
           </div>
           <div class="allergens" id="allergens" hidden></div>
           <p class="sparse-hint" id="sparse-hint" hidden></p>
+        </div>
+
+        <div class="portion-panel" id="portion-panel">
+          <label class="portion-input">
+            <span data-i18n="portionLabel">Portion consommée</span>
+            <span class="portion-row">
+              <input id="portion-grams" type="number" min="1" max="2000" step="1" inputmode="decimal" value="100" />
+              <span>g</span>
+            </span>
+          </label>
+          <div class="portion-presets">
+            <button type="button" class="chip-btn" data-portion="50">50 g</button>
+            <button type="button" class="chip-btn" data-portion="100">100 g</button>
+            <button type="button" class="chip-btn" id="portion-preset-pack" hidden>— g (paquet)</button>
+          </div>
+          <button id="log-btn" type="button" class="log-btn"><span data-i18n="logPortion">Logger cette portion</span> <span id="log-kcal-preview" class="log-kcal-preview"></span></button>
+          <p class="log-toast" id="log-toast" hidden></p>
         </div>
 
         <div class="result-actions">

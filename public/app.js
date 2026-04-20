@@ -8,6 +8,7 @@ import {
   bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets, proteinPRI_g,
 } from '/profile.js';
 import { computePersonalScore, personalGrade } from '/personal-score.js';
+import { logEntry, listByDate, deleteEntry, clearDate, dailyTotals, buildEntry, todayISO } from '/consumption.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -429,6 +430,7 @@ function renderAudit(data) {
   renderAllergens(data.product);
   renderSparseHint(data);
   renderAdditiveSummary(data.product);
+  setupPortionPanel(data.product);
   show(shareBtn);
 
   renderList('red-flags', audit.red_flags, t('noFlag'));
@@ -1299,7 +1301,174 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') { checkForUpdate(); updatePendingBanner(); }
 });
 
+// ============================================================================
+// Consumption logging + daily dashboard
+// ============================================================================
+
+const portionPanel = $('portion-panel');
+const portionInput = $('portion-grams');
+const portionPresetPack = $('portion-preset-pack');
+const logBtn = $('log-btn');
+const logKcalPreview = $('log-kcal-preview');
+const logToast = $('log-toast');
+const dashboardEl = $('daily-dashboard');
+const dashboardRows = $('dashboard-rows');
+const dashboardEntries = $('dashboard-entries');
+const dashboardLog = $('dashboard-log');
+const dashboardDateEl = $('dashboard-date');
+const clearTodayBtn = $('clear-today');
+
+function setupPortionPanel(product) {
+  const weight = product?.weight_g;
+  const defaultG = weight && weight > 0 && weight < 2000 ? weight : 100;
+  portionInput.value = String(defaultG);
+  if (weight && weight > 0 && weight < 2000) {
+    portionPresetPack.textContent = `${weight} g (paquet)`;
+    portionPresetPack.dataset.portion = String(weight);
+    portionPresetPack.hidden = false;
+  } else {
+    portionPresetPack.hidden = true;
+  }
+  updateLogPreview(product);
+  hide(logToast);
+}
+
+function updateLogPreview(product) {
+  const g = Math.max(0, Number(portionInput.value) || 0);
+  const per100 = product?.nutrition?.energy_kcal ?? 0;
+  const kcal = Math.round((per100 * g) / 100);
+  logKcalPreview.textContent = kcal > 0 ? ` (${kcal} kcal)` : '';
+}
+
+portionInput?.addEventListener('input', () => {
+  if (lastData) updateLogPreview(lastData.product);
+});
+
+$('portion-panel')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.chip-btn[data-portion]');
+  if (!btn) return;
+  portionInput.value = btn.dataset.portion;
+  if (lastData) updateLogPreview(lastData.product);
+});
+
+logBtn?.addEventListener('click', async () => {
+  if (!lastData) return;
+  const grams = Math.max(0, Number(portionInput.value) || 0);
+  if (grams <= 0) return;
+  try {
+    const entry = await logEntry(lastData.product, grams);
+    logToast.textContent = t('logged', { grams, kcal: Math.round(entry.kcal) });
+    show(logToast);
+    await renderDashboard();
+  } catch (err) {
+    console.error('[log]', err);
+  }
+});
+
+clearTodayBtn?.addEventListener('click', async () => {
+  await clearDate();
+  await renderDashboard();
+});
+
+function pctClass(pct) {
+  if (pct >= 100) return 'over';
+  if (pct >= 80) return 'near';
+  return 'ok';
+}
+
+async function renderDashboard() {
+  const profile = getProfile();
+  const targets = dailyTargets(profile);
+  const totals = await dailyTotals().catch(() => null);
+  if (!totals) { hide(dashboardEl); return; }
+
+  if (totals.count === 0 && !targets) { hide(dashboardEl); return; }
+
+  dashboardDateEl.textContent = new Date().toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
+    weekday: 'short', day: 'numeric', month: 'short',
+  });
+
+  const rows = [
+    { key: 'dashKcal', value: totals.kcal, target: targets?.kcal, unit: 'kcal' },
+    { key: 'dashSatFat', value: totals.sat_fat_g, target: targets?.sat_fat_g_max, unit: 'g' },
+    { key: 'dashSugars', value: totals.sugars_g, target: targets?.free_sugars_g_max, unit: 'g' },
+    { key: 'dashSalt', value: totals.salt_g, target: targets?.salt_g_max, unit: 'g' },
+    { key: 'dashProtein', value: totals.protein_g, target: null, unit: 'g' },
+  ];
+
+  dashboardRows.innerHTML = '';
+  for (const row of rows) {
+    const li = document.createElement('li');
+    li.className = 'dash-row';
+    const label = document.createElement('span');
+    label.className = 'dash-label';
+    label.textContent = t(row.key);
+    const bar = document.createElement('span');
+    bar.className = 'dash-bar';
+    const fill = document.createElement('span');
+    fill.className = 'dash-fill';
+    let pct = 0;
+    if (row.target && row.target > 0) {
+      pct = Math.min(200, (row.value / row.target) * 100);
+      fill.style.width = `${Math.min(100, pct)}%`;
+      fill.dataset.state = pctClass(pct);
+    } else {
+      fill.style.width = '0%';
+    }
+    bar.appendChild(fill);
+    const val = document.createElement('strong');
+    val.className = 'dash-value';
+    if (row.target) {
+      val.textContent = `${row.value} / ${row.target} ${row.unit} (${Math.round(pct)} %)`;
+    } else {
+      val.textContent = `${row.value} ${row.unit}`;
+    }
+    li.appendChild(label);
+    li.appendChild(bar);
+    li.appendChild(val);
+    dashboardRows.appendChild(li);
+  }
+
+  // Entries list
+  const entries = await listByDate().catch(() => []);
+  dashboardEntries.innerHTML = '';
+  if (entries.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'dash-entry-empty';
+    li.textContent = t('dashEmpty');
+    dashboardEntries.appendChild(li);
+    hide(dashboardLog);
+  } else {
+    for (const e of entries.slice().sort((a, b) => b.timestamp - a.timestamp)) {
+      const li = document.createElement('li');
+      li.className = 'dash-entry';
+      const name = document.createElement('span');
+      name.className = 'dash-entry-name';
+      name.textContent = `${e.product_name} · ${e.grams} g`;
+      const kcal = document.createElement('strong');
+      kcal.textContent = `${Math.round(e.kcal)} kcal`;
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'dash-entry-del';
+      del.setAttribute('aria-label', t('deleteEntry'));
+      del.textContent = '×';
+      del.addEventListener('click', async () => {
+        await deleteEntry(e.id);
+        await renderDashboard();
+      });
+      li.appendChild(name);
+      li.appendChild(kcal);
+      li.appendChild(del);
+      dashboardEntries.appendChild(li);
+    }
+    show(dashboardLog);
+  }
+
+  show(dashboardEl);
+}
+
 renderQueue();
 updatePendingBanner();
 renderRecentScans();
+renderDashboard();
 maybeShowOnboarding();

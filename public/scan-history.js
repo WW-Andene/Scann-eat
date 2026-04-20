@@ -5,21 +5,26 @@
  */
 
 const DB_NAME = 'scanneat';
-const DB_VERSION = 2;
+// Must stay in lockstep with queue-store.js and consumption.js.
+const DB_VERSION = 3;
 const STORE = 'history';
 const MAX_ITEMS = 30;
 
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e) => {
+    req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('pending_scans')) {
         db.createObjectStore('pending_scans', { keyPath: 'id' });
       }
-      if (!db.objectStoreNames.contains(STORE)) {
-        const s = db.createObjectStore(STORE, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('history')) {
+        const s = db.createObjectStore('history', { keyPath: 'id' });
         s.createIndex('created', 'createdAt');
+      }
+      if (!db.objectStoreNames.contains('consumption')) {
+        const s = db.createObjectStore('consumption', { keyPath: 'id' });
+        s.createIndex('date', 'date');
       }
     };
     req.onsuccess = () => resolve(req.result);
