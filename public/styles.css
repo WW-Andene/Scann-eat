@@ -450,6 +450,232 @@ main {
   cursor: pointer;
 }
 
+/* ==========================================================================
+   Recent scans
+   ========================================================================== */
+.recent-scans {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 0.9rem 1rem 1rem;
+}
+.recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+.recent-header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.recent-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.recent-item {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem;
+  background: #0f1a14;
+  border: 1px solid #1f2e28;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.recent-item:hover { border-color: var(--accent); }
+.recent-thumb {
+  width: 48px; height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+}
+.recent-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.recent-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.15rem 0.6rem;
+  min-width: 0;
+}
+.recent-grade {
+  grid-row: 1 / span 2;
+  font-weight: 700;
+  width: 1.7rem;
+  height: 1.7rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  background: var(--muted);
+  color: #0f1a14;
+  font-size: 0.9rem;
+}
+.recent-grade[data-grade="A+"] { background: var(--grade-aplus); }
+.recent-grade[data-grade="A"]  { background: var(--grade-a); }
+.recent-grade[data-grade="B"]  { background: var(--grade-b); }
+.recent-grade[data-grade="C"]  { background: var(--grade-c); }
+.recent-grade[data-grade="D"]  { background: var(--grade-d); }
+.recent-grade[data-grade="F"]  { background: var(--grade-f); }
+.recent-name {
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.recent-when {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.recent-del {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  padding: 0 0.3rem;
+  cursor: pointer;
+}
+.recent-del:hover { color: var(--danger); }
+
+/* ==========================================================================
+   Allergen chips
+   ========================================================================== */
+.allergens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  align-items: center;
+}
+.allergen-intro {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.allergen-chip {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: #2a1616;
+  color: var(--danger);
+  border: 1px solid #4a2424;
+}
+.sparse-hint {
+  margin: 0.6rem 0 0;
+  padding: 0.55rem 0.75rem;
+  background: #2a2116;
+  border-left: 3px solid var(--grade-c);
+  color: var(--grade-c);
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   Ingredient dots + pillar bars
+   ========================================================================== */
+.ing-dot {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #2a3d37;
+  margin-right: 0.55rem;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.ing-dot[data-whole="1"]   { background: var(--grade-a); }
+.ing-dot[data-tier="0"]    { background: var(--muted); }
+.ing-dot[data-tier="3"]    { background: var(--grade-c); }
+.ing-dot[data-tier="2"]    { background: var(--grade-d); }
+.ing-dot[data-tier="1"]    { background: var(--grade-f); }
+#ingredient-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+.ing-label { flex: 1; }
+
+.pillar-row {
+  display: grid !important;
+  grid-template-columns: 1fr 2fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0 !important;
+  font-size: 0.85rem;
+}
+.pillar-label { color: var(--muted); }
+.pillar-value { font-weight: 600; }
+.pillar-bar {
+  height: 6px;
+  background: #0f1a14;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid #2a3d37;
+}
+.pillar-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--grade-d), var(--grade-a));
+}
+
+/* ==========================================================================
+   Loading skeleton
+   ========================================================================== */
+.skeleton-card,
+.skeleton-progress {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 1rem;
+  margin-bottom: 0.6rem;
+}
+.skeleton-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.skeleton-grade {
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 14px;
+  background: #1b2a25;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.skeleton-lines { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+.skeleton-line {
+  height: 0.75rem;
+  background: #1b2a25;
+  border-radius: 6px;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.skeleton-progress { display: flex; flex-direction: column; gap: 0.5rem; }
+.sk-full  { width: 100%; }
+.sk-wide  { width: 75%; }
+.sk-short { width: 40%; }
+@keyframes pulse {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+.status-text-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: center;
+  padding: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .capture #scan-btn {
   margin-top: 0.75rem;
   width: 100%;

@@ -1,4 +1,4 @@
-const CACHE = 'scann-eat-shell-v2';
+const CACHE = 'scann-eat-shell-v3';
 const SHELL = [
   '/',
   '/index.html',
@@ -6,6 +6,8 @@ const SHELL = [
   '/i18n.js',
   '/explanations.js',
   '/queue-store.js',
+  '/scan-history.js',
+  '/allergens.js',
   '/engine.bundle.js',
   '/styles.css',
   '/manifest.webmanifest',

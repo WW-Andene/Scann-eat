@@ -1,6 +1,8 @@
 import { t, setLang, currentLang, applyStaticTranslations } from '/i18n.js';
 import { explainFlag } from '/explanations.js';
 import { enqueue, listPending, remove as removePending, countPending } from '/queue-store.js';
+import { saveScan, listScans, deleteScan, clearScans } from '/scan-history.js';
+import { detectAllergens } from '/allergens.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -351,6 +353,7 @@ async function scanImage() {
     renderIngredients(data.product);
     renderNutrition(data.product);
     show(resultEl);
+    persistToHistory(data);
   } catch (err) {
     hide(statusEl);
     console.error('[scan] failed', err);
@@ -433,6 +436,9 @@ function renderAudit(data) {
     : conf === 'low' ? t('confidenceLow') : t('confidenceMed');
   show(resultConfidenceEl);
 
+  renderAllergens(data.product);
+  renderSparseHint(data);
+
   const extras = applyPreferenceFlags(data);
   renderList('red-flags', [...audit.red_flags, ...extras.red], t('noFlag'));
   renderList('green-flags', [...audit.green_flags, ...extras.green], t('noFlag'));
@@ -446,8 +452,14 @@ function renderAudit(data) {
   ];
   const pillarList = $('pillar-list'); pillarList.innerHTML = '';
   for (const [label, pillar] of pillars) {
+    const pct = Math.round((pillar.score / pillar.max) * 100);
     const li = document.createElement('li');
-    li.innerHTML = `<strong>${label}</strong>: ${pillar.score} / ${pillar.max}`;
+    li.className = 'pillar-row';
+    li.innerHTML = `
+      <span class="pillar-label">${label}</span>
+      <span class="pillar-bar"><span class="pillar-bar-fill" style="width:${pct}%"></span></span>
+      <strong class="pillar-value">${pillar.score} / ${pillar.max}</strong>
+    `;
     pillarList.appendChild(li);
   }
   if (warnings?.length) {
@@ -459,14 +471,88 @@ function renderAudit(data) {
   compareNextBtn.textContent = t('compareNext');
 }
 
+function renderAllergens(product) {
+  const el = $('allergens');
+  const hits = detectAllergens(product, currentLang);
+  el.innerHTML = '';
+  if (hits.length === 0) { hide(el); return; }
+  const intro = document.createElement('span');
+  intro.className = 'allergen-intro';
+  intro.textContent = t('allergenIntro') + ' :';
+  el.appendChild(intro);
+  for (const hit of hits) {
+    const chip = document.createElement('span');
+    chip.className = 'allergen-chip';
+    chip.textContent = hit.label;
+    chip.title = hit.triggers.join(', ');
+    el.appendChild(chip);
+  }
+  show(el);
+}
+
+function renderSparseHint(data) {
+  const el = $('sparse-hint');
+  const sparse =
+    data.product.ingredients.length === 0 ||
+    (data.product.nutrition.energy_kcal === 0 && data.product.nutrition.protein_g === 0);
+  if (sparse && data.source !== 'openfoodfacts') {
+    el.textContent = t('sparseData');
+    show(el);
+  } else hide(el);
+}
+
+async function getAdditiveInfo(eNumber) {
+  try {
+    const mod = await loadEngine();
+    // The engine bundle re-exports ADDITIVES_DB indirectly via scoreProduct;
+    // but not directly. Fetch via a client-side lookup table instead:
+    return window.__additivesIndex?.[eNumber] ?? null;
+  } catch { return null; }
+}
+
+// Lightweight additives index populated lazily from the bundle.
+async function ensureAdditivesIndex() {
+  if (window.__additivesIndex) return;
+  try {
+    const mod = await import('/engine.bundle.js');
+    if (mod.ADDITIVES_DB) {
+      const idx = {};
+      for (const a of mod.ADDITIVES_DB) idx[a.e_number] = a;
+      window.__additivesIndex = idx;
+    }
+  } catch { /* ignore — fall back to name-only rendering */ }
+}
+
 function renderIngredients(product) {
+  ensureAdditivesIndex();
   const ol = $('ingredient-list'); ol.innerHTML = '';
   for (const ing of product.ingredients) {
     const li = document.createElement('li');
     const pct = ing.percentage != null ? ` — ${ing.percentage}%` : '';
     const e = ing.e_number ? ` [${ing.e_number}]` : '';
-    li.textContent = `${ing.name}${pct}${e}`;
+    const info = ing.e_number ? window.__additivesIndex?.[ing.e_number] : null;
+
+    const dot = document.createElement('span');
+    dot.className = 'ing-dot';
+    if (info) dot.dataset.tier = String(info.tier);
+    else if (ing.category === 'additive') dot.dataset.tier = '0';
+    else if (ing.is_whole_food) dot.dataset.whole = '1';
+    li.appendChild(dot);
+
+    const label = document.createElement('span');
+    label.className = 'ing-label';
+    label.textContent = `${ing.name}${pct}${e}`;
+    li.appendChild(label);
+
     if (ing.category === 'additive') li.classList.add('additive');
+    if (info) {
+      li.classList.add('explainable');
+      li.addEventListener('click', () => {
+        explainTitle.textContent = `${ing.name}${e}`;
+        explainBody.textContent = info.concern;
+        explainDialog.showModal();
+      });
+    }
     ol.appendChild(li);
   }
 }
@@ -613,6 +699,110 @@ function closeCameraScanner() {
 }
 
 // ============================================================================
+// Scan history
+// ============================================================================
+
+const recentScansEl = $('recent-scans');
+const recentListEl = $('recent-list');
+const clearHistoryBtn = $('clear-history');
+
+async function persistToHistory(data) {
+  const thumb = queue.find((q) => q.dataUrl && q.dataUrl.startsWith('data:image'))?.dataUrl
+    ?? '';
+  await saveScan({
+    id: crypto.randomUUID(),
+    createdAt: Date.now(),
+    thumbnail: thumb,
+    name: data.audit.product_name || data.product.name,
+    grade: data.audit.grade,
+    score: data.audit.score,
+    category: data.audit.category,
+    source: data.source,
+    snapshot: data,
+  });
+  renderRecentScans();
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const min = Math.round(diff / 60000);
+  if (min < 1) return t('justNow');
+  if (min < 60) return t('minutesAgo', { n: min });
+  const h = Math.round(min / 60);
+  if (h < 24) return t('hoursAgo', { n: h });
+  const d = Math.round(h / 24);
+  return t('daysAgo', { n: d });
+}
+
+async function renderRecentScans() {
+  const items = await listScans().catch(() => []);
+  recentListEl.innerHTML = '';
+  if (items.length === 0) { hide(recentScansEl); return; }
+  for (const item of items.slice(0, 8)) {
+    const li = document.createElement('li');
+    li.className = 'recent-item';
+    li.dataset.id = item.id;
+    const thumb = document.createElement('div');
+    thumb.className = 'recent-thumb';
+    if (item.thumbnail) {
+      const img = document.createElement('img');
+      img.src = item.thumbnail; img.alt = '';
+      thumb.appendChild(img);
+    } else {
+      thumb.textContent = '📦';
+    }
+    const meta = document.createElement('div');
+    meta.className = 'recent-meta';
+    const grade = document.createElement('span');
+    grade.className = 'recent-grade';
+    grade.dataset.grade = item.grade;
+    grade.textContent = item.grade;
+    const name = document.createElement('strong');
+    name.className = 'recent-name';
+    name.textContent = item.name;
+    const when = document.createElement('small');
+    when.className = 'recent-when';
+    when.textContent = `${item.score}/100 • ${timeAgo(item.createdAt)}`;
+    meta.appendChild(grade);
+    meta.appendChild(name);
+    meta.appendChild(when);
+    const del = document.createElement('button');
+    del.className = 'recent-del';
+    del.type = 'button';
+    del.setAttribute('aria-label', t('removeFromHistory'));
+    del.textContent = '×';
+    del.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await deleteScan(item.id);
+      renderRecentScans();
+    });
+    li.appendChild(thumb);
+    li.appendChild(meta);
+    li.appendChild(del);
+    li.addEventListener('click', () => reopenScan(item));
+    recentListEl.appendChild(li);
+  }
+  show(recentScansEl);
+}
+
+function reopenScan(item) {
+  if (!item.snapshot) return;
+  lastData = item.snapshot;
+  hide(errorEl);
+  hide(statusEl);
+  renderAudit(item.snapshot);
+  renderIngredients(item.snapshot.product);
+  renderNutrition(item.snapshot.product);
+  show(resultEl);
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+clearHistoryBtn?.addEventListener('click', async () => {
+  await clearScans();
+  renderRecentScans();
+});
+
+// ============================================================================
 // Auto-update (APK only)
 // ============================================================================
 
@@ -731,3 +921,4 @@ document.addEventListener('visibilitychange', () => {
 
 renderQueue();
 updatePendingBanner();
+renderRecentScans();

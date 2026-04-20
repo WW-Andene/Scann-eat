@@ -110,8 +110,30 @@
       </section>
 
       <section id="status" class="status" hidden>
-        <div class="spinner" aria-hidden="true"></div>
-        <span id="status-text" data-i18n="analysing">Analyse en cours…</span>
+        <div class="skeleton-card">
+          <div class="skeleton-grade"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line sk-wide"></div>
+            <div class="skeleton-line sk-short"></div>
+          </div>
+        </div>
+        <div class="skeleton-progress">
+          <div class="skeleton-line sk-full"></div>
+          <div class="skeleton-line sk-full"></div>
+          <div class="skeleton-line sk-full"></div>
+        </div>
+        <div class="status-text-wrap">
+          <div class="spinner" aria-hidden="true"></div>
+          <span id="status-text" data-i18n="analysing">Analyse en cours…</span>
+        </div>
+      </section>
+
+      <section id="recent-scans" class="recent-scans" hidden>
+        <div class="recent-header">
+          <h2 data-i18n="recentScans">Scans récents</h2>
+          <button id="clear-history" class="secondary compact" type="button" data-i18n="clearHistory">Effacer</button>
+        </div>
+        <ul id="recent-list" class="recent-list"></ul>
       </section>
 
       <section id="error" class="error" hidden></section>
@@ -155,6 +177,8 @@
             <span class="chip" id="result-source" hidden></span>
             <span class="chip" id="result-confidence" hidden></span>
           </div>
+          <div class="allergens" id="allergens" hidden></div>
+          <p class="sparse-hint" id="sparse-hint" hidden></p>
         </div>
 
         <div class="result-actions">
