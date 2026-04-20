@@ -13,6 +13,7 @@ await build({
     contents: `
       export { parseLabel, parseIngredientsText } from './ocr-parser.ts';
       export { scoreProduct } from './scoring-engine.ts';
+      export { fetchFromOFF } from './off.ts';
     `,
     resolveDir: '.',
     loader: 'ts',

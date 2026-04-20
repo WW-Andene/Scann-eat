@@ -169,6 +169,111 @@ main {
   cursor: pointer;
 }
 .queue-remove:hover { background: rgba(0, 0, 0, 0.9); }
+.queue-barcode {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--accent);
+  font-size: 0.65rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.queue-item.has-barcode { border-color: var(--accent); }
+
+.result-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.result-actions button { margin: 0.25rem 0; }
+.source {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0.25rem 0 0;
+}
+.compact { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
+
+.comparison {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.compare-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.compare-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+.compare-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 0.15rem 0.6rem;
+  align-items: center;
+  background: #0f1a14;
+  border: 1px solid #2a3d37;
+  border-radius: 12px;
+  padding: 0.6rem 0.75rem;
+}
+.compare-label {
+  grid-column: 1 / -1;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.compare-grade {
+  grid-row: 2 / span 2;
+  font-size: 1.6rem;
+  font-weight: 700;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--muted);
+  color: #0f1a14;
+  line-height: 1;
+}
+.compare-grade[data-grade="A+"] { background: var(--grade-aplus); }
+.compare-grade[data-grade="A"]  { background: var(--grade-a); }
+.compare-grade[data-grade="B"]  { background: var(--grade-b); }
+.compare-grade[data-grade="C"]  { background: var(--grade-c); }
+.compare-grade[data-grade="D"]  { background: var(--grade-d); }
+.compare-grade[data-grade="F"]  { background: var(--grade-f); }
+.compare-name {
+  font-size: 0.9rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compare-score {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.compare-delta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.compare-delta strong { color: var(--text); }
 
 .capture #scan-btn {
   margin-top: 0.75rem;

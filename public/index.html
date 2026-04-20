@@ -65,6 +65,28 @@
 
       <section id="error" class="error" hidden></section>
 
+      <section id="comparison" class="comparison" hidden>
+        <div class="compare-header">
+          <h3>Comparaison</h3>
+          <button id="compare-clear" type="button" class="secondary compact">Effacer</button>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-card" id="compare-a">
+            <span class="compare-label">Précédent</span>
+            <span class="compare-grade" data-target="a-grade">—</span>
+            <strong class="compare-name" data-target="a-name">—</strong>
+            <span class="compare-score"><span data-target="a-score">—</span> / 100</span>
+          </div>
+          <div class="compare-card" id="compare-b">
+            <span class="compare-label">Actuel</span>
+            <span class="compare-grade" data-target="b-grade">—</span>
+            <strong class="compare-name" data-target="b-name">—</strong>
+            <span class="compare-score"><span data-target="b-score">—</span> / 100</span>
+          </div>
+        </div>
+        <p class="compare-delta" id="compare-delta"></p>
+      </section>
+
       <section id="result" class="result" hidden>
         <div class="score-card">
           <div class="grade" id="grade-el">—</div>
@@ -78,6 +100,11 @@
         <div class="product">
           <h2 id="product-name">—</h2>
           <p class="category" id="product-category"></p>
+          <p class="source" id="result-source" hidden></p>
+        </div>
+
+        <div class="result-actions">
+          <button id="compare-next-btn" type="button" class="secondary">Comparer au prochain scan</button>
         </div>
 
         <div class="flags">

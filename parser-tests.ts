@@ -65,6 +65,16 @@ describe('splitIngredients', () => {
     ]);
   });
 
+  it('splits a vertical bulleted list (newline + bullet glyphs)', () => {
+    const raw = '- farine de blé\n- sucre\n- beurre\n- sel';
+    assert.deepEqual(splitIngredients(raw), ['farine de blé', 'sucre', 'beurre', 'sel']);
+  });
+
+  it('splits a numbered list without losing percentages', () => {
+    const raw = '1. jambon 17,4%\n2. fromage 12%\n3. pain';
+    assert.deepEqual(splitIngredients(raw), ['jambon 17,4%', 'fromage 12%', 'pain']);
+  });
+
   it('splits on semicolon as well as comma', () => {
     assert.deepEqual(
       splitIngredients('eau; sucre; sel'),

@@ -67,15 +67,24 @@ const CATEGORY_VALUES: readonly ProductCategory[] = [
 // SECTION 2: VISION PROMPT + OUTPUT SCHEMA
 // ============================================================================
 
-const SYSTEM_PROMPT = `Tu es un expert en étiquetage alimentaire français. On te fournit des photos d'emballages de produits de supermarché (face + dos). Tu dois extraire une fiche produit structurée EN JSON STRICT.
+const SYSTEM_PROMPT = `Tu es un expert en étiquetage alimentaire français. On te fournit des photos d'emballages de produits de supermarché (face + dos, panneau ingrédients, tableau nutritionnel). Tu dois extraire une fiche produit structurée EN JSON STRICT.
 
 Règles non-négociables:
 - Réponds UNIQUEMENT avec du JSON valide, sans texte autour, sans balises markdown.
 - Les valeurs nutritionnelles sont pour 100 g (ou 100 ml pour les liquides). Utilise null si une valeur n'est pas déclarée — jamais 0 par défaut.
 - Décimales avec point (8.5, pas 8,5).
-- La liste d'ingrédients doit préserver l'ordre du paquet. Chaque ingrédient est un objet séparé: nom brut, pourcentage si déclaré, numéro E si applicable.
-- Les additifs (sel nitrité, conservateurs, colorants, épaississants, émulsifiants…) reçoivent category="additive".
-- nova_class: estime 1 (brut), 2 (ingrédient culinaire), 3 (transformé) ou 4 (ultra-transformé, >5 ingrédients industriels, additifs cosmétiques, additifs E numéro non-commun).
+
+Liste d'ingrédients — CRUCIAL:
+- Préserve l'ordre tel qu'imprimé sur le paquet.
+- Accepte N'IMPORTE QUEL format visuel: paragraphe continu séparé par virgules, liste à puces verticale, liste avec sauts de ligne, colonnes multiples, étiquette séparée. Lis-les tous et reconstruis la même structure plate.
+- Chaque ingrédient est un objet séparé dans le tableau \`ingredients\`.
+- Si un ingrédient a un pourcentage déclaré (ex. "jambon 17,4%"), mets-le dans \`percentage\` sans le signe %.
+- Si c'est un additif (conservateur, colorant, émulsifiant, épaississant, acidifiant, antioxydant, exhausteur de goût, édulcorant…), mets le numéro E dans \`e_number\` et category="additive".
+- Ne fusionne jamais deux ingrédients en un seul, même si le paquet les affiche sur la même ligne.
+
+Autres champs:
+- nova_class: estime 1 (brut), 2 (ingrédient culinaire), 3 (transformé) ou 4 (ultra-transformé, >5 ingrédients industriels, additifs cosmétiques, additifs E).
+- Si un code-barres EAN/UPC est visible, mets-le dans le champ "barcode" (13 ou 8 chiffres) sans espaces.
 - En cas de doute sur un chiffre, renvoie null plutôt que d'inventer.
 - Laisse ingredients.name en français tel qu'imprimé (avec accents).`;
 
@@ -208,6 +217,14 @@ const PERCENTAGE_RE = /([0-9]+(?:[.,][0-9]+)?)\s*%/;
  * Split an ingredient list on top-level commas only. Preserves nested
  * parenthetical groups like "émulsifiants (lécithine, mono- et diglycérides)".
  */
+/**
+ * Strip leading bullet glyphs / numbering / dashes from a single line. Handles
+ * the vertical-list format some brands use instead of a comma-separated panel.
+ */
+function stripBullet(line: string): string {
+  return line.replace(/^[\s]*(?:[-–—•▪·∙*]+|\d+[.)])\s*/, '').trim();
+}
+
 export function splitIngredients(raw: string): string[] {
   const parts: string[] = [];
   let depth = 0;
@@ -216,6 +233,14 @@ export function splitIngredients(raw: string): string[] {
     const ch = raw[i];
     if (ch === '(' || ch === '[') depth++;
     else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+
+    // Newlines at depth 0 always split — vertical bulleted lists.
+    if ((ch === '\n' || ch === '\r') && depth === 0) {
+      const piece = stripBullet(buf);
+      if (piece) parts.push(piece);
+      buf = '';
+      continue;
+    }
 
     const isDelimiter = (ch === ',' || ch === ';') && depth === 0;
     if (isDelimiter) {
@@ -226,13 +251,15 @@ export function splitIngredients(raw: string): string[] {
         buf += ch;
         continue;
       }
-      if (buf.trim()) parts.push(buf.trim());
+      const piece = stripBullet(buf);
+      if (piece) parts.push(piece);
       buf = '';
     } else {
       buf += ch;
     }
   }
-  if (buf.trim()) parts.push(buf.trim());
+  const last = stripBullet(buf);
+  if (last) parts.push(last);
   return parts;
 }
 
@@ -413,6 +440,14 @@ export interface ParseLabelResult {
   product: ProductInput;
   raw_llm_output: string;
   warnings: string[];
+  barcode?: string | null;
+}
+
+function coerceBarcode(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const digits = v.replace(/\D/g, '');
+  if (digits.length === 8 || digits.length === 12 || digits.length === 13) return digits;
+  return null;
 }
 
 /**
@@ -464,5 +499,7 @@ export async function parseLabel(
     origin_transparent: typeof parsed.origin === 'string' && parsed.origin.trim().length > 0,
   };
 
-  return { product, raw_llm_output: raw, warnings };
+  const barcode = coerceBarcode(parsed.barcode);
+
+  return { product, raw_llm_output: raw, warnings, barcode };
 }

@@ -21,6 +21,7 @@ import { extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseLabel } from './ocr-parser.ts';
+import { fetchFromOFF } from './off.ts';
 import { scoreProduct } from './scoring-engine.ts';
 
 const PORT = Number(process.env.PORT ?? 5173);
@@ -73,7 +74,22 @@ async function handleScore(req: IncomingMessage, res: ServerResponse) {
       images?: Array<{ base64: string; mime?: string }>;
       imageBase64?: string;
       mime?: string;
+      barcode?: string;
     };
+
+    if (body.barcode) {
+      const off = await fetchFromOFF(body.barcode);
+      if (off) {
+        const audit = scoreProduct(off);
+        return sendJSON(res, 200, {
+          product: off,
+          audit,
+          warnings: [],
+          source: 'openfoodfacts',
+          barcode: body.barcode,
+        });
+      }
+    }
 
     const images =
       body.images && body.images.length > 0
@@ -86,10 +102,16 @@ async function handleScore(req: IncomingMessage, res: ServerResponse) {
       return sendJSON(res, 400, { error: 'Missing images' });
     }
 
-    const { product, warnings } = await parseLabel(images);
-    const audit = scoreProduct(product);
+    const parsed = await parseLabel(images);
+    const audit = scoreProduct(parsed.product);
 
-    return sendJSON(res, 200, { product, audit, warnings });
+    return sendJSON(res, 200, {
+      product: parsed.product,
+      audit,
+      warnings: parsed.warnings,
+      source: 'llm',
+      barcode: parsed.barcode ?? null,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/score]', message);
