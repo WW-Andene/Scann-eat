@@ -401,7 +401,7 @@ async function enqueueCurrent() {
     images: queue.filter((q) => q.base64).map((q) => ({ base64: q.base64, mime: q.mime })),
     barcode: firstBarcode(),
   });
-  updatePendingBanner();
+  await updatePendingBanner();
 }
 
 async function updatePendingBanner() {
@@ -594,8 +594,9 @@ function renderIngredients(product) {
   ensureAdditivesIndex();
   const host = $('ingredient-list');
   host.innerHTML = '';
-  const foods = product.ingredients.filter((i) => i.category !== 'additive');
-  const additives = product.ingredients.filter((i) => i.category === 'additive');
+  const ingredients = Array.isArray(product?.ingredients) ? product.ingredients : [];
+  const foods = ingredients.filter((i) => i && i.category !== 'additive');
+  const additives = ingredients.filter((i) => i && i.category === 'additive');
 
   if (foods.length > 0) {
     const headerLi = document.createElement('li');
@@ -615,19 +616,27 @@ function renderIngredients(product) {
 
 function renderNutrition(product) {
   const ul = $('nutrition-list'); ul.innerHTML = '';
+  const n = product?.nutrition;
+  if (!n) return; // defensive: stale saved snapshot without nutrition
+  const fmt = (v, unit) => (typeof v === 'number' ? `${v} ${unit}` : '—');
   const rows = [
-    ['Énergie', `${product.nutrition.energy_kcal} kcal`],
-    ['Matières grasses', `${product.nutrition.fat_g} g`],
-    ['↳ dont saturées', `${product.nutrition.saturated_fat_g} g`],
-    ['Glucides', `${product.nutrition.carbs_g} g`],
-    ['↳ dont sucres', `${product.nutrition.sugars_g} g`],
-    ['Fibres', `${product.nutrition.fiber_g} g`],
-    ['Protéines', `${product.nutrition.protein_g} g`],
-    ['Sel', `${product.nutrition.salt_g} g`],
+    ['Énergie', fmt(n.energy_kcal, 'kcal')],
+    ['Matières grasses', fmt(n.fat_g, 'g')],
+    ['↳ dont saturées', fmt(n.saturated_fat_g, 'g')],
+    ['Glucides', fmt(n.carbs_g, 'g')],
+    ['↳ dont sucres', fmt(n.sugars_g, 'g')],
+    ['Fibres', fmt(n.fiber_g, 'g')],
+    ['Protéines', fmt(n.protein_g, 'g')],
+    ['Sel', fmt(n.salt_g, 'g')],
   ];
   for (const [label, value] of rows) {
     const li = document.createElement('li');
-    li.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    const lblSpan = document.createElement('span');
+    lblSpan.textContent = label; // developer-controlled but safe-by-default
+    const valStrong = document.createElement('strong');
+    valStrong.textContent = value;
+    li.appendChild(lblSpan);
+    li.appendChild(valStrong);
     ul.appendChild(li);
   }
 }
@@ -670,11 +679,20 @@ function openPillarDialog(label, pillar) {
   for (const item of all) {
     const li = document.createElement('li');
     li.className = `pillar-d-row ${item.kind}`;
-    li.innerHTML = `
-      <span class="pd-points">${item.points > 0 ? '+' : ''}${item.points}</span>
-      <span class="pd-reason">${item.reason}</span>
-      ${item.evidence ? `<small class="pd-evidence">${item.evidence}</small>` : ''}
-    `;
+    const pts = document.createElement('span');
+    pts.className = 'pd-points';
+    pts.textContent = `${item.points > 0 ? '+' : ''}${item.points}`;
+    const reason = document.createElement('span');
+    reason.className = 'pd-reason';
+    reason.textContent = String(item.reason ?? '');
+    li.appendChild(pts);
+    li.appendChild(reason);
+    if (item.evidence) {
+      const ev = document.createElement('small');
+      ev.className = 'pd-evidence';
+      ev.textContent = String(item.evidence);
+      li.appendChild(ev);
+    }
     pillarDialogList.appendChild(li);
   }
   pillarDialog.showModal();
@@ -782,11 +800,24 @@ function maybeRenderComparison(data) {
     const curIng = new Set(current.ingredients.map((s) => s.toLowerCase()));
     const added = [...curIng].filter((i) => !prevIng.has(i));
     const lost = [...prevIng].filter((i) => !curIng.has(i));
-    $('compare-delta').innerHTML = [
-      `${t('deltaScore')}: <strong>${sign}${delta}</strong>${direction}`,
-      added.length ? `${t('newIngredients')}: ${added.slice(0, 4).join(', ')}${added.length > 4 ? '…' : ''}` : '',
-      lost.length ? `${t('lostIngredients')}: ${lost.slice(0, 4).join(', ')}${lost.length > 4 ? '…' : ''}` : '',
-    ].filter(Boolean).join(' • ');
+    const deltaEl = $('compare-delta');
+    deltaEl.textContent = ''; // clear safely
+    const makeDelta = () => {
+      const frag = document.createDocumentFragment();
+      frag.append(`${t('deltaScore')}: `);
+      const s = document.createElement('strong');
+      s.textContent = `${sign}${delta}`;
+      frag.appendChild(s);
+      frag.append(direction);
+      return frag;
+    };
+    deltaEl.appendChild(makeDelta());
+    if (added.length) {
+      deltaEl.append(' • ', `${t('newIngredients')}: ${added.slice(0, 4).join(', ')}${added.length > 4 ? '…' : ''}`);
+    }
+    if (lost.length) {
+      deltaEl.append(' • ', `${t('lostIngredients')}: ${lost.slice(0, 4).join(', ')}${lost.length > 4 ? '…' : ''}`);
+    }
     show(comparisonEl);
     localStorage.removeItem(LS_COMPARE_ARMED);
     localStorage.removeItem(LS_COMPARE_PREV);
@@ -882,10 +913,14 @@ function renderPersonalScore(audit, product) {
     for (const a of r.adjustments) {
       const li = document.createElement('li');
       li.className = `pa-row ${a.category} ${a.points > 0 ? 'positive' : 'negative'}`;
-      li.innerHTML = `
-        <span class="pa-points">${a.points > 0 ? '+' : ''}${a.points}</span>
-        <span class="pa-reason">${a.reason}</span>
-      `;
+      const pts = document.createElement('span');
+      pts.className = 'pa-points';
+      pts.textContent = `${a.points > 0 ? '+' : ''}${a.points}`;
+      const reason = document.createElement('span');
+      reason.className = 'pa-reason';
+      reason.textContent = String(a.reason ?? '');
+      li.appendChild(pts);
+      li.appendChild(reason);
       personalAdjustmentsList.appendChild(li);
     }
     show(personalAdjustmentsEl);

@@ -369,10 +369,11 @@ describe('engine fixtures — real French supermarket products', () => {
         sugars_g: 5, added_sugars_g: 0, fiber_g: 0, protein_g: 4, salt_g: 0.15,
       },
     });
-    const adjustment = audit.pillars.processing.bonuses.find((b) =>
-      /auto-adjusted/i.test(b.reason),
+    const adjustment = audit.pillars.processing.deductions.find((d) =>
+      /auto-adjusted/i.test(d.reason),
     );
     assert.ok(adjustment, 'NOVA auto-adjustment should be recorded');
+    assert.equal(adjustment.points, 0, 'NOVA auto-adjust entry is informational (0 pts); real delta is in the base-score line');
     const base = audit.pillars.processing.deductions.find((d) =>
       /NOVA class 3 base/i.test(d.reason),
     );

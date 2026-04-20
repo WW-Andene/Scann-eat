@@ -5,7 +5,11 @@
  */
 
 const DB_NAME = 'scanneat';
-const DB_VERSION = 1;
+// IMPORTANT: this version must match scan-history.js exactly. Both modules
+// open the same IndexedDB; if they disagree the lower-version open throws
+// VersionError. Schema declared in BOTH upgrade handlers defensively so
+// whichever runs first fully provisions the database.
+const DB_VERSION = 2;
 const STORE = 'pending_scans';
 
 function openDB() {
@@ -13,8 +17,12 @@ function openDB() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('pending_scans')) {
+        db.createObjectStore('pending_scans', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('history')) {
+        const s = db.createObjectStore('history', { keyPath: 'id' });
+        s.createIndex('created', 'createdAt');
       }
     };
     req.onsuccess = () => resolve(req.result);

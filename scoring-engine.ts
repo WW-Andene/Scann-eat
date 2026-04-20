@@ -1032,7 +1032,10 @@ export function scoreProcessing(product: ProductInput): PillarScore {
   })();
 
   if (effectiveNova !== product.nova_class) {
-    bonuses.push({
+    // Recorded as a zero-point *deduction* (informational) so it shows up in
+    // the pillar detail dialog alongside the base-score line. buildFlags filters
+    // bonuses by `points >= 2` and would have hidden this otherwise.
+    deductions.push({
       pillar: 'processing',
       reason: `NOVA auto-adjusted ${product.nova_class}→${effectiveNova} based on ingredients`,
       points: 0,
