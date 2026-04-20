@@ -542,37 +542,65 @@ async function ensureAdditivesIndex() {
   } catch { /* ignore — fall back to name-only rendering */ }
 }
 
+function buildIngredientRow(ing) {
+  const li = document.createElement('li');
+  const info = ing.e_number ? window.__additivesIndex?.[ing.e_number] : null;
+
+  const dot = document.createElement('span');
+  dot.className = 'ing-dot';
+  if (info) dot.dataset.tier = String(info.tier);
+  else if (ing.category === 'additive') dot.dataset.tier = '0';
+  else if (ing.is_whole_food) dot.dataset.whole = '1';
+  li.appendChild(dot);
+
+  const label = document.createElement('span');
+  label.className = 'ing-label';
+  const e = ing.e_number ? ` [${ing.e_number}]` : '';
+  label.textContent = `${ing.name}${e}`;
+  li.appendChild(label);
+
+  if (ing.percentage != null) {
+    const pct = document.createElement('span');
+    pct.className = 'ing-pct';
+    pct.innerHTML = `
+      <span class="ing-pct-bar"><span class="ing-pct-fill" style="width:${Math.min(100, ing.percentage)}%"></span></span>
+      <span class="ing-pct-val">${ing.percentage}%</span>
+    `;
+    li.appendChild(pct);
+  }
+
+  if (ing.category === 'additive') li.classList.add('additive');
+  if (info) {
+    li.classList.add('explainable');
+    li.addEventListener('click', () => {
+      explainTitle.textContent = `${ing.name}${e}`;
+      explainBody.textContent = info.concern;
+      explainDialog.showModal();
+    });
+  }
+  return li;
+}
+
 function renderIngredients(product) {
   ensureAdditivesIndex();
-  const ol = $('ingredient-list'); ol.innerHTML = '';
-  for (const ing of product.ingredients) {
-    const li = document.createElement('li');
-    const pct = ing.percentage != null ? ` — ${ing.percentage}%` : '';
-    const e = ing.e_number ? ` [${ing.e_number}]` : '';
-    const info = ing.e_number ? window.__additivesIndex?.[ing.e_number] : null;
+  const host = $('ingredient-list');
+  host.innerHTML = '';
+  const foods = product.ingredients.filter((i) => i.category !== 'additive');
+  const additives = product.ingredients.filter((i) => i.category === 'additive');
 
-    const dot = document.createElement('span');
-    dot.className = 'ing-dot';
-    if (info) dot.dataset.tier = String(info.tier);
-    else if (ing.category === 'additive') dot.dataset.tier = '0';
-    else if (ing.is_whole_food) dot.dataset.whole = '1';
-    li.appendChild(dot);
-
-    const label = document.createElement('span');
-    label.className = 'ing-label';
-    label.textContent = `${ing.name}${pct}${e}`;
-    li.appendChild(label);
-
-    if (ing.category === 'additive') li.classList.add('additive');
-    if (info) {
-      li.classList.add('explainable');
-      li.addEventListener('click', () => {
-        explainTitle.textContent = `${ing.name}${e}`;
-        explainBody.textContent = info.concern;
-        explainDialog.showModal();
-      });
-    }
-    ol.appendChild(li);
+  if (foods.length > 0) {
+    const headerLi = document.createElement('li');
+    headerLi.className = 'ing-group-header';
+    headerLi.textContent = `${t('ingFoods')} (${foods.length})`;
+    host.appendChild(headerLi);
+    for (const ing of foods) host.appendChild(buildIngredientRow(ing));
+  }
+  if (additives.length > 0) {
+    const headerLi = document.createElement('li');
+    headerLi.className = 'ing-group-header';
+    headerLi.textContent = `${t('ingAdditives')} (${additives.length})`;
+    host.appendChild(headerLi);
+    for (const ing of additives) host.appendChild(buildIngredientRow(ing));
   }
 }
 
@@ -931,8 +959,39 @@ clearHistoryBtn?.addEventListener('click', async () => {
   renderRecentScans();
 });
 
+const exportHistoryBtn = $('export-history');
+exportHistoryBtn?.addEventListener('click', async () => {
+  const items = await listScans().catch(() => []);
+  const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `scanneat-history-${date}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+});
+
 historySearchInput?.addEventListener('input', () => renderRecentScans());
 historyGradeSelect?.addEventListener('change', () => renderRecentScans());
+
+// Keyboard shortcuts: Enter scans, Esc closes dialogs, / focuses search.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    for (const d of document.querySelectorAll('dialog[open]')) d.close();
+    return;
+  }
+  const tag = (e.target?.tagName || '').toLowerCase();
+  const typing = tag === 'input' || tag === 'textarea' || tag === 'select';
+  if (!typing && e.key === '/' && historySearchInput) {
+    e.preventDefault();
+    historySearchInput.focus();
+    return;
+  }
+  if (!typing && e.key === 'Enter' && !scanBtn.disabled) {
+    scanBtn.click();
+  }
+});
 
 // ============================================================================
 // Auto-update (APK only)

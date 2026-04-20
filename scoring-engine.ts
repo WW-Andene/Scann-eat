@@ -95,6 +95,8 @@ export interface ProductInput {
   has_misleading_marketing?: boolean;
   named_oils?: boolean; // true if oils are named (e.g., "colza" not "vegetable oil")
   origin_transparent?: boolean;
+  /** Vitamin / mineral names declared on-pack or in OFF nutriments. */
+  declared_micronutrients?: string[];
 }
 
 export type Grade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
@@ -864,17 +866,61 @@ const FIRST_INGREDIENT_PENALTY_PATTERNS: Array<{ re: RegExp; label: string }> = 
   { re: /^(amidon modifié|amidon de maïs modifié)/i, label: 'modified starch' },
 ];
 
+/**
+ * Infer NOVA class from the ingredient list when the input's `nova_class`
+ * looks unreliable (e.g. OFF missing, LLM defaulted to 4 without cause).
+ * Replaces the previous hard-coded "default to 4 if unknown" behaviour which
+ * over-penalised minimally processed products.
+ */
+export function inferNovaClass(product: ProductInput): NovaClass {
+  const ings = product.ingredients;
+  if (ings.length === 0) return 4;
+  const additives = ings.filter((i) => i.category === 'additive' || !!i.e_number);
+  const cosmetics = additives
+    .map((i) => findAdditive(i))
+    .filter((a): a is AdditiveInfo => a !== null && COSMETIC_ADDITIVE_CATEGORIES.has(a.category));
+  const hasModifiedStarch = ings.some((i) => /amidon modifi|modified starch|maltodextrin/i.test(i.name));
+
+  if (ings.length === 1 && additives.length === 0) return 1;
+  if (ings.length <= 3 && additives.length === 0) {
+    const onlyCulinary = ings.every((i) =>
+      /^(sucre|sel|huile|beurre|graisse|miel|vinaigre|eau)/i.test(i.name.trim()),
+    );
+    if (onlyCulinary) return 2;
+  }
+  if (cosmetics.length === 0 && !hasModifiedStarch && additives.length <= 2 && ings.length <= 8) {
+    return 3;
+  }
+  return 4;
+}
+
 export function scoreProcessing(product: ProductInput): PillarScore {
   const MAX = 20;
   const deductions: Deduction[] = [];
   const bonuses: Deduction[] = [];
 
-  // NOVA 4 base 6 instead of 4: the old value penalized any processed product
-  // equally, even those with honest ingredient lists. The additional
-  // modifiers (long list, cosmetic additives, first-ingredient sugar/fat) now
-  // carry more of the signal.
+  // If the provided NOVA doesn't match what the composition suggests, use the
+  // inferred one and record a small info note. This fixes the common case of
+  // LLM / OFF defaulting to 4 for clean products.
+  const inferred = inferNovaClass(product);
+  const effectiveNova: NovaClass = (() => {
+    if (!product.nova_class) return inferred;
+    // Only downgrade 4 → lower if the ingredient list genuinely supports it.
+    if (product.nova_class === 4 && inferred < 4) return inferred;
+    return product.nova_class;
+  })();
+
+  if (effectiveNova !== product.nova_class) {
+    bonuses.push({
+      pillar: 'processing',
+      reason: `NOVA auto-adjusted ${product.nova_class}→${effectiveNova} based on ingredients`,
+      points: 0,
+      severity: 'info',
+    });
+  }
+
   let base: number;
-  switch (product.nova_class) {
+  switch (effectiveNova) {
     case 1: base = 20; break;
     case 2: base = 17; break;
     case 3: base = 13; break;
@@ -883,9 +929,9 @@ export function scoreProcessing(product: ProductInput): PillarScore {
 
   deductions.push({
     pillar: 'processing',
-    reason: `NOVA class ${product.nova_class} base score`,
+    reason: `NOVA class ${effectiveNova} base score`,
     points: base - MAX,
-    severity: product.nova_class === 4 ? 'major' : product.nova_class === 3 ? 'moderate' : 'info',
+    severity: effectiveNova === 4 ? 'major' : effectiveNova === 3 ? 'moderate' : 'info',
   });
 
   let score = base;
@@ -1028,6 +1074,23 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
 
   // If category doesn't expect micronutrients, cap at 3 (so beverages can't score >3).
   if (!thresholds.expect_micronutrients) microScore = Math.min(microScore, 3);
+
+  // Declared-vitamin bonus: if the product genuinely provides 3+ vitamins or
+  // minerals (from OFF nutriments), bump the micronutrient score by 1 and
+  // record it as a bonus rather than a deduction.
+  const declared = product.declared_micronutrients ?? [];
+  if (declared.length >= 3 && microScore < 5) {
+    const before = microScore;
+    microScore = Math.min(5, microScore + 1);
+    if (microScore > before) {
+      bonuses.push({
+        pillar: 'nutritional_density',
+        reason: `Declares ${declared.length} vitamins/minerals: ${declared.slice(0, 4).join(', ')}${declared.length > 4 ? '…' : ''}`,
+        points: 1,
+        severity: 'info',
+      });
+    }
+  }
 
   if (microScore < 5) {
     const reason = declaredPcts.length > 0

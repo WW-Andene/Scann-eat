@@ -119,6 +119,35 @@ function nutritionFromOFF(n: Record<string, unknown> | undefined): NutritionPer1
   };
 }
 
+const VITAMIN_KEY_PATTERNS: Array<[RegExp, string]> = [
+  [/^vitamin-a_/,  'Vitamin A'],
+  [/^vitamin-c_/,  'Vitamin C'],
+  [/^vitamin-d_/,  'Vitamin D'],
+  [/^vitamin-e_/,  'Vitamin E'],
+  [/^vitamin-b\d+_/, 'Vitamin B'],
+  [/^calcium_/,    'Calcium'],
+  [/^iron_/,       'Iron'],
+  [/^magnesium_/,  'Magnesium'],
+  [/^potassium_/,  'Potassium'],
+  [/^zinc_/,       'Zinc'],
+  [/^iodine_/,     'Iodine'],
+  [/^selenium_/,   'Selenium'],
+];
+
+function declaredMicronutrients(n: Record<string, unknown> | undefined): string[] {
+  if (!n) return [];
+  const seen = new Set<string>();
+  for (const key of Object.keys(n)) {
+    if (!key.endsWith('_100g')) continue;
+    for (const [re, label] of VITAMIN_KEY_PATTERNS) {
+      if (re.test(key) && num((n as Record<string, unknown>)[key]) > 0) {
+        seen.add(label);
+      }
+    }
+  }
+  return Array.from(seen);
+}
+
 /**
  * Map OFF's `categories_tags` array (["en:breakfast-cereals", "en:cereal-bars"])
  * to our narrower ProductCategory. Checked most-specific first.
@@ -181,7 +210,9 @@ function mapOFFProduct(p: Record<string, unknown>): ProductInput | null {
     ? parseIngredientsText(ingredientsText)
     : [];
 
-  const nutrition = nutritionFromOFF(p.nutriments as Record<string, unknown> | undefined);
+  const nutrients = p.nutriments as Record<string, unknown> | undefined;
+  const nutrition = nutritionFromOFF(nutrients);
+  const declared_micronutrients = declaredMicronutrients(nutrients);
 
   // Reject records that are too empty to score meaningfully.
   if (ingredients.length === 0 && nutrition.energy_kcal === 0 && nutrition.protein_g === 0) {
@@ -207,6 +238,7 @@ function mapOFFProduct(p: Record<string, unknown>): ProductInput | null {
       /huile v[eé]g[eé]tale|vegetable oil/i.test(i.name),
     ),
     origin_transparent: !!origin,
+    declared_micronutrients,
   };
 }
 

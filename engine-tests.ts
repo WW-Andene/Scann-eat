@@ -355,6 +355,51 @@ describe('engine fixtures — real French supermarket products', () => {
     assert.equal(palm.points, -3);
   });
 
+  it('Auto-NOVA downgrades a clean yogurt from incorrect 4 to 3', () => {
+    const audit = scoreProduct({
+      name: 'Yaourt nature sans additifs',
+      category: 'yogurt',
+      nova_class: 4, // input mistake — ingredients suggest NOVA 3
+      ingredients: [
+        { name: 'lait demi-écrémé', is_whole_food: true, category: 'food' },
+        { name: 'ferments lactiques', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 50, fat_g: 1.5, saturated_fat_g: 1, carbs_g: 5,
+        sugars_g: 5, added_sugars_g: 0, fiber_g: 0, protein_g: 4, salt_g: 0.15,
+      },
+    });
+    const adjustment = audit.pillars.processing.bonuses.find((b) =>
+      /auto-adjusted/i.test(b.reason),
+    );
+    assert.ok(adjustment, 'NOVA auto-adjustment should be recorded');
+    const base = audit.pillars.processing.deductions.find((d) =>
+      /NOVA class 3 base/i.test(d.reason),
+    );
+    assert.ok(base, 'effective NOVA should render as class 3 in the deduction');
+  });
+
+  it('Declared micronutrients add a Pillar 2 bonus', () => {
+    const audit = scoreProduct({
+      name: 'Céréales enrichies',
+      category: 'breakfast_cereal',
+      nova_class: 4,
+      ingredients: [
+        { name: 'avoine', is_whole_food: true, category: 'food' },
+        { name: 'sucre', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 370, fat_g: 6, saturated_fat_g: 1, carbs_g: 70,
+        sugars_g: 18, added_sugars_g: 16, fiber_g: 8, protein_g: 9, salt_g: 0.6,
+      },
+      declared_micronutrients: ['Iron', 'Calcium', 'Vitamin D', 'Vitamin B'],
+    });
+    const bonus = audit.pillars.nutritional_density.bonuses.find((b) =>
+      /Declares .* vitamins/i.test(b.reason),
+    );
+    assert.ok(bonus, 'should surface a declared-micronutrient bonus');
+  });
+
   it('Omega-3 source adds a global bonus (saumon / noix / lin)', () => {
     const audit = scoreProduct({
       name: 'Mélange graines et noix',

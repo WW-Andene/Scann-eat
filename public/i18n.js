@@ -110,6 +110,10 @@ const STRINGS = {
     additiveNone: 'Aucun additif détecté',
     palmOilRed: 'Contient de l\'huile de palme ou dérivé',
     omega3Green: 'Source d\'oméga-3 ({name})',
+    ingFoods: 'Aliments',
+    ingAdditives: 'Additifs',
+    exportHistory: 'Exporter l\'historique',
+    novaInferred: 'NOVA recalculé',
   },
   en: {
     tagline: 'Photograph a label → score out of 100',
@@ -216,6 +220,10 @@ const STRINGS = {
     additiveNone: 'No additives detected',
     palmOilRed: 'Contains palm oil or derivative',
     omega3Green: 'Omega-3 source ({name})',
+    ingFoods: 'Foods',
+    ingAdditives: 'Additives',
+    exportHistory: 'Export history',
+    novaInferred: 'NOVA recalculated',
   },
 };
 
