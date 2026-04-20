@@ -356,6 +356,257 @@ export const ADDITIVES_DB: AdditiveInfo[] = [
     category: 'colorant',
     concern: 'Natural colorant — low health concern, but signals cosmetic processing',
   },
+
+  // ===== TIER 1 additions =====
+  {
+    e_number: 'E171',
+    names: ['dioxyde de titane', 'titanium dioxide'],
+    tier: 1,
+    category: 'colorant',
+    concern: 'Banned in EU food since 2022 — EFSA could not rule out genotoxicity (nanoparticle DNA damage risk)',
+  },
+  {
+    e_number: 'E220',
+    names: ['anhydride sulfureux', 'dioxyde de soufre', 'sulfur dioxide'],
+    tier: 1,
+    category: 'preservative',
+    concern: 'Major allergen — asthma triggers, gut barrier disruption at high chronic doses',
+  },
+  {
+    e_number: 'E221',
+    names: ['sulfite de sodium', 'sodium sulfite'],
+    tier: 1,
+    category: 'preservative',
+    concern: 'Sulfite — asthma and allergy triggers; label declaration required',
+  },
+  {
+    e_number: 'E223',
+    names: ['métabisulfite de sodium', 'sodium metabisulfite'],
+    tier: 1,
+    category: 'preservative',
+    concern: 'Sulfite — allergen, respiratory irritation',
+  },
+  {
+    e_number: 'E224',
+    names: ['métabisulfite de potassium', 'potassium metabisulfite'],
+    tier: 1,
+    category: 'preservative',
+    concern: 'Sulfite — allergen, respiratory irritation',
+  },
+  {
+    e_number: 'E385',
+    names: ['edta', 'calcium disodium edta'],
+    tier: 1,
+    category: 'sequestrant',
+    concern: 'Chelator — mineral depletion, potential kidney stress at chronic intake',
+  },
+
+  // ===== TIER 2 additions =====
+  {
+    e_number: 'E211',
+    names: ['benzoate de sodium', 'sodium benzoate'],
+    tier: 2,
+    category: 'preservative',
+    concern: 'Forms benzene in presence of vitamin C — carcinogenic metabolite; hyperactivity associations',
+  },
+  {
+    e_number: 'E212',
+    names: ['benzoate de potassium', 'potassium benzoate'],
+    tier: 2,
+    category: 'preservative',
+    concern: 'Similar to E211 — benzene formation risk with vitamin C',
+  },
+  {
+    e_number: 'E950',
+    names: ['acésulfame-k', 'acesulfame de potassium', 'acesulfame potassium'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Recent studies suggest microbiome disruption and metabolic dysregulation',
+  },
+  {
+    e_number: 'E955',
+    names: ['sucralose'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Forms harmful compounds when heated; microbiome and glucose-tolerance concerns (Suez 2022)',
+  },
+  {
+    e_number: 'E954',
+    names: ['saccharine', 'saccharin'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Historical bladder cancer data (rats); microbiome disruption studies',
+  },
+  {
+    e_number: 'E952',
+    names: ['cyclamate', 'cyclamate de sodium'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Banned in US since 1970; EU ADI lowered due to bladder tumor evidence',
+  },
+  {
+    e_number: 'E104',
+    names: ['jaune de quinoléine', 'quinoline yellow'],
+    tier: 2,
+    category: 'colorant',
+    concern: 'Azo-like dye — hyperactivity in children (Southampton study)',
+  },
+  {
+    e_number: 'E127',
+    names: ['érythrosine', 'erythrosine'],
+    tier: 2,
+    category: 'colorant',
+    concern: 'Iodine-releasing dye — thyroid function concerns at chronic intake',
+  },
+  {
+    e_number: 'E173',
+    names: ['aluminium'],
+    tier: 2,
+    category: 'colorant',
+    concern: 'Aluminium salts — neurotoxicity concerns, accumulates with chronic intake',
+  },
+  {
+    e_number: 'E339',
+    names: ['phosphate de sodium', 'sodium phosphate'],
+    tier: 2,
+    category: 'stabilizer',
+    concern: 'Phosphate additive — cardiovascular and renal stress with chronic high intake',
+  },
+  {
+    e_number: 'E340',
+    names: ['phosphate de potassium', 'potassium phosphate'],
+    tier: 2,
+    category: 'stabilizer',
+    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+  },
+  {
+    e_number: 'E341',
+    names: ['phosphate de calcium', 'calcium phosphate'],
+    tier: 2,
+    category: 'stabilizer',
+    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+  },
+  {
+    e_number: 'E1520',
+    names: ['propylène glycol', 'propylene glycol'],
+    tier: 2,
+    category: 'solvent',
+    concern: 'Humectant/solvent — kidney and liver stress at high chronic intake, GRAS but controversial',
+  },
+
+  // ===== TIER 3 additions =====
+  {
+    e_number: 'E330',
+    names: ['acide citrique', 'citric acid'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Ubiquitous acidulant — generally safe, but may be produced from black mold (Aspergillus niger)',
+  },
+  {
+    e_number: 'E300',
+    names: ['acide ascorbique', 'ascorbic acid', 'vitamine c'],
+    tier: 3,
+    category: 'antioxidant',
+    concern: 'Vitamin C / common antioxidant — benign, signals some formulation',
+  },
+  {
+    e_number: 'E322',
+    names: ['lécithine', 'lecithines', 'lecithin', 'lécithine de soja', 'lécithine de tournesol'],
+    tier: 3,
+    category: 'emulsifier',
+    concern: 'Common emulsifier — generally safe, but ubiquitous in UPFs; contextual marker',
+  },
+  {
+    e_number: 'E415',
+    names: ['gomme xanthane', 'xanthan gum'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Thickener — safe in food, but some IBS/IBD subjects report sensitivity',
+  },
+  {
+    e_number: 'E412',
+    names: ['gomme guar', 'guar gum'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Thickener — safe; contextual marker for formulated products',
+  },
+  {
+    e_number: 'E440',
+    names: ['pectine', 'pectines', 'pectin'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Natural fruit fiber — benign; signals some formulation but no direct harm',
+  },
+  {
+    e_number: 'E202',
+    names: ['sorbate de potassium', 'potassium sorbate'],
+    tier: 3,
+    category: 'preservative',
+    concern: 'Common mold/yeast preservative — generally regarded as safe',
+  },
+  {
+    e_number: 'E270',
+    names: ['acide lactique', 'lactic acid'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Naturally occurring acid — benign',
+  },
+  {
+    e_number: 'E296',
+    names: ['acide malique', 'malic acid'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Naturally occurring acid — benign',
+  },
+  {
+    e_number: 'E500',
+    names: ['bicarbonate de sodium', 'sodium bicarbonate', 'carbonate de sodium'],
+    tier: 3,
+    category: 'acidity_regulator',
+    concern: 'Leavening agent — benign',
+  },
+  {
+    e_number: 'E551',
+    names: ['dioxyde de silicium', 'silicon dioxide', 'silice'],
+    tier: 3,
+    category: 'anticaking',
+    concern: 'Anti-caking agent — nanoparticle concerns still debated; EFSA considers it safe at current intake',
+  },
+  {
+    e_number: 'E422',
+    names: ['glycérol', 'glycerol', 'glycérine'],
+    tier: 3,
+    category: 'humectant',
+    concern: 'Humectant — benign, naturally occurring',
+  },
+  {
+    e_number: 'E960',
+    names: ['glycosides de stéviol', 'steviol glycosides', 'stévia', 'stevia'],
+    tier: 3,
+    category: 'sweetener',
+    concern: 'Plant-derived sweetener — better profile than artificial sweeteners but still a cosmetic additive',
+  },
+  {
+    e_number: 'E472',
+    names: ['esters de mono- et diglycérides', 'esters of monoglycerides'],
+    tier: 3,
+    category: 'emulsifier',
+    concern: 'Emulsifier sub-family — microbiome concerns at high chronic doses',
+  },
+  {
+    e_number: 'E1422',
+    names: ['amidon acétylé', 'acetylated distarch adipate', 'amidon modifié'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Modified starch — safe but ubiquitous UPF marker',
+  },
+  {
+    e_number: 'E1442',
+    names: ['phosphate de distarch hydroxypropyle', 'hydroxypropyl distarch phosphate'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Modified starch — safe but UPF marker',
+  },
 ];
 
 /**
@@ -444,6 +695,13 @@ export interface CategoryThresholds {
    * against the generic [5, 10, 15] scale unfairly tanks their score.
    */
   sat_fat_thresholds?: [number, number, number];
+  /**
+   * Per-category sugar thresholds [minor, moderate, major, critical] per 100g.
+   * Default applies the WHO-derived generic scale; condiments and drinks
+   * benefit from a relaxed scale because a typical serving is tiny (~10g for
+   * ketchup) or liquid-based (different glycemic context).
+   */
+  sugar_thresholds?: [number, number, number, number];
 }
 
 const DEFAULT_THRESHOLDS: CategoryThresholds = {
@@ -454,6 +712,7 @@ const DEFAULT_THRESHOLDS: CategoryThresholds = {
 };
 
 const DEFAULT_SAT_FAT: [number, number, number] = [5, 10, 15];
+const DEFAULT_SUGAR: [number, number, number, number] = [5, 10, 15, 22.5];
 
 export const CATEGORY_THRESHOLDS: Record<ProductCategory, CategoryThresholds> = {
   sandwich:         { protein_g: [5, 8, 12],   fiber_g: [2, 4, 6],  expected_kcal_range: [180, 320], expect_micronutrients: true  },
@@ -470,7 +729,7 @@ export const CATEGORY_THRESHOLDS: Record<ProductCategory, CategoryThresholds> = 
   beverage_soft:    { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [0, 50],    expect_micronutrients: false },
   beverage_juice:   { protein_g: [0, 0, 0],    fiber_g: [0, 1, 2],  expected_kcal_range: [20, 60],   expect_micronutrients: true  },
   beverage_water:   { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [0, 5],     expect_micronutrients: false },
-  condiment:        { protein_g: [0, 3, 7],    fiber_g: [0, 1, 3],  expected_kcal_range: [20, 400],  expect_micronutrients: false },
+  condiment:        { protein_g: [0, 3, 7],    fiber_g: [0, 1, 3],  expected_kcal_range: [20, 400],  expect_micronutrients: false, sugar_thresholds: [10, 20, 30, 45] },
   oil_fat:          { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [700, 900], expect_micronutrients: false, sat_fat_thresholds: [20, 35, 50] },
   other:            DEFAULT_THRESHOLDS,
 };
@@ -511,8 +770,12 @@ const HIDDEN_SUGAR_NAMES = [
   'dextrose', 'maltodextrine', 'maltodextrin', 'sirop de glucose',
   'sirop de maïs', 'sirop de mais', 'glucose syrup', 'fructose',
   'saccharose', 'sucrose', 'sirop de fructose', 'sirop de glucose-fructose',
-  'sucre inverti', 'lactose', 'mélasse', 'melasse', 'sirop d\'agave',
-  'isoglucose', 'concentré de jus',
+  'sucre inverti', 'lactose', 'mélasse', 'melasse', "sirop d'agave",
+  'isoglucose', 'concentré de jus', "concentré de pomme", "concentré de poire",
+  "sirop d'érable", "sirop d'erable", 'sirop de riz', 'sirop de datte',
+  'sucre de canne', 'sucre roux', 'cassonade', 'rapadura', 'panela',
+  'sucre inverti', 'jus de fruits concentré', 'jus concentré de pomme',
+  'sirop de blé', 'sirop de ble', 'caramel de sucre',
 ];
 
 const GENERIC_OIL_TERMS = [
@@ -532,17 +795,27 @@ const GENERIC_OIL_TERMS = [
 //  - −2 if contains cosmetic additives
 // ============================================================================
 
+const FIRST_INGREDIENT_PENALTY_PATTERNS: Array<{ re: RegExp; label: string }> = [
+  { re: /^(sucre|sirop|dextrose|fructose|glucose|maltodextrin)/i, label: 'sugar/syrup' },
+  { re: /^(huile|graisse|matière grasse|margarine)/i, label: 'oil/fat' },
+  { re: /^(amidon modifié|amidon de maïs modifié)/i, label: 'modified starch' },
+];
+
 export function scoreProcessing(product: ProductInput): PillarScore {
   const MAX = 20;
   const deductions: Deduction[] = [];
   const bonuses: Deduction[] = [];
 
+  // NOVA 4 base 6 instead of 4: the old value penalized any processed product
+  // equally, even those with honest ingredient lists. The additional
+  // modifiers (long list, cosmetic additives, first-ingredient sugar/fat) now
+  // carry more of the signal.
   let base: number;
   switch (product.nova_class) {
     case 1: base = 20; break;
     case 2: base = 17; break;
-    case 3: base = 12; break;
-    case 4: base = 4; break;
+    case 3: base = 13; break;
+    case 4: base = 6; break;
   }
 
   deductions.push({
@@ -577,6 +850,23 @@ export function scoreProcessing(product: ProductInput): PillarScore {
       severity: 'minor',
       evidence: cosmeticAdditives.map((a) => `${a.e_number} (${a.category})`).join(', '),
     });
+  }
+
+  // First-ingredient penalty — the first listed ingredient is the dominant
+  // one by weight. Sugar or oil at position #1 is a strong composition
+  // signal that deserves its own deduction.
+  const first = product.ingredients[0];
+  if (first) {
+    const match = FIRST_INGREDIENT_PENALTY_PATTERNS.find((p) => p.re.test(first.name.trim()));
+    if (match) {
+      score -= 3;
+      deductions.push({
+        pillar: 'processing',
+        reason: `Primary ingredient is ${match.label}: "${first.name}"`,
+        points: -3,
+        severity: 'moderate',
+      });
+    }
   }
 
   return {
@@ -688,18 +978,48 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
     });
   }
 
-  // ---- 4. Healthy fats ratio (0–5) ----
+  // ---- 4. Healthy fats ratio + quality bump (0–5) ----
+  //
+  // Base: sat/total ratio alone (unchanged). Quality bump: explicit presence
+  // of olive, canola, fish or nuts raises a borderline ratio because these
+  // fats carry monounsaturates and omega-3 that the raw ratio misses.
   let fatScore = 5;
   if ((nutrition.trans_fat_g ?? 0) > 0.1) {
     fatScore = 0;
   } else if (nutrition.fat_g === 0) {
-    fatScore = 3; // No fat — can't evaluate quality, give neutral
+    fatScore = 3;
   } else {
     const satRatio = nutrition.saturated_fat_g / nutrition.fat_g;
     if (satRatio > 0.5) fatScore = 1;
     else if (satRatio > 0.33) fatScore = 3;
     else if (satRatio > 0.2) fatScore = 4;
     else fatScore = 5;
+
+    const hasHealthyFatSource = ingredients.some((ing) => {
+      const n = ing.name.toLowerCase();
+      return (
+        /huile d'olive|huile de colza|huile de lin|huile de noix/.test(n) ||
+        /saumon|sardine|maquereau|thon|hareng/.test(n) ||
+        /noix|amande|noisette|pistache|cajou|graine de lin|graine de chia/.test(n)
+      );
+    });
+    // Subtract bad fat source (palm, coprah): should cancel the bump.
+    const hasBadFatSource = ingredients.some((ing) => {
+      const n = ing.name.toLowerCase();
+      return /huile de palme|huile de palmiste|graisse de palme|coprah|coconut oil palm/.test(n);
+    });
+    if (hasHealthyFatSource && !hasBadFatSource && fatScore < 5) {
+      const before = fatScore;
+      fatScore = Math.min(5, fatScore + 1);
+      if (fatScore > before) {
+        bonuses.push({
+          pillar: 'nutritional_density',
+          reason: 'Healthy fat source in ingredients (olive/canola/fish/nuts)',
+          points: 1,
+          severity: 'info',
+        });
+      }
+    }
   }
 
   if (fatScore < 5) {
@@ -784,21 +1104,22 @@ export function scoreNegativeNutrients(product: ProductInput): PillarScore {
     });
   }
 
-  // ---- Added sugars (or total sugars as fallback) ----
+  // ---- Added sugars (or total sugars as fallback), category-aware ----
   const sugars = nutrition.added_sugars_g ?? nutrition.sugars_g;
   const sugarLabel = nutrition.added_sugars_g != null ? 'Added sugars' : 'Total sugars (added not declared)';
-  if (sugars > 22.5) {
+  const [sMinor, sMod, sMaj, sCrit] = thresholds.sugar_thresholds ?? DEFAULT_SUGAR;
+  if (sugars > sCrit) {
     score -= 12;
-    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>22.5g critical)`, points: -12, severity: 'critical' });
-  } else if (sugars > 15) {
+    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>${sCrit}g critical for ${category})`, points: -12, severity: 'critical' });
+  } else if (sugars > sMaj) {
     score -= 9;
-    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>15g major)`, points: -9, severity: 'major' });
-  } else if (sugars > 10) {
+    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>${sMaj}g major for ${category})`, points: -9, severity: 'major' });
+  } else if (sugars > sMod) {
     score -= 6;
-    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>10g moderate)`, points: -6, severity: 'moderate' });
-  } else if (sugars > 5) {
+    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>${sMod}g moderate for ${category})`, points: -6, severity: 'moderate' });
+  } else if (sugars > sMinor) {
     score -= 3;
-    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>5g minor)`, points: -3, severity: 'minor' });
+    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>${sMinor}g minor for ${category})`, points: -3, severity: 'minor' });
   }
 
   // ---- Salt ----

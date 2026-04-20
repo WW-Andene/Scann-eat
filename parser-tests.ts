@@ -210,6 +210,33 @@ describe('enrichIngredient', () => {
     assert.equal(enrichIngredient({ name: 'skyr maigre' }).is_whole_food, true);
   });
 
+  it('strips role prefixes like "conservateur :"', () => {
+    const out = parseIngredientsText('eau, conservateur : sorbate de potassium, sel');
+    const preserv = out.find((i) => /sorbate/.test(i.name));
+    assert.ok(preserv, 'sorbate ingredient must exist');
+    assert.equal(preserv.name, 'sorbate de potassium');
+    assert.equal(preserv.category, 'additive');
+    assert.equal(preserv.e_number, 'E202');
+  });
+
+  it('flattens "moins de 2% de:" sub-phrases', () => {
+    const out = parseIngredientsText(
+      'tomate, eau, moins de 2% de: sucre, sel, arômes',
+    );
+    const names = out.map((i) => i.name);
+    assert.ok(names.includes('sucre'), 'sucre should be flattened into top level');
+    assert.ok(names.includes('sel'));
+    assert.ok(names.some((n) => /arôme/i.test(n)));
+  });
+
+  it('extracts new additives: E171 (dioxyde de titane) and E322 (lécithine)', () => {
+    const titane = enrichIngredient({ name: 'dioxyde de titane' });
+    assert.equal(titane.e_number, 'E171');
+    assert.equal(titane.category, 'additive');
+    const lec = enrichIngredient({ name: 'lécithine de soja' });
+    assert.equal(lec.e_number, 'E322');
+  });
+
   it('uppercases and strips spaces from LLM-declared E-number', () => {
     const ing = enrichIngredient({ name: 'sel nitrité', e_number: 'e 250' });
     assert.equal(ing.e_number, 'E250');

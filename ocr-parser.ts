@@ -293,11 +293,18 @@ export function extractENumber(text: string): string | null {
 }
 
 function looksLikeAdditive(text: string): boolean {
-  if (extractENumber(text)) return true;
+  return !!(extractENumber(text) || additiveByName(text));
+}
+
+/** Reverse lookup: find an ADDITIVES_DB entry whose synonym appears in the text. */
+function additiveByName(text: string) {
   const n = normalize(text);
-  return ADDITIVES_DB.some((a) =>
-    a.names.some((syn) => n.includes(normalize(syn))),
-  );
+  for (const a of ADDITIVES_DB) {
+    for (const syn of a.names) {
+      if (n.includes(normalize(syn))) return a;
+    }
+  }
+  return null;
 }
 
 function isWholeFood(text: string): boolean {
@@ -325,9 +332,17 @@ export function enrichIngredient(draft: Partial<Ingredient> & { name: string }):
   if (eFromText) eNumber = eFromText;
   if (eNumber && !/^E\d{3}[A-Z]?$/.test(eNumber)) eNumber = null; // drop malformed LLM output
 
+  // If still no E-number, reverse-lookup by synonym — catches "dioxyde de
+  // titane" without an explicit (E171) in the text.
+  let byName = null;
+  if (!eNumber) {
+    byName = additiveByName(name);
+    if (byName) eNumber = byName.e_number;
+  }
+
   let category = draft.category;
   if (!category) {
-    if (eNumber || looksLikeAdditive(name)) category = 'additive';
+    if (eNumber || byName || looksLikeAdditive(name)) category = 'additive';
     else category = 'food';
   }
 
@@ -346,15 +361,30 @@ export function enrichIngredient(draft: Partial<Ingredient> & { name: string }):
 }
 
 /**
- * Pure helper: raw ingredient text → structured Ingredient[].
- * Useful for tests, offline parsing, or when OCR already produced text.
+ * Role prefixes French labels use to introduce an additive class:
+ * "conservateur: E250", "émulsifiant : lécithines". We strip them so the
+ * resulting ingredient name is the substance, not the role.
  */
+const ROLE_PREFIX_RE = /^(conservateurs?|émulsifiants?|emulsifiants?|épaississants?|epaississants?|stabilisants?|acidifiants?|antioxydants?|antioxidants?|colorants?|exhausteurs? de go[uû]t|édulcorants?|edulcorants?|correcteurs? d'acidité|gélifiants?|gelifiants?|humectants?|affermissants?|agents? de traitement|séquestrants?|sequestrants?|anti[- ]?agglom[eé]rants?|arômes?|aromes?)\s*[:：]\s*/i;
+
+function stripRolePrefix(text: string): string {
+  return text.replace(ROLE_PREFIX_RE, '').trim();
+}
+
+/**
+ * Many French labels include a "...dont moins de 2% de: sucre, sel, arômes..."
+ * residual list. We flatten that sub-list into top-level ingredients.
+ */
+const LESS_THAN_RE = /(?:contient|dont)?\s*(?:moins de|<)\s*\d+\s*%\s*de\s*[:：]?/gi;
+
 export function parseIngredientsText(raw: string): Ingredient[] {
   const cleaned = raw
     .replace(/^\s*ingr[éeè]dients?\s*[:：]\s*/i, '')
     .replace(/\*/g, '')
+    .replace(LESS_THAN_RE, ' ') // flatten "moins de 2% de:" sub-phrase
     .trim();
-  return splitIngredients(cleaned).map((part) => enrichIngredient({ name: part }));
+  return splitIngredients(cleaned)
+    .map((part) => enrichIngredient({ name: stripRolePrefix(part) }));
 }
 
 // ============================================================================

@@ -260,4 +260,101 @@ describe('engine fixtures — real French supermarket products', () => {
       [70, 100],
     );
   });
+
+  it('Ketchup (condiment) → sugar scored against relaxed threshold', () => {
+    const audit = scoreProduct({
+      name: 'Ketchup',
+      category: 'condiment',
+      nova_class: 3,
+      ingredients: [
+        { name: 'tomate concentrée', category: 'food' },
+        { name: 'vinaigre', category: 'food' },
+        { name: 'sucre', category: 'food' },
+        { name: 'sel', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 105, fat_g: 0.2, saturated_fat_g: 0, carbs_g: 24,
+        sugars_g: 22, added_sugars_g: 15, fiber_g: 0.5, protein_g: 1, salt_g: 1.8,
+      },
+      origin: 'France', named_oils: true, origin_transparent: true,
+    });
+    // At generic thresholds 15g → major (-9). At condiment thresholds
+    // [10, 20, 30, 45], 15g → moderate (-6). Confirm via the deduction severity.
+    const sugarDed = audit.pillars.negative_nutrients.deductions.find((d) =>
+      /sugars?/i.test(d.reason),
+    );
+    assert.ok(sugarDed, 'sugar deduction expected');
+    assert.notEqual(sugarDed.severity, 'major', 'condiment sugar 15g should not be major');
+  });
+
+  it('First-ingredient penalty fires when sucre leads the list', () => {
+    const audit = scoreProduct({
+      name: 'Bonbons',
+      category: 'snack_sweet',
+      nova_class: 4,
+      ingredients: [
+        { name: 'sucre', category: 'food' },
+        { name: 'sirop de glucose', category: 'food' },
+        { name: 'gélatine', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 340, fat_g: 0, saturated_fat_g: 0, carbs_g: 82,
+        sugars_g: 65, added_sugars_g: 60, fiber_g: 0, protein_g: 5, salt_g: 0.05,
+      },
+    });
+    const first = audit.pillars.processing.deductions.find((d) =>
+      /Primary ingredient is sugar/i.test(d.reason),
+    );
+    assert.ok(first, 'first-ingredient=sugar should add a processing deduction');
+    assert.equal(first.points, -3);
+  });
+
+  it('NOVA 4 softer base: processed yogurt-like product gets a fair floor', () => {
+    const audit = scoreProduct({
+      name: 'Yaourt aromatisé simple',
+      category: 'yogurt',
+      nova_class: 4,
+      ingredients: [
+        { name: 'yaourt', is_whole_food: true, category: 'food' },
+        { name: 'sucre', category: 'food' },
+        { name: 'arômes naturels', category: 'additive' },
+      ],
+      nutrition: {
+        energy_kcal: 85, fat_g: 1.5, saturated_fat_g: 1, carbs_g: 13,
+        sugars_g: 12, added_sugars_g: 9, fiber_g: 0, protein_g: 4, salt_g: 0.1,
+      },
+      origin: 'France', named_oils: true, origin_transparent: true,
+    });
+    // With old NOVA 4 base (=4), score dropped into D. Softer base (=6) plus
+    // the other pillars should land in C range at worst.
+    assert.ok(
+      ['B', 'C'].includes(audit.grade),
+      `softer NOVA-4 base should yield B or C here (got ${audit.grade}, score ${audit.score})`,
+    );
+  });
+
+  it('Healthy fat source (olive oil) lifts borderline fatScore', () => {
+    // Vinaigrette-style product with 30g fat, 5g sat. Ratio 0.17 already
+    // gives full fatScore=5, so a pure test needs a borderline ratio.
+    const audit = scoreProduct({
+      name: 'Sauce pesto',
+      category: 'condiment',
+      nova_class: 3,
+      ingredients: [
+        { name: 'basilic', is_whole_food: true, category: 'food' },
+        { name: "huile d'olive vierge", category: 'food' },
+        { name: 'parmesan', category: 'food' },
+        { name: 'pignons de pin', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 420, fat_g: 40, saturated_fat_g: 9, carbs_g: 5,
+        sugars_g: 1, added_sugars_g: 0, fiber_g: 1, protein_g: 5, salt_g: 1.5,
+      },
+      origin: 'Italie', named_oils: true, origin_transparent: true,
+    });
+    const bonus = audit.pillars.nutritional_density.bonuses.find((b) =>
+      /Healthy fat source/i.test(b.reason),
+    );
+    assert.ok(bonus, 'olive oil ingredient should earn healthy-fat-source bump');
+  });
 });
