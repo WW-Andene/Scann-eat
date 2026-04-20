@@ -422,6 +422,87 @@ describe('engine fixtures — real French supermarket products', () => {
     assert.equal(o3.points, 2);
   });
 
+  it('Flavored yogurt (Skyr-class) gets UPF-marker penalty from arômes + concentré de minéraux', () => {
+    const audit = scoreProduct({
+      name: 'Skyr Poire Vanille',
+      category: 'yogurt',
+      nova_class: 4,
+      ingredients: [
+        { name: 'yaourt maigre (lait)', is_whole_food: true, category: 'food' },
+        { name: 'poire 7%', is_whole_food: true, percentage: 7, category: 'food' },
+        { name: 'sucre 6.2%', percentage: 6.2, category: 'food' },
+        { name: 'amidon de maïs', category: 'food' },
+        { name: 'arômes naturels', category: 'food' },
+        { name: 'arôme naturel de vanille', category: 'food' },
+        { name: 'concentré des minéraux du lait', category: 'food' },
+        { name: 'gousses de vanille épuisées', category: 'food' },
+        { name: 'pectines', e_number: 'E440', category: 'additive' },
+      ],
+      nutrition: {
+        energy_kcal: 60, fat_g: 0.2, saturated_fat_g: 0.1, carbs_g: 8.5,
+        sugars_g: 8.5, added_sugars_g: 6.2, fiber_g: 0.3, protein_g: 10, salt_g: 0.12,
+      },
+      origin: 'Lait français', named_oils: true, origin_transparent: true,
+    });
+    const upfHit = audit.pillars.processing.deductions.find((d) =>
+      /UPF marker/i.test(d.reason),
+    );
+    assert.ok(upfHit, 'UPF marker deduction should fire on this composition');
+    // arômes + mineral concentrate = 2 markers → capped -4
+    assert.equal(upfHit.points, -4);
+    // Skyr should still land B/A range (not get tanked)
+    assert.ok(['A', 'B'].includes(audit.grade), `Skyr grade ${audit.grade} (score ${audit.score})`);
+  });
+
+  it('Clean yogurt without UPF markers keeps a softer NOVA assessment', () => {
+    const audit = scoreProduct({
+      name: 'Yaourt nature',
+      category: 'yogurt',
+      nova_class: 4, // input wrong — no UPF markers, should downgrade
+      ingredients: [
+        { name: 'lait', is_whole_food: true, category: 'food' },
+        { name: 'ferments lactiques', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 50, fat_g: 1.5, saturated_fat_g: 1, carbs_g: 5,
+        sugars_g: 5, added_sugars_g: 0, fiber_g: 0, protein_g: 4, salt_g: 0.15,
+      },
+    });
+    const adjustment = audit.pillars.processing.deductions.find((d) =>
+      /auto-adjusted/i.test(d.reason),
+    );
+    assert.ok(adjustment, 'NOVA auto-adjust fires on clean yogurt');
+    // No UPF markers here
+    const upfHit = audit.pillars.processing.deductions.find((d) =>
+      /UPF marker/i.test(d.reason),
+    );
+    assert.equal(upfHit, undefined, 'no UPF marker in clean yogurt');
+  });
+
+  it('UPF-marker penalty caps at -4 even with many markers', () => {
+    const audit = scoreProduct({
+      name: 'Ultra-formulated product',
+      category: 'snack_sweet',
+      nova_class: 4,
+      ingredients: [
+        { name: 'arômes naturels', category: 'food' },
+        { name: 'concentré de minéraux', category: 'food' },
+        { name: 'isolat de protéines de soja', category: 'food' },
+        { name: 'hydrolysat de caséine', category: 'food' },
+        { name: 'amidon modifié', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 400, fat_g: 20, saturated_fat_g: 8, carbs_g: 40,
+        sugars_g: 15, fiber_g: 2, protein_g: 10, salt_g: 0.8,
+      },
+    });
+    const upfHit = audit.pillars.processing.deductions.find((d) =>
+      /UPF marker/i.test(d.reason),
+    );
+    assert.ok(upfHit);
+    assert.equal(upfHit.points, -4, 'cap holds at -4');
+  });
+
   it('Healthy fat source (olive oil) lifts borderline fatScore', () => {
     // Vinaigrette-style product with 30g fat, 5g sat. Ratio 0.17 already
     // gives full fatScore=5, so a pure test needs a borderline ratio.

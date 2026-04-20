@@ -448,6 +448,9 @@ function renderAudit(data) {
   if (data.source === 'openfoodfacts') {
     resultSourceEl.textContent = t('sourceOFF');
     show(resultSourceEl);
+  } else if (data.source === 'merged') {
+    resultSourceEl.textContent = t('sourceMerged');
+    show(resultSourceEl);
   } else if (data.source === 'llm') {
     resultSourceEl.textContent = t('sourceLLM');
     show(resultSourceEl);

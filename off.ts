@@ -257,3 +257,84 @@ function anySignal(signals: AbortSignal[]): AbortSignal {
   }
   return controller.signal;
 }
+
+// ============================================================================
+// Hybrid OFF + LLM merge
+// ============================================================================
+
+/**
+ * Returns true if the OFF record is too thin to score well on its own. When
+ * both an OFF hit and user-provided photos exist, a sparse record triggers an
+ * LLM augmentation pass to fill the gaps.
+ */
+export function isOFFSparse(p: ProductInput): boolean {
+  const n = p.nutrition;
+  const hasNutrition = n.energy_kcal > 0 || n.protein_g > 0 || n.carbs_g > 0;
+  const hasIngredients = p.ingredients.length >= 3;
+  const hasCategory = p.category !== 'other';
+  return !hasNutrition || !hasIngredients || !hasCategory;
+}
+
+/**
+ * Merge an OFF record with an LLM extraction. OFF is the trusted baseline;
+ * fields the LLM can fill (when OFF has 0 or empty) are pulled in from the
+ * LLM side. This mirrors the "authoritative > heuristic" stance of the rest
+ * of the engine.
+ */
+export function mergeOFFWithLLM(off: ProductInput, llm: ProductInput): ProductInput {
+  const prefer = <T>(offVal: T, llmVal: T, isEmpty: (v: T) => boolean): T =>
+    isEmpty(offVal) ? llmVal : offVal;
+
+  const emptyStr = (s: unknown) => !s || (typeof s === 'string' && s.trim() === '') || s === '(produit sans nom)';
+  const emptyNum = (n: unknown) => n == null || n === 0;
+  const emptyArr = (a: unknown) => !Array.isArray(a) || a.length === 0;
+
+  return {
+    name: prefer(off.name, llm.name, emptyStr),
+    category: off.category !== 'other' ? off.category : llm.category,
+    nova_class: off.nova_class || llm.nova_class,
+    ingredients: emptyArr(off.ingredients) || off.ingredients.length < 3 ? llm.ingredients : off.ingredients,
+    nutrition: {
+      energy_kcal: prefer(off.nutrition.energy_kcal, llm.nutrition.energy_kcal, emptyNum),
+      fat_g: prefer(off.nutrition.fat_g, llm.nutrition.fat_g, emptyNum),
+      saturated_fat_g: prefer(off.nutrition.saturated_fat_g, llm.nutrition.saturated_fat_g, emptyNum),
+      carbs_g: prefer(off.nutrition.carbs_g, llm.nutrition.carbs_g, emptyNum),
+      sugars_g: prefer(off.nutrition.sugars_g, llm.nutrition.sugars_g, emptyNum),
+      added_sugars_g: off.nutrition.added_sugars_g ?? llm.nutrition.added_sugars_g ?? null,
+      fiber_g: prefer(off.nutrition.fiber_g, llm.nutrition.fiber_g, emptyNum),
+      protein_g: prefer(off.nutrition.protein_g, llm.nutrition.protein_g, emptyNum),
+      salt_g: prefer(off.nutrition.salt_g, llm.nutrition.salt_g, emptyNum),
+      trans_fat_g: off.nutrition.trans_fat_g ?? llm.nutrition.trans_fat_g ?? null,
+    },
+    weight_g: off.weight_g ?? llm.weight_g,
+    origin: off.origin ?? llm.origin ?? null,
+    organic: off.organic || llm.organic,
+    has_health_claims: off.has_health_claims || llm.has_health_claims,
+    has_misleading_marketing: off.has_misleading_marketing || llm.has_misleading_marketing,
+    named_oils: off.named_oils ?? llm.named_oils,
+    origin_transparent: off.origin_transparent || llm.origin_transparent,
+    declared_micronutrients: off.declared_micronutrients,
+  };
+}
+
+/**
+ * Compare OFF vs LLM numbers and return human-readable warnings when they
+ * disagree materially (>20 % relative difference on a non-trivial value).
+ * Lets the user notice a potentially reformulated product.
+ */
+export function detectSourceConflicts(off: ProductInput, llm: ProductInput): string[] {
+  const warnings: string[] = [];
+  const check = (label: string, a: number, b: number) => {
+    if (a > 0 && b > 0) {
+      const diff = Math.abs(a - b) / Math.max(a, b);
+      if (diff > 0.20) {
+        warnings.push(`${label}: OFF ${a} vs photo ${b} (−${Math.round(diff * 100)} % difference — possible reformulation)`);
+      }
+    }
+  };
+  check('Sugars', off.nutrition.sugars_g, llm.nutrition.sugars_g);
+  check('Sat fat', off.nutrition.saturated_fat_g, llm.nutrition.saturated_fat_g);
+  check('Salt', off.nutrition.salt_g, llm.nutrition.salt_g);
+  check('Protein', off.nutrition.protein_g, llm.nutrition.protein_g);
+  return warnings;
+}

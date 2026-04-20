@@ -988,10 +988,33 @@ const FIRST_INGREDIENT_PENALTY_PATTERNS: Array<{ re: RegExp; label: string }> = 
 ];
 
 /**
- * Infer NOVA class from the ingredient list when the input's `nova_class`
- * looks unreliable (e.g. OFF missing, LLM defaulted to 4 without cause).
- * Replaces the previous hard-coded "default to 4 if unknown" behaviour which
- * over-penalised minimally processed products.
+ * UPF markers per NOVA framework (Monteiro et al., Public Health Nutrition
+ * 2019;22(5)): industrial ingredients characteristic of ultra-processed foods,
+ * regardless of whether they carry an E-number. Flavorings are explicitly
+ * listed in NOVA's UPF-indicator set even though EU Regulation 1334/2008
+ * classifies them separately from additives.
+ */
+const UPF_MARKER_PATTERNS: Array<{ re: RegExp; label: string }> = [
+  { re: /\bar[oô]mes?\b/i,                                                   label: 'flavorings (arômes)' },
+  { re: /\bconcentr[eé] des? min[eé]raux|mineral concentrate/i,               label: 'mineral concentrate' },
+  { re: /\bisolat de |\bprot[eé]ine isol[eé]e|protein isolate/i,              label: 'protein isolate' },
+  { re: /\bhydrolysat|prot[eé]ines? hydrolys[eé]es?|hydrolyzed protein/i,     label: 'protein hydrolysate' },
+  { re: /\bamidon modifi|modified starch|maltodextrin/i,                      label: 'modified starch' },
+];
+
+function detectUPFMarkers(ings: Ingredient[]): string[] {
+  const hits: string[] = [];
+  for (const marker of UPF_MARKER_PATTERNS) {
+    if (ings.some((i) => marker.re.test(i.name))) hits.push(marker.label);
+  }
+  return hits;
+}
+
+/**
+ * Infer NOVA class from the ingredient list. Expanded: recognizes generic
+ * UPF markers (flavorings, isolates, hydrolysates) as NOVA-4 indicators even
+ * when no E-number appears. Clean products with a longer but honest ingredient
+ * list can now qualify for NOVA 3 (count ≤10 instead of ≤8).
  */
 export function inferNovaClass(product: ProductInput): NovaClass {
   const ings = product.ingredients;
@@ -1000,16 +1023,21 @@ export function inferNovaClass(product: ProductInput): NovaClass {
   const cosmetics = additives
     .map((i) => findAdditive(i))
     .filter((a): a is AdditiveInfo => a !== null && COSMETIC_ADDITIVE_CATEGORIES.has(a.category));
-  const hasModifiedStarch = ings.some((i) => /amidon modifi|modified starch|maltodextrin/i.test(i.name));
+  const upfMarkers = detectUPFMarkers(ings);
 
-  if (ings.length === 1 && additives.length === 0) return 1;
-  if (ings.length <= 3 && additives.length === 0) {
+  if (ings.length === 1 && additives.length === 0 && upfMarkers.length === 0) return 1;
+  if (ings.length <= 3 && additives.length === 0 && upfMarkers.length === 0) {
     const onlyCulinary = ings.every((i) =>
       /^(sucre|sel|huile|beurre|graisse|miel|vinaigre|eau)/i.test(i.name.trim()),
     );
     if (onlyCulinary) return 2;
   }
-  if (cosmetics.length === 0 && !hasModifiedStarch && additives.length <= 2 && ings.length <= 8) {
+  if (
+    cosmetics.length === 0 &&
+    upfMarkers.length === 0 &&
+    additives.length <= 2 &&
+    ings.length <= 10
+  ) {
     return 3;
   }
   return 4;
@@ -1073,6 +1101,21 @@ export function scoreProcessing(product: ProductInput): PillarScore {
   const cosmeticAdditives = product.ingredients
     .map((ing) => findAdditive(ing))
     .filter((a): a is AdditiveInfo => a !== null && COSMETIC_ADDITIVE_CATEGORIES.has(a.category));
+
+  // UPF markers per NOVA framework (flavorings, isolates, hydrolysates,
+  // modified starch, mineral concentrates). −2 per distinct marker, cap −4.
+  // Uses the same list as inferNovaClass to keep the two in lockstep.
+  const upfMarkers = detectUPFMarkers(product.ingredients);
+  if (upfMarkers.length > 0) {
+    const penalty = Math.min(4, upfMarkers.length * 2);
+    score -= penalty;
+    deductions.push({
+      pillar: 'processing',
+      reason: `${upfMarkers.length} UPF marker(s) (NOVA framework): ${upfMarkers.join(', ')}`,
+      points: -penalty,
+      severity: 'minor',
+    });
+  }
 
   if (cosmeticAdditives.length > 0) {
     score -= 2;

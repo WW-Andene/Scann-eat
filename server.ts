@@ -21,7 +21,7 @@ import { extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseLabel } from './ocr-parser.ts';
-import { fetchFromOFF } from './off.ts';
+import { fetchFromOFF, isOFFSparse, mergeOFFWithLLM, detectSourceConflicts } from './off.ts';
 import { scoreProduct } from './scoring-engine.ts';
 
 const PORT = Number(process.env.PORT ?? 5173);
@@ -77,9 +77,34 @@ async function handleScore(req: IncomingMessage, res: ServerResponse) {
       barcode?: string;
     };
 
+    const images =
+      body.images && body.images.length > 0
+        ? body.images.map((img) => ({ base64: img.base64, mime: img.mime ?? 'image/jpeg' }))
+        : body.imageBase64
+          ? [{ base64: body.imageBase64, mime: body.mime ?? 'image/jpeg' }]
+          : [];
+
+    // OFF + optional LLM hybrid path.
     if (body.barcode) {
       const off = await fetchFromOFF(body.barcode);
       if (off) {
+        if (isOFFSparse(off) && images.length > 0) {
+          try {
+            const parsed = await parseLabel(images);
+            const merged = mergeOFFWithLLM(off, parsed.product);
+            const conflicts = detectSourceConflicts(off, parsed.product);
+            const audit = scoreProduct(merged);
+            return sendJSON(res, 200, {
+              product: merged,
+              audit,
+              warnings: [...parsed.warnings, ...conflicts],
+              source: 'merged',
+              barcode: body.barcode,
+            });
+          } catch {
+            /* LLM failed — fall back to OFF alone */
+          }
+        }
         const audit = scoreProduct(off);
         return sendJSON(res, 200, {
           product: off,
@@ -90,13 +115,6 @@ async function handleScore(req: IncomingMessage, res: ServerResponse) {
         });
       }
     }
-
-    const images =
-      body.images && body.images.length > 0
-        ? body.images.map((img) => ({ base64: img.base64, mime: img.mime ?? 'image/jpeg' }))
-        : body.imageBase64
-          ? [{ base64: body.imageBase64, mime: body.mime ?? 'image/jpeg' }]
-          : [];
 
     if (images.length === 0) {
       return sendJSON(res, 400, { error: 'Missing images' });
