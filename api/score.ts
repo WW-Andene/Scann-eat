@@ -53,17 +53,23 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   try {
     const raw = await readBody(req);
     const body = JSON.parse(raw.toString('utf8')) as {
+      images?: Array<{ base64: string; mime?: string }>;
       imageBase64?: string;
       mime?: string;
     };
-    if (!body.imageBase64) {
-      return sendJSON(res, 400, { error: 'Missing imageBase64' });
+
+    const images =
+      body.images && body.images.length > 0
+        ? body.images.map((img) => ({ base64: img.base64, mime: img.mime ?? 'image/jpeg' }))
+        : body.imageBase64
+          ? [{ base64: body.imageBase64, mime: body.mime ?? 'image/jpeg' }]
+          : [];
+
+    if (images.length === 0) {
+      return sendJSON(res, 400, { error: 'Missing images' });
     }
 
-    const { product, warnings } = await parseLabel({
-      base64: body.imageBase64,
-      mime: body.mime ?? 'image/jpeg',
-    });
+    const { product, warnings } = await parseLabel(images);
     const audit = scoreProduct(product);
 
     return sendJSON(res, 200, { product, audit, warnings });

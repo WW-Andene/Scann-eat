@@ -41,23 +41,21 @@
 
     <main>
       <section class="capture">
+        <div id="queue" class="queue" hidden></div>
         <label class="capture-btn" for="file-input">
           <span class="icon" aria-hidden="true">&#128247;</span>
-          <span class="label">Prendre / choisir une photo</span>
+          <span class="label" id="capture-label">Prendre / choisir une photo</span>
           <input
             id="file-input"
             type="file"
             accept="image/*"
             capture="environment"
+            multiple
             hidden
           />
         </label>
-        <p id="hint" class="hint">Front + dos du paquet dans une seule image si possible.</p>
-      </section>
-
-      <section id="preview" class="preview" hidden>
-        <img id="preview-img" alt="Preview" />
-        <button id="scan-btn" type="button">Analyser</button>
+        <button id="scan-btn" type="button" disabled>Analyser</button>
+        <p id="hint" class="hint">Jusqu'à 4 photos (face + ingrédients + nutrition pour un meilleur score).</p>
       </section>
 
       <section id="status" class="status" hidden>
