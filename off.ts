@@ -128,7 +128,7 @@ const CATEGORY_MAP: Array<[RegExp, ProductCategory]> = [
   [/ready[-_]?meal|plat[-_]?cuisin/i,      'ready_meal'],
   [/breakfast[-_]?cereal|cereale-petit/i,  'breakfast_cereal'],
   [/bread|pain|baguette/i,                 'bread'],
-  [/yogurt|yoghurt|yaourt/i,               'yogurt'],
+  [/yogurt|yoghurt|yaourt|skyr|fromage[-_]?blanc|faisselle|quark|petit[-_]?suisse|fermented[-_]?dair/i, 'yogurt'],
   [/cheese|fromage/i,                      'cheese'],
   [/processed[-_]?meat|charcuterie|saucisson|jambon-sec/i, 'processed_meat'],
   [/fresh[-_]?meat|viande-fraiche|boucherie/i, 'fresh_meat'],

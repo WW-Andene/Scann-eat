@@ -476,12 +476,27 @@ export function getThresholds(cat: ProductCategory): CategoryThresholds {
 // ============================================================================
 
 const WHOLE_FOOD_KEYWORDS = [
-  'tomate', 'salade', 'oeuf', 'œuf', 'poisson', 'saumon', 'thon',
-  'fromage', 'lait', 'légume', 'legume', 'carotte', 'épinard', 'epinard',
-  'lentille', 'haricot', 'pois', 'noix', 'amande', 'graine',
-  'fruit', 'pomme', 'orange', 'poivron', 'oignon', 'ail',
-  'poulet', 'boeuf', 'porc', 'viande', 'yaourt', 'riz', 'quinoa',
-  'avoine', 'eau', 'miel',
+  // Produce
+  'tomate', 'salade', 'carotte', 'épinard', 'epinard', 'poivron', 'oignon',
+  'ail', 'courgette', 'aubergine', 'concombre', 'brocoli', 'chou',
+  'betterave', 'poireau', 'potiron', 'courge',
+  // Fruits
+  'fruit', 'pomme', 'poire', 'orange', 'citron', 'pamplemousse', 'mandarine',
+  'abricot', 'pêche', 'peche', 'fraise', 'framboise', 'myrtille', 'cassis',
+  'cerise', 'prune', 'mirabelle', 'raisin', 'figue', 'datte', 'mangue',
+  'ananas', 'banane', 'kiwi', 'melon', 'pastèque', 'grenade', 'coco', 'noix de coco',
+  // Legumes & nuts & seeds
+  'lentille', 'haricot', 'pois', 'fève', 'feve', 'noix', 'amande', 'noisette',
+  'pistache', 'cajou', 'graine', 'sésame', 'sesame', 'lin', 'chia', 'tournesol',
+  // Grains
+  'riz', 'quinoa', 'avoine', 'blé', 'ble', 'seigle', 'orge', 'sarrasin',
+  // Animal
+  'oeuf', 'œuf', 'poisson', 'saumon', 'thon', 'sardine', 'maquereau',
+  'poulet', 'boeuf', 'porc', 'viande', 'dinde', 'canard', 'agneau',
+  'jambon',
+  // Dairy / other
+  'fromage', 'lait', 'yaourt', 'skyr', 'eau', 'miel',
+  'légume', 'legume',
 ];
 
 const HIDDEN_SUGAR_NAMES = [

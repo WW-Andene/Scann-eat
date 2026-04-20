@@ -200,6 +200,16 @@ describe('enrichIngredient', () => {
     assert.equal(ing.is_whole_food, false);
   });
 
+  it('recognizes extended fruit keywords (poire, abricot, framboise, myrtille)', () => {
+    for (const name of ['poire', 'abricot', 'framboise', 'myrtille', 'cerise']) {
+      assert.equal(enrichIngredient({ name }).is_whole_food, true, `${name} should be whole food`);
+    }
+  });
+
+  it('recognizes skyr as a whole-food dairy item', () => {
+    assert.equal(enrichIngredient({ name: 'skyr maigre' }).is_whole_food, true);
+  });
+
   it('uppercases and strips spaces from LLM-declared E-number', () => {
     const ing = enrichIngredient({ name: 'sel nitrité', e_number: 'e 250' });
     assert.equal(ing.e_number, 'E250');
