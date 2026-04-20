@@ -3,6 +3,11 @@ import { explainFlag } from '/explanations.js';
 import { enqueue, listPending, remove as removePending, countPending } from '/queue-store.js';
 import { saveScan, listScans, deleteScan, clearScans } from '/scan-history.js';
 import { detectAllergens } from '/allergens.js';
+import {
+  getProfile, setProfile, hasMinimalProfile,
+  bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets, proteinPRI_g,
+} from '/profile.js';
+import { computePersonalScore, personalGrade } from '/personal-score.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -438,6 +443,8 @@ function renderAudit(data) {
   $('product-name').textContent = audit.product_name || '(—)';
   $('product-category').textContent = audit.category.replace(/_/g, ' ');
 
+  renderPersonalScore(audit, data.product);
+
   if (data.source === 'openfoodfacts') {
     resultSourceEl.textContent = t('sourceOFF');
     show(resultSourceEl);
@@ -840,6 +847,162 @@ function closeCameraScanner() {
   cameraVideo.srcObject = null;
   if (cameraDialog.open) cameraDialog.close();
 }
+
+// ============================================================================
+// Personal score
+// ============================================================================
+
+const personalSlot = $('personal-slot');
+const personalAdjustmentsEl = $('personal-adjustments');
+const personalAdjustmentsList = $('personal-adjustments-list');
+
+function renderPersonalScore(audit, product) {
+  const profile = getProfile();
+  const r = computePersonalScore(audit, product, profile, currentLang);
+  if (!r.applicable) {
+    hide(personalSlot);
+    hide(personalAdjustmentsEl);
+    return;
+  }
+  const g = personalGrade(r.personal_score);
+  $('personal-grade-el').textContent = g;
+  $('personal-grade-el').dataset.grade = g;
+  $('personal-score-el').textContent = String(r.personal_score);
+  const deltaEl = $('personal-delta-el');
+  if (r.delta === 0) deltaEl.textContent = '';
+  else deltaEl.textContent = r.delta > 0 ? `(+${r.delta})` : `(${r.delta})`;
+  deltaEl.dataset.sign = r.delta > 0 ? 'pos' : r.delta < 0 ? 'neg' : 'zero';
+  $('personal-verdict-el').textContent = r.diet_reason || '';
+  show(personalSlot);
+
+  personalAdjustmentsList.innerHTML = '';
+  if (r.adjustments.length === 0) {
+    hide(personalAdjustmentsEl);
+  } else {
+    for (const a of r.adjustments) {
+      const li = document.createElement('li');
+      li.className = `pa-row ${a.category} ${a.points > 0 ? 'positive' : 'negative'}`;
+      li.innerHTML = `
+        <span class="pa-points">${a.points > 0 ? '+' : ''}${a.points}</span>
+        <span class="pa-reason">${a.reason}</span>
+      `;
+      personalAdjustmentsList.appendChild(li);
+    }
+    show(personalAdjustmentsEl);
+  }
+}
+
+// ============================================================================
+// Profile dialog
+// ============================================================================
+
+const profileBtn = $('profile-btn');
+const profileDialog = $('profile-dialog');
+const profileSex = $('profile-sex');
+const profileAge = $('profile-age');
+const profileHeight = $('profile-height');
+const profileWeight = $('profile-weight');
+const profileActivity = $('profile-activity');
+const profileDiet = $('profile-diet');
+const profileCustomForbidden = $('profile-custom-forbidden');
+const profileCustomPreferred = $('profile-custom-preferred');
+const profileCustomWrap = $('custom-diet-wrap');
+const profileDerivedEl = $('profile-derived');
+const profileDerivedList = $('profile-derived-list');
+const profileSave = $('profile-save');
+const profileCancel = $('profile-cancel');
+
+function openProfileDialog() {
+  const p = getProfile();
+  profileSex.value = p.sex || '';
+  profileAge.value = p.age_years ?? '';
+  profileHeight.value = p.height_cm ?? '';
+  profileWeight.value = p.weight_kg ?? '';
+  profileActivity.value = p.activity || '';
+  profileDiet.value = p.diet || 'none';
+  profileCustomForbidden.value = (p.custom_diet?.forbidden || []).join('\n');
+  profileCustomPreferred.value = (p.custom_diet?.preferred || []).join('\n');
+  toggleCustomDietWrap();
+  renderDerived();
+  profileDialog.showModal();
+}
+
+function toggleCustomDietWrap() {
+  if (profileDiet.value === 'custom') show(profileCustomWrap);
+  else hide(profileCustomWrap);
+}
+
+function readProfileFromForm() {
+  const toNum = (v) => {
+    const n = parseFloat(String(v).replace(',', '.'));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  return {
+    sex: profileSex.value || null,
+    age_years: toNum(profileAge.value),
+    height_cm: toNum(profileHeight.value),
+    weight_kg: toNum(profileWeight.value),
+    activity: profileActivity.value || null,
+    diet: profileDiet.value || 'none',
+    custom_diet: profileDiet.value === 'custom'
+      ? {
+          forbidden: profileCustomForbidden.value.split('\n').map((s) => s.trim()).filter(Boolean),
+          preferred: profileCustomPreferred.value.split('\n').map((s) => s.trim()).filter(Boolean),
+        }
+      : null,
+  };
+}
+
+function renderDerived() {
+  const p = readProfileFromForm();
+  if (!hasMinimalProfile(p)) {
+    hide(profileDerivedEl);
+    return;
+  }
+  const rows = [];
+  const bmiVal = bmi(p);
+  const bmiCat = bmiCategory(bmiVal);
+  const bmiLabel = bmiCat ? t(({
+    underweight: 'bmiUnderweight',
+    normal: 'bmiNormal',
+    overweight: 'bmiOverweight',
+    obese_1: 'bmiObese1',
+    obese_2: 'bmiObese2',
+    obese_3: 'bmiObese3',
+  })[bmiCat] || 'bmiNormal') : '';
+  rows.push([t('bmi'), `${bmiVal} (${bmiLabel})`]);
+  const bmr = bmrMifflinStJeor(p);
+  rows.push([t('bmr'), `${bmr} kcal/j`]);
+  const tdee = tdeeKcal(p);
+  rows.push([t('tdee'), `${tdee} kcal/j`]);
+  const targets = dailyTargets(p);
+  if (targets) {
+    rows.push([t('proteinTarget'), `${targets.protein_g_target} g`]);
+    rows.push([t('satfatMax'), `${targets.sat_fat_g_max} g`]);
+    rows.push([t('freeSugarMax'), `${targets.free_sugars_g_max} g (idéal ${targets.free_sugars_g_ideal} g)`]);
+  }
+  profileDerivedList.innerHTML = rows
+    .map(([k, v]) => `<li><span>${k}</span><strong>${v}</strong></li>`)
+    .join('');
+  show(profileDerivedEl);
+}
+
+profileBtn?.addEventListener('click', openProfileDialog);
+profileDiet?.addEventListener('change', () => { toggleCustomDietWrap(); renderDerived(); });
+[profileSex, profileAge, profileHeight, profileWeight, profileActivity].forEach((el) => {
+  el?.addEventListener('input', renderDerived);
+  el?.addEventListener('change', renderDerived);
+});
+profileSave?.addEventListener('click', (e) => {
+  e.preventDefault();
+  setProfile(readProfileFromForm());
+  profileDialog.close();
+  // Re-render the currently open result, if any, with the new profile.
+  if (lastData && !resultEl.hidden) {
+    renderAudit(lastData);
+  }
+});
+profileCancel?.addEventListener('click', (e) => { e.preventDefault(); profileDialog.close(); });
 
 // ============================================================================
 // Scan history

@@ -22,6 +22,7 @@
     </aside>
 
     <header>
+      <button id="profile-btn" class="settings-btn profile-btn" type="button" data-i18n-aria-label="profile" aria-label="Profil">&#128100;</button>
       <button id="settings-btn" class="settings-btn" type="button" data-i18n-aria-label="settings" aria-label="Réglages">&#9881;</button>
       <h1>Scann-eat</h1>
       <p class="tagline" data-i18n="tagline">Photographie une étiquette → note de 0 à 100</p>
@@ -112,6 +113,85 @@
         <button id="ob-skip" type="button" class="secondary" data-i18n="skip">Passer</button>
         <button id="ob-next" type="button" data-i18n="next">Suivant</button>
       </div>
+    </dialog>
+
+    <dialog id="profile-dialog" class="settings-dialog">
+      <form method="dialog">
+        <h2 data-i18n="profileTitle">Profil personnel</h2>
+        <p class="hint" data-i18n="profileIntro">Utilisé uniquement sur ton appareil.</p>
+        <div class="profile-grid">
+          <label>
+            <span data-i18n="profileSex">Sexe</span>
+            <select id="profile-sex">
+              <option value=""></option>
+              <option value="male" data-i18n="sexMale">Homme</option>
+              <option value="female" data-i18n="sexFemale">Femme</option>
+              <option value="other" data-i18n="sexOther">Autre</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="profileAge">Âge (années)</span>
+            <input id="profile-age" type="number" min="0" max="120" inputmode="numeric" />
+          </label>
+          <label>
+            <span data-i18n="profileHeight">Taille (cm)</span>
+            <input id="profile-height" type="number" min="50" max="250" inputmode="numeric" />
+          </label>
+          <label>
+            <span data-i18n="profileWeight">Poids (kg)</span>
+            <input id="profile-weight" type="number" min="10" max="400" step="0.1" inputmode="decimal" />
+          </label>
+          <label class="full">
+            <span data-i18n="profileActivity">Niveau d'activité</span>
+            <select id="profile-activity">
+              <option value=""></option>
+              <option value="sedentary" data-i18n="activitySedentary">Sédentaire</option>
+              <option value="light" data-i18n="activityLight">Peu actif</option>
+              <option value="moderate" data-i18n="activityModerate">Modérément actif</option>
+              <option value="active" data-i18n="activityActive">Très actif</option>
+              <option value="very_active" data-i18n="activityVeryActive">Extrêmement actif</option>
+            </select>
+          </label>
+          <label class="full">
+            <span data-i18n="profileDiet">Régime alimentaire</span>
+            <select id="profile-diet">
+              <option value="none">—</option>
+              <option value="vegetarian">Végétarien</option>
+              <option value="vegan">Végan</option>
+              <option value="pescatarian">Pescétarien</option>
+              <option value="keto">Cétogène</option>
+              <option value="halal">Halal</option>
+              <option value="kosher">Casher</option>
+              <option value="gluten_free">Sans gluten</option>
+              <option value="dairy_free">Sans lactose / laitier</option>
+              <option value="paleo">Paléo</option>
+              <option value="low_fodmap">Pauvre en FODMAP</option>
+              <option value="mediterranean">Méditerranéen</option>
+              <option value="carnivore">Carnivore</option>
+              <option value="custom">Personnalisé</option>
+            </select>
+          </label>
+          <div class="full custom-diet-wrap" id="custom-diet-wrap" hidden>
+            <label>
+              <span data-i18n="profileCustomForbidden">Interdits (regex, un par ligne)</span>
+              <textarea id="profile-custom-forbidden" rows="3" placeholder="palme\nalcool\nE1[0-9]{2}"></textarea>
+            </label>
+            <label>
+              <span data-i18n="profileCustomPreferred">Préférés (regex, un par ligne)</span>
+              <textarea id="profile-custom-preferred" rows="2" placeholder="olive\nsaumon"></textarea>
+            </label>
+          </div>
+        </div>
+        <div class="profile-derived" id="profile-derived" hidden>
+          <strong data-i18n="profileDerived">Calculs dérivés</strong>
+          <ul id="profile-derived-list"></ul>
+          <small class="hint" data-i18n="scoringAnchors">Mifflin-St Jeor 1990 · FAO/WHO/UNU 2004 · WHO BMI 2000 · EFSA 2012</small>
+        </div>
+        <div class="dialog-actions">
+          <button id="profile-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
+          <button id="profile-save" type="submit" data-i18n="save">Enregistrer</button>
+        </div>
+      </form>
     </dialog>
 
     <dialog id="about-dialog" class="settings-dialog">
@@ -235,14 +315,35 @@
       </section>
 
       <section id="result" class="result" hidden>
-        <div class="score-card">
-          <div class="grade" id="grade-el">—</div>
-          <div class="score">
-            <strong id="score-el">—</strong>
-            <small>/ 100</small>
+        <div class="score-card dual" id="score-card">
+          <div class="score-slot">
+            <span class="score-kind" data-i18n="classicScore">Score classique</span>
+            <div class="score-row">
+              <div class="grade" id="grade-el">—</div>
+              <div class="score">
+                <strong id="score-el">—</strong>
+                <small>/ 100</small>
+              </div>
+            </div>
+            <div class="verdict" id="verdict-el"></div>
           </div>
-          <div class="verdict" id="verdict-el"></div>
+          <div class="score-slot" id="personal-slot" hidden>
+            <span class="score-kind" data-i18n="personalScore">Score personnel</span>
+            <div class="score-row">
+              <div class="grade" id="personal-grade-el">—</div>
+              <div class="score">
+                <strong id="personal-score-el">—</strong>
+                <small>/ 100 <span id="personal-delta-el" class="personal-delta"></span></small>
+              </div>
+            </div>
+            <div class="verdict" id="personal-verdict-el"></div>
+          </div>
         </div>
+
+        <details class="personal-adjustments" id="personal-adjustments" hidden>
+          <summary data-i18n="personalAdjustments">Ajustements personnels</summary>
+          <ul id="personal-adjustments-list"></ul>
+        </details>
 
         <div class="product">
           <h2 id="product-name">—</h2>

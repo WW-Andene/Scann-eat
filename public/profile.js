@@ -1,0 +1,119 @@
+/**
+ * User profile storage + authoritative physiological calculations.
+ *
+ * AUTHORITATIVE sources:
+ *   - BMR (Mifflin-St Jeor): Mifflin MD, St Jeor ST, Hill LA, Scott BJ,
+ *     Daugherty SA, Koh YO. "A new predictive equation for resting energy
+ *     expenditure in healthy individuals." Am J Clin Nutr 1990;51:241-247.
+ *   - Activity factors (PAL): FAO/WHO/UNU "Human Energy Requirements",
+ *     Report of a Joint FAO/WHO/UNU Expert Consultation (Rome, 2001;
+ *     published 2004).
+ *   - BMI cutoffs: WHO Global Database on BMI (2000; reaffirmed 2023).
+ *   - Protein Population Reference Intake: EFSA Scientific Opinion on
+ *     Dietary Reference Values for protein, EFSA Journal 2012;10(2):2557.
+ */
+
+const LS_PROFILE = 'scanneat.profile';
+
+export const DEFAULT_PROFILE = {
+  sex: null,            // 'male' | 'female' | 'other'
+  age_years: null,
+  height_cm: null,
+  weight_kg: null,
+  activity: null,       // sedentary | light | moderate | active | very_active
+  diet: 'none',         // see diets.js
+  custom_diet: null,    // { forbidden: string[], preferred: string[] } when diet==='custom'
+};
+
+export function getProfile() {
+  try {
+    const raw = localStorage.getItem(LS_PROFILE);
+    if (!raw) return { ...DEFAULT_PROFILE };
+    return { ...DEFAULT_PROFILE, ...JSON.parse(raw) };
+  } catch { return { ...DEFAULT_PROFILE }; }
+}
+
+export function setProfile(p) {
+  localStorage.setItem(LS_PROFILE, JSON.stringify(p));
+}
+
+export function hasMinimalProfile(p) {
+  // Enough to compute BMR + TDEE + apply diet rules.
+  return (
+    p.sex != null &&
+    typeof p.age_years === 'number' && p.age_years > 0 &&
+    typeof p.height_cm === 'number' && p.height_cm > 0 &&
+    typeof p.weight_kg === 'number' && p.weight_kg > 0 &&
+    p.activity != null
+  );
+}
+
+/** Mifflin-St Jeor BMR in kcal/day. */
+export function bmrMifflinStJeor(p) {
+  if (!hasMinimalProfile(p)) return null;
+  const sexOffset = p.sex === 'female' ? -161 : 5; // "other" treated as male per study population
+  return Math.round(10 * p.weight_kg + 6.25 * p.height_cm - 5 * p.age_years + sexOffset);
+}
+
+/** Physical Activity Level multipliers — FAO/WHO/UNU 2004 Table 5.1. */
+export const ACTIVITY_PAL = {
+  sedentary:   1.40, // bedrest or very light activity (FAO/WHO/UNU lower bound 1.40)
+  light:       1.55, // light lifestyle
+  moderate:    1.75, // moderately active lifestyle
+  active:      1.90, // vigorous / vigorously active lifestyle
+  very_active: 2.20, // heavy occupational + training (upper end)
+};
+
+export function tdeeKcal(p) {
+  const bmr = bmrMifflinStJeor(p);
+  const factor = ACTIVITY_PAL[p.activity];
+  if (bmr == null || factor == null) return null;
+  return Math.round(bmr * factor);
+}
+
+/** BMI = kg / m². WHO cutoffs. */
+export function bmi(p) {
+  if (!p.height_cm || !p.weight_kg) return null;
+  const m = p.height_cm / 100;
+  return +(p.weight_kg / (m * m)).toFixed(1);
+}
+
+export function bmiCategory(value) {
+  if (value == null) return null;
+  if (value < 18.5) return 'underweight';
+  if (value < 25) return 'normal';
+  if (value < 30) return 'overweight';
+  if (value < 35) return 'obese_1';
+  if (value < 40) return 'obese_2';
+  return 'obese_3';
+}
+
+/**
+ * Protein Population Reference Intake (PRI).
+ * EFSA 2012: 0.83 g/kg bw/day for adults. ≥65y: 1.0 g/kg/day (sarcopenia prevention).
+ * During growth or pregnancy: higher values — outside this app's scope.
+ */
+export function proteinPRI_g(p) {
+  if (!p.weight_kg || !p.age_years) return null;
+  const per_kg = p.age_years >= 65 ? 1.0 : 0.83;
+  return Math.round(p.weight_kg * per_kg);
+}
+
+/**
+ * Daily targets derived from TDEE + WHO sat-fat / free-sugar / salt guidelines.
+ * Sat fat: <10 %E → grams = 0.10 * kcal / 9 (9 kcal per g fat).
+ * Sugars: <10 %E free sugars → grams = 0.10 * kcal / 4.
+ * Salt: <5 g/day regardless of kcal (WHO 2012).
+ */
+export function dailyTargets(p) {
+  const tdee = tdeeKcal(p);
+  if (tdee == null) return null;
+  return {
+    kcal: tdee,
+    sat_fat_g_max: Math.round((0.10 * tdee) / 9),
+    free_sugars_g_max: Math.round((0.10 * tdee) / 4),
+    free_sugars_g_ideal: Math.round((0.05 * tdee) / 4),
+    salt_g_max: 5,
+    protein_g_target: proteinPRI_g(p),
+  };
+}

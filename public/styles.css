@@ -866,6 +866,152 @@ main {
   margin: 0.4rem 0 0.2rem;
 }
 
+/* ==========================================================================
+   Profile button + dialog
+   ========================================================================== */
+.profile-btn {
+  right: 3.6rem;  /* sit next to the settings gear */
+}
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+}
+.profile-grid label.full,
+.profile-grid .full { grid-column: 1 / -1; }
+.profile-grid label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; color: var(--muted); }
+.profile-grid input,
+.profile-grid select,
+.profile-grid textarea {
+  padding: 0.5rem 0.65rem;
+  background: #0f1a14;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.92rem;
+  width: 100%;
+  font-family: inherit;
+}
+[data-theme="light"] .profile-grid input,
+[data-theme="light"] .profile-grid select,
+[data-theme="light"] .profile-grid textarea { background: #fff; }
+
+.custom-diet-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem;
+  background: var(--panel-2);
+  border-radius: 10px;
+}
+
+.profile-derived {
+  margin-top: 0.7rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--panel-2);
+  border-radius: 10px;
+  font-size: 0.82rem;
+}
+.profile-derived ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.2rem 0.75rem;
+}
+.profile-derived li { display: contents; }
+.profile-derived li span { color: var(--muted); }
+.profile-derived li strong { text-align: right; }
+
+/* ==========================================================================
+   Dual score card
+   ========================================================================== */
+.score-card.dual {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  padding: 0.8rem;
+}
+.score-card.dual:has(#personal-slot:not([hidden])) {
+  grid-template-columns: 1fr 1fr;
+}
+.score-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--panel-2);
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  min-width: 0;
+}
+.score-kind {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.score-slot .grade {
+  grid-row: auto;
+  font-size: 2rem;
+  width: 2.6rem;
+  height: 2.6rem;
+}
+.score-slot .score strong { font-size: 1.4rem; }
+.score-slot .verdict { font-size: 0.78rem; min-height: 1em; }
+.personal-delta {
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+.personal-delta[data-sign="pos"] { color: var(--grade-a); }
+.personal-delta[data-sign="neg"] { color: var(--grade-d); }
+
+@media (max-width: 520px) {
+  .score-card.dual:has(#personal-slot:not([hidden])) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Personal adjustments list
+   ========================================================================== */
+.personal-adjustments {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+}
+.personal-adjustments > summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.personal-adjustments ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+.pa-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.3rem 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.pa-row:last-child { border-bottom: none; }
+.pa-points {
+  font-weight: 700;
+  text-align: right;
+}
+.pa-row.positive .pa-points { color: var(--grade-a); }
+.pa-row.negative .pa-points { color: var(--grade-d); }
+
 .capture #scan-btn {
   margin-top: 0.75rem;
   width: 100%;
