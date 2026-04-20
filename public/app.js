@@ -8,7 +8,9 @@ import {
   bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets, proteinPRI_g,
 } from '/profile.js';
 import { computePersonalScore, personalGrade } from '/personal-score.js';
-import { logEntry, logQuickAdd, listByDate, deleteEntry, clearDate, dailyTotals, buildEntry, todayISO, groupByMeal, MEALS } from '/consumption.js';
+import { logEntry, logQuickAdd, listByDate, deleteEntry, clearDate, dailyTotals, buildEntry, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
+import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
+import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -935,6 +937,7 @@ function openProfileDialog() {
   profileAge.value = p.age_years ?? '';
   profileHeight.value = p.height_cm ?? '';
   profileWeight.value = p.weight_kg ?? '';
+  $('profile-goal-weight').value = p.goal_weight_kg ?? '';
   profileActivity.value = p.activity || '';
   profileDiet.value = p.diet || 'none';
   profileCustomForbidden.value = (p.custom_diet?.forbidden || []).join('\n');
@@ -944,9 +947,40 @@ function openProfileDialog() {
   $('mod-lowsalt').checked = !!m.lowSalt;
   $('mod-highprotein').checked = !!m.highProtein;
   $('mod-organic').checked = !!m.organic;
+  $('profile-macro-split').value = p.macro_split || 'balanced';
+  const c = p.macro_split_custom || { carbs: 50, protein: 20, fat: 30 };
+  $('macro-custom-carbs').value = c.carbs;
+  $('macro-custom-protein').value = c.protein;
+  $('macro-custom-fat').value = c.fat;
   toggleCustomDietWrap();
+  toggleMacroCustomWrap();
   renderDerived();
   profileDialog.showModal();
+}
+
+function toggleMacroCustomWrap() {
+  const wrap = $('macro-custom-wrap');
+  const sel = $('profile-macro-split');
+  if (!wrap || !sel) return;
+  if (sel.value === 'custom') show(wrap);
+  else hide(wrap);
+  renderMacroSum();
+}
+
+function renderMacroSum() {
+  const el = $('macro-custom-sum');
+  if (!el) return;
+  const c = Number($('macro-custom-carbs')?.value) || 0;
+  const p = Number($('macro-custom-protein')?.value) || 0;
+  const f = Number($('macro-custom-fat')?.value) || 0;
+  const sum = c + p + f;
+  if (Math.abs(sum - 100) <= 3) {
+    el.textContent = t('macroSumOk');
+    el.dataset.state = 'ok';
+  } else {
+    el.textContent = t('macroSumOff', { v: sum });
+    el.dataset.state = 'off';
+  }
 }
 
 function toggleCustomDietWrap() {
@@ -977,6 +1011,13 @@ function readProfileFromForm() {
       lowSalt: !!$('mod-lowsalt')?.checked,
       highProtein: !!$('mod-highprotein')?.checked,
       organic: !!$('mod-organic')?.checked,
+    },
+    goal_weight_kg: toNum($('profile-goal-weight')?.value),
+    macro_split: $('profile-macro-split')?.value || 'balanced',
+    macro_split_custom: {
+      carbs: Number($('macro-custom-carbs')?.value) || 50,
+      protein: Number($('macro-custom-protein')?.value) || 20,
+      fat: Number($('macro-custom-fat')?.value) || 30,
     },
   };
 }
@@ -1017,6 +1058,10 @@ function renderDerived() {
 
 profileBtn?.addEventListener('click', openProfileDialog);
 profileDiet?.addEventListener('change', () => { toggleCustomDietWrap(); renderDerived(); });
+$('profile-macro-split')?.addEventListener('change', () => { toggleMacroCustomWrap(); renderDerived(); });
+for (const id of ['macro-custom-carbs', 'macro-custom-protein', 'macro-custom-fat']) {
+  $(id)?.addEventListener('input', () => { renderMacroSum(); renderDerived(); });
+}
 [profileSex, profileAge, profileHeight, profileWeight, profileActivity].forEach((el) => {
   el?.addEventListener('input', renderDerived);
   el?.addEventListener('change', renderDerived);
@@ -1386,6 +1431,144 @@ quickAddBtn?.addEventListener('click', () => {
   quickAddDialog.showModal();
 });
 qaCancel?.addEventListener('click', (e) => { e.preventDefault(); quickAddDialog.close(); });
+// ----- Weight tracking -----
+const weightBtn = $('weight-btn');
+const weightDialog = $('weight-dialog');
+const wSave = $('w-save');
+const wClose = $('w-close');
+
+weightBtn?.addEventListener('click', () => {
+  $('w-kg').value = '';
+  $('w-date').value = todayISO();
+  $('w-notes').value = '';
+  renderWeightHistory();
+  weightDialog.showModal();
+});
+wClose?.addEventListener('click', (e) => { e.preventDefault(); weightDialog.close(); });
+wSave?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const kg = Number($('w-kg').value);
+  if (!Number.isFinite(kg) || kg <= 0) { $('w-kg').focus(); return; }
+  try {
+    await logWeight(kg, $('w-notes').value || '', $('w-date').value || todayISO());
+    // Update the current profile weight to match latest entry.
+    const p = getProfile();
+    p.weight_kg = kg;
+    setProfile(p);
+    await renderWeightHistory();
+    await renderDashboard();
+    weightDialog.close();
+  } catch (err) { console.error('[weight]', err); }
+});
+
+async function renderWeightHistory() {
+  const ul = $('w-history');
+  if (!ul) return;
+  const all = await listWeight().catch(() => []);
+  ul.innerHTML = '';
+  if (all.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'dash-entry-empty';
+    li.textContent = t('weightNoData');
+    ul.appendChild(li);
+    return;
+  }
+  for (const w of all.slice().reverse()) {
+    const li = document.createElement('li');
+    li.className = 'dash-entry';
+    const d = document.createElement('span');
+    d.textContent = `${w.date} · ${w.weight_kg} kg${w.notes ? ' · ' + w.notes : ''}`;
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'dash-entry-del';
+    del.textContent = '×';
+    del.addEventListener('click', async () => {
+      await deleteWeight(w.id);
+      await renderWeightHistory();
+      await renderDashboard();
+    });
+    li.appendChild(d);
+    li.appendChild(del);
+    ul.appendChild(li);
+  }
+}
+
+// ----- Meal templates -----
+const templatesBtn = $('templates-btn');
+const templatesDialog = $('templates-dialog');
+const tplClose = $('tpl-close');
+const tplSaveToday = $('tpl-save-today');
+
+templatesBtn?.addEventListener('click', async () => {
+  await renderTemplatesList();
+  templatesDialog.showModal();
+});
+tplClose?.addEventListener('click', (e) => { e.preventDefault(); templatesDialog.close(); });
+tplSaveToday?.addEventListener('click', async () => {
+  const entries = await listByDate().catch(() => []);
+  if (entries.length === 0) {
+    alert(t('nothingLoggedToSave'));
+    return;
+  }
+  const name = prompt(t('templateNamePlaceholder'));
+  if (!name) return;
+  const saved = await saveTemplate({ name, items: entries });
+  await renderTemplatesList();
+  alert(t('templateSavedToast', { name: saved.name }));
+});
+
+async function renderTemplatesList() {
+  const ul = $('tpl-list');
+  if (!ul) return;
+  const all = await listTemplates().catch(() => []);
+  ul.innerHTML = '';
+  if (all.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'dash-entry-empty';
+    li.textContent = t('templateEmpty');
+    ul.appendChild(li);
+    return;
+  }
+  for (const tpl of all) {
+    const li = document.createElement('li');
+    li.className = 'tpl-item';
+    const head = document.createElement('div');
+    head.className = 'tpl-head';
+    const name = document.createElement('strong');
+    name.textContent = tpl.name;
+    const kcal = document.createElement('span');
+    kcal.className = 'tpl-kcal';
+    kcal.textContent = `${templateKcal(tpl)} kcal · ${tpl.items.length} items`;
+    head.appendChild(name);
+    head.appendChild(kcal);
+    li.appendChild(head);
+    const actions = document.createElement('div');
+    actions.className = 'tpl-actions';
+    const apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'chip-btn accent';
+    apply.textContent = t('templateApplyToday');
+    apply.addEventListener('click', async () => {
+      const entries = expandTemplate(tpl, todayISO());
+      for (const e of entries) await putEntry(e);
+      await renderDashboard();
+      alert(t('templateApplyToast', { n: entries.length, plural: entries.length > 1 ? 'ies' : 'y' }));
+    });
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'chip-btn';
+    del.textContent = '🗑';
+    del.addEventListener('click', async () => {
+      await deleteTemplate(tpl.id);
+      await renderTemplatesList();
+    });
+    actions.appendChild(apply);
+    actions.appendChild(del);
+    li.appendChild(actions);
+    ul.appendChild(li);
+  }
+}
+
 qaSave?.addEventListener('click', async (e) => {
   e.preventDefault();
   const kcal = Number($('qa-kcal')?.value) || 0;
@@ -1445,6 +1628,8 @@ async function renderDashboard() {
   } else {
     hide(dashboardRemainingEl);
   }
+
+  await renderWeightSummary(profile);
 
   const rows = [
     { key: 'dashKcal',    value: totals.kcal,       target: targets?.kcal,              unit: 'kcal' },
@@ -1566,6 +1751,32 @@ async function renderDashboard() {
 
 function round1(x) { return Math.round(x * 10) / 10; }
 function round3(x) { return Math.round(x * 1000) / 1000; }
+
+async function renderWeightSummary(profile) {
+  const el = $('weight-summary');
+  if (!el) return;
+  const entries = await listWeight().catch(() => []);
+  if (entries.length === 0) { hide(el); return; }
+  const s = summarizeWeight(entries, 30);
+  const trend = weeklyTrend(entries.slice(-10));
+  el.innerHTML = '';
+  const parts = [];
+  parts.push(`<strong>${s.latest_kg} kg</strong> · ${t('weightCurrent')}`);
+  if (profile?.goal_weight_kg) {
+    const toGo = round1(s.latest_kg - profile.goal_weight_kg);
+    parts.push(`🎯 ${profile.goal_weight_kg} kg (${toGo > 0 ? '+' : ''}${toGo} kg)`);
+  }
+  if (s.recent_count >= 2) {
+    const sign = s.delta_kg > 0 ? '+' : '';
+    parts.push(`Δ 30 j : ${sign}${s.delta_kg} kg`);
+  }
+  if (trend !== 0 && Number.isFinite(trend)) {
+    const sign = trend > 0 ? '+' : '';
+    parts.push(`${t('weightTrend')} : ${sign}${trend} kg/sem`);
+  }
+  el.innerHTML = parts.map((p) => `<span>${p}</span>`).join(' · ');
+  show(el);
+}
 
 renderQueue();
 updatePendingBanner();

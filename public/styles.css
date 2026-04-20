@@ -1224,6 +1224,62 @@ main {
   margin: 0.4rem 0;
 }
 
+/* Macro split custom wrap */
+.macro-custom-wrap {
+  background: var(--panel-2);
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+}
+.macro-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+#macro-custom-sum { font-size: 0.78rem; margin: 0; }
+#macro-custom-sum[data-state="ok"] { color: var(--grade-a); }
+#macro-custom-sum[data-state="off"] { color: var(--grade-d); }
+
+/* Weight summary strip */
+.weight-summary {
+  margin: 0 0 0.55rem;
+  padding: 0.45rem 0.7rem;
+  background: var(--panel-2);
+  border-left: 3px solid var(--grade-b);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.weight-summary strong { color: var(--text); font-size: 0.9rem; }
+
+.weight-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.w-history { list-style: none; padding: 0; margin: 0.3rem 0 0; max-height: 40vh; overflow-y: auto; }
+.weight-history summary { cursor: pointer; font-size: 0.82rem; color: var(--muted); margin: 0.4rem 0; }
+
+/* Meal templates */
+.tpl-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.tpl-item {
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.tpl-head { display: flex; justify-content: space-between; align-items: baseline; }
+.tpl-kcal { color: var(--muted); font-size: 0.82rem; }
+.tpl-actions { display: flex; gap: 0.35rem; justify-content: flex-end; }
+
 /* Portion panel */
 .portion-panel {
   display: flex;

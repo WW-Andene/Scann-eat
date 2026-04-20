@@ -15,6 +15,45 @@
 
 const LS_PROFILE = 'scanneat.profile';
 
+/**
+ * Macro split presets.
+ *
+ * All percentages are of total daily energy (%E). Defensible reference points:
+ *   - balanced: EFSA AMDR midpoints (Journal 2010;8(3):1461, carbs 45-65 %E,
+ *     fat 20-35 %E; 50/20/30 is roughly centred).
+ *   - mediterranean: higher fat share reflecting traditional olive-oil-heavy
+ *     patterns (Trichopoulou et al., NEJM 2003).
+ *   - high_protein: 30-35 %E protein for strength / satiety contexts (IOC
+ *     Consensus, Br J Sports Med 2018).
+ *   - low_carb: 25 %E carbs is roughly the threshold for "low-carb" in the
+ *     literature (Hite AH et al., Nutrition 2011).
+ *   - keto: 5-10 %E carbs, 70-80 %E fat is clinical ketosis (Volek & Phinney,
+ *     The Art and Science of Low Carbohydrate Living).
+ * `custom` stores arbitrary user-entered percentages that must sum to 100.
+ */
+export const MACRO_PRESETS = {
+  balanced:      { carbs: 50, protein: 20, fat: 30, label_fr: 'Équilibré (OMS/EFSA)',   label_en: 'Balanced (WHO/EFSA)' },
+  mediterranean: { carbs: 45, protein: 15, fat: 40, label_fr: 'Méditerranéen',          label_en: 'Mediterranean' },
+  high_protein:  { carbs: 30, protein: 35, fat: 35, label_fr: 'Riche en protéines',     label_en: 'High-protein' },
+  low_carb:      { carbs: 25, protein: 30, fat: 45, label_fr: 'Faible en glucides',     label_en: 'Low-carb' },
+  keto:          { carbs:  5, protein: 20, fat: 75, label_fr: 'Cétogène',               label_en: 'Ketogenic' },
+  custom:        {                                   label_fr: 'Personnalisé',          label_en: 'Custom' },
+};
+
+export function resolveMacroSplit(p) {
+  const key = p?.macro_split || 'balanced';
+  if (key === 'custom' && p?.macro_split_custom) {
+    const c = p.macro_split_custom;
+    // sanity: must sum to 100 ±3, otherwise fall back to balanced
+    const sum = (c.carbs || 0) + (c.protein || 0) + (c.fat || 0);
+    if (Math.abs(sum - 100) <= 3 && c.carbs >= 0 && c.protein >= 0 && c.fat >= 0) {
+      return c;
+    }
+    return MACRO_PRESETS.balanced;
+  }
+  return MACRO_PRESETS[key] || MACRO_PRESETS.balanced;
+}
+
 export const DEFAULT_MODIFIERS = {
   lowSugar: false,
   lowSalt: false,
@@ -27,10 +66,13 @@ export const DEFAULT_PROFILE = {
   age_years: null,
   height_cm: null,
   weight_kg: null,
+  goal_weight_kg: null, // optional goal for the weight tracker
   activity: null,       // sedentary | light | moderate | active | very_active
   diet: 'none',         // HARD constraint — violation caps personal score at 0
   custom_diet: null,    // { forbidden: string[], preferred: string[] } when diet==='custom'
   modifiers: { ...DEFAULT_MODIFIERS }, // SOFT preferences — fine-tune within compatible products
+  macro_split: 'balanced',                      // key into MACRO_PRESETS
+  macro_split_custom: { carbs: 50, protein: 20, fat: 30 }, // used when macro_split==='custom'
 };
 
 const LEGACY_PREFS_KEY = 'scanneat.prefs';
@@ -151,14 +193,20 @@ export function proteinPRI_g(p) {
 export function dailyTargets(p) {
   const tdee = tdeeKcal(p);
   if (tdee == null) return null;
+  const split = resolveMacroSplit(p);
+  // protein target = max(EFSA PRI, macro-split percentage) — prevents sub-PRI
+  // targets when the user picks a low-protein macro split.
+  const pri = proteinPRI_g(p) ?? 0;
+  const pctProtein = Math.round(((split.protein / 100) * tdee) / 4);
   return {
     kcal: tdee,
-    carbs_g_target: Math.round((0.50 * tdee) / 4),         // AMDR midpoint 45-65 %E
-    fat_g_target: Math.round((0.30 * tdee) / 9),           // AMDR midpoint 20-35 %E
-    sat_fat_g_max: Math.round((0.10 * tdee) / 9),
-    free_sugars_g_max: Math.round((0.10 * tdee) / 4),
+    carbs_g_target: Math.round(((split.carbs / 100) * tdee) / 4),
+    protein_g_target: Math.max(pri, pctProtein),
+    fat_g_target: Math.round(((split.fat / 100) * tdee) / 9),
+    sat_fat_g_max: Math.round((0.10 * tdee) / 9),          // WHO 2023 fixed
+    free_sugars_g_max: Math.round((0.10 * tdee) / 4),      // WHO 2015
     free_sugars_g_ideal: Math.round((0.05 * tdee) / 4),
-    salt_g_max: 5,
-    protein_g_target: proteinPRI_g(p),
+    salt_g_max: 5,                                          // WHO 2012 fixed
+    macro_split_key: p?.macro_split || 'balanced',
   };
 }

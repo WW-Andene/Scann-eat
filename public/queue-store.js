@@ -5,8 +5,9 @@
  */
 
 const DB_NAME = 'scanneat';
-// Must stay in lockstep with scan-history.js and consumption.js.
-const DB_VERSION = 3;
+// Must stay in lockstep with scan-history.js / consumption.js / weight-log.js /
+// meal-templates.js.
+const DB_VERSION = 4;
 const STORE = 'pending_scans';
 
 function openDB() {
@@ -24,6 +25,13 @@ function openDB() {
       if (!db.objectStoreNames.contains('consumption')) {
         const s = db.createObjectStore('consumption', { keyPath: 'id' });
         s.createIndex('date', 'date');
+      }
+      if (!db.objectStoreNames.contains('weight')) {
+        const s = db.createObjectStore('weight', { keyPath: 'id' });
+        s.createIndex('date', 'date', { unique: true });
+      }
+      if (!db.objectStoreNames.contains('meal_templates')) {
+        db.createObjectStore('meal_templates', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => resolve(req.result);

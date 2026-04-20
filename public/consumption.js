@@ -14,7 +14,7 @@
  */
 
 const DB_NAME = 'scanneat';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORE = 'consumption';
 
 function openDB() {
@@ -29,13 +29,31 @@ function openDB() {
         const s = db.createObjectStore('history', { keyPath: 'id' });
         s.createIndex('created', 'createdAt');
       }
-      if (!db.objectStoreNames.contains(STORE)) {
-        const s = db.createObjectStore(STORE, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('consumption')) {
+        const s = db.createObjectStore('consumption', { keyPath: 'id' });
         s.createIndex('date', 'date');
+      }
+      if (!db.objectStoreNames.contains('weight')) {
+        const s = db.createObjectStore('weight', { keyPath: 'id' });
+        s.createIndex('date', 'date', { unique: true });
+      }
+      if (!db.objectStoreNames.contains('meal_templates')) {
+        db.createObjectStore('meal_templates', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+  });
+}
+
+/** Persist a pre-built entry object (used by meal-templates expand path). */
+export async function putEntry(entry) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(entry);
+    tx.oncomplete = () => { db.close(); resolve(entry); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
   });
 }
 

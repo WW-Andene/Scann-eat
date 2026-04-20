@@ -134,6 +134,10 @@
             <span data-i18n="profileWeight">Poids (kg)</span>
             <input id="profile-weight" type="number" min="10" max="400" step="0.1" inputmode="decimal" />
           </label>
+          <label>
+            <span data-i18n="profileGoalWeight">Objectif poids (kg)</span>
+            <input id="profile-goal-weight" type="number" min="10" max="400" step="0.1" inputmode="decimal" />
+          </label>
           <label class="full">
             <span data-i18n="profileActivity">Niveau d'activité</span>
             <select id="profile-activity">
@@ -181,6 +185,25 @@
             <label class="pref-row"><input type="checkbox" id="mod-highprotein" /> <span data-i18n="prefHighProtein">Riche en protéines</span></label>
             <label class="pref-row"><input type="checkbox" id="mod-organic" /> <span data-i18n="prefOrganic">Bio uniquement</span></label>
           </fieldset>
+          <label class="full">
+            <span data-i18n="profileMacroSplit">Répartition des macros</span>
+            <select id="profile-macro-split">
+              <option value="balanced">Équilibré (OMS/EFSA) · 50/20/30</option>
+              <option value="mediterranean">Méditerranéen · 45/15/40</option>
+              <option value="high_protein">Riche en protéines · 30/35/35</option>
+              <option value="low_carb">Faible en glucides · 25/30/45</option>
+              <option value="keto">Cétogène · 5/20/75</option>
+              <option value="custom" data-i18n="macroCustom">Personnalisé</option>
+            </select>
+          </label>
+          <div class="full macro-custom-wrap" id="macro-custom-wrap" hidden>
+            <div class="macro-row">
+              <label><span data-i18n="qaCarbs">Glucides (%)</span><input id="macro-custom-carbs" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+              <label><span data-i18n="qaProtein">Protéines (%)</span><input id="macro-custom-protein" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+              <label><span data-i18n="qaFat">Lipides (%)</span><input id="macro-custom-fat" type="number" min="0" max="100" step="1" inputmode="numeric" /></label>
+            </div>
+            <p class="hint" id="macro-custom-sum"></p>
+          </div>
         </div>
         <div class="profile-derived" id="profile-derived" hidden>
           <strong data-i18n="profileDerived">Calculs dérivés</strong>
@@ -272,16 +295,60 @@
           <h2><span data-i18n="todayTitle">Aujourd'hui</span> · <span id="dashboard-date"></span></h2>
           <div class="dashboard-actions">
             <button id="quick-add-btn" class="compact chip-btn accent" type="button" data-i18n="quickAdd">Quick Add</button>
+            <button id="templates-btn" class="compact chip-btn" type="button" data-i18n="mealTemplates">Repas</button>
+            <button id="weight-btn" class="compact chip-btn" type="button" data-i18n="weightBtn">Poids</button>
             <button id="clear-today" class="secondary compact" type="button" data-i18n="clearToday">Effacer</button>
           </div>
         </div>
         <p id="dashboard-remaining" class="dashboard-remaining" hidden></p>
+        <div id="weight-summary" class="weight-summary" hidden></div>
         <ul id="dashboard-rows" class="dashboard-rows"></ul>
         <details class="dashboard-log" id="dashboard-log" hidden>
           <summary data-i18n="todayEntries">Aliments loggés</summary>
           <div id="dashboard-entries" class="dashboard-entries"></div>
         </details>
       </section>
+
+      <dialog id="weight-dialog" class="settings-dialog">
+        <form method="dialog">
+          <h2 data-i18n="weightTitle">Poids</h2>
+          <p class="hint" data-i18n="weightIntro">Log un poids par jour. La tendance sur 30 j est calculée par régression linéaire.</p>
+          <div class="weight-row">
+            <label>
+              <span data-i18n="weightValue">Poids (kg)</span>
+              <input id="w-kg" type="number" min="10" max="400" step="0.1" inputmode="decimal" />
+            </label>
+            <label>
+              <span data-i18n="weightDate">Date</span>
+              <input id="w-date" type="date" />
+            </label>
+          </div>
+          <label>
+            <span data-i18n="weightNotes">Notes (optionnel)</span>
+            <input id="w-notes" type="text" maxlength="80" autocomplete="off" />
+          </label>
+          <button id="w-save" type="submit" class="log-btn" data-i18n="weightSave">Logger poids</button>
+          <details class="weight-history">
+            <summary data-i18n="weightHistory">Historique</summary>
+            <ul id="w-history" class="w-history"></ul>
+          </details>
+          <div class="dialog-actions">
+            <button id="w-close" type="button" class="secondary" data-i18n="close">Fermer</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="templates-dialog" class="settings-dialog">
+        <form method="dialog">
+          <h2 data-i18n="templatesTitle">Repas sauvegardés</h2>
+          <p class="hint" data-i18n="templatesIntro">Sauvegarde les repas que tu manges souvent, applique-les en un tap.</p>
+          <button id="tpl-save-today" type="button" class="log-btn" data-i18n="saveTodayAsTemplate">Sauvegarder aujourd'hui</button>
+          <ul id="tpl-list" class="tpl-list"></ul>
+          <div class="dialog-actions">
+            <button id="tpl-close" type="button" class="secondary" data-i18n="close">Fermer</button>
+          </div>
+        </form>
+      </dialog>
 
       <dialog id="quick-add-dialog" class="settings-dialog">
         <form method="dialog">
