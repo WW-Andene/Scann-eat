@@ -1,0 +1,206 @@
+/**
+ * Minimal i18n for Scann-eat. Keys are resolved against the user's chosen
+ * language (fr/en) with French as the ultimate fallback. Engine output stays
+ * in English — we only translate the UI chrome around it.
+ */
+
+const STRINGS = {
+  fr: {
+    tagline: 'Photographie une étiquette → note de 0 à 100',
+    addPhoto: 'Prendre / choisir une photo',
+    addAnotherPhoto: 'Ajouter une autre photo',
+    maxPhotos: 'Maximum {n} photos',
+    hintCapture: "Jusqu'à 4 photos (face + ingrédients + nutrition pour un meilleur score).",
+    scanBarcode: 'Scanner un code-barres',
+    analyse: 'Analyser',
+    analysing: 'Analyse en cours…',
+    analysingN: 'Analyse de {n} photos…',
+    barcodeDetected: 'Code-barres {code} détecté, recherche Open Food Facts…',
+    serverUnavailable: 'Serveur indisponible, appel direct Groq…',
+    rescan: 'Scanner un autre produit',
+    settings: 'Réglages',
+    settingsKey: 'Clé API Groq',
+    settingsKeyHint: "Stockée uniquement sur ton appareil (localStorage). Nécessaire dans l'APK ou en mode direct.",
+    settingsMode: 'Mode',
+    modeAuto: 'Auto (serveur, fallback direct)',
+    modeServer: 'Serveur uniquement',
+    modeDirect: 'Direct Groq (clé requise)',
+    settingsLanguage: 'Langue',
+    settingsPreferences: 'Préférences alimentaires',
+    prefVegetarian: 'Végétarien',
+    prefLowSugar: 'Faible en sucre',
+    prefLowSalt: 'Faible en sel',
+    prefHighProtein: 'Riche en protéines',
+    prefOrganic: 'Bio uniquement',
+    cancel: 'Annuler',
+    save: 'Enregistrer',
+    redFlags: 'Drapeaux rouges',
+    greenFlags: 'Drapeaux verts',
+    pillarDetail: 'Détail par pilier',
+    ingredientsDetected: 'Ingrédients détectés',
+    nutritionTable: 'Valeurs nutritionnelles',
+    compareNext: 'Comparer au prochain scan',
+    compareWaiting: '✓ En attente du prochain scan',
+    comparison: 'Comparaison',
+    comparePrev: 'Précédent',
+    compareCurrent: 'Actuel',
+    clear: 'Effacer',
+    noFlag: 'Aucun',
+    sourceOFF: '📦 Données Open Food Facts',
+    sourceLLM: '📷 OCR par Llama 4 Scout',
+    confidenceHigh: '✓ Données fiables',
+    confidenceMed: '≈ Données partielles',
+    confidenceLow: '⚠ Extraction incertaine',
+    updateAvail: 'Mise à jour disponible : ',
+    install: 'Installer',
+    whyThisFlag: 'Pourquoi ce drapeau ?',
+    ok: 'OK',
+    pillarProcessing: 'Traitement',
+    pillarDensity: 'Densité nutritionnelle',
+    pillarNegatives: 'Nutriments négatifs',
+    pillarAdditives: 'Additifs',
+    pillarIntegrity: 'Intégrité ingrédients',
+    deltaScore: 'Δ score',
+    betterCurrent: '(actuel meilleur)',
+    betterPrev: '(précédent meilleur)',
+    newIngredients: 'Nouveau',
+    lostIngredients: 'Perdu',
+    offline: 'Hors ligne',
+    pendingScans: '{n} scan en attente',
+    pendingScansN: '{n} scans en attente',
+    retryAll: 'Réessayer',
+    cameraReady: 'Pointer vers le code-barres…',
+    cameraUnsupported: 'Scan vidéo non supporté sur ce navigateur.',
+    cameraDenied: 'Accès caméra refusé.',
+    close: 'Fermer',
+    prefMeatRed: 'Contient de la viande (non végétarien) : {name}',
+    prefSugarRed: '{v}g sucres/100g — au-dessus de votre préférence',
+    prefSaltRed: '{v}g sel/100g — au-dessus de votre préférence',
+    prefNotOrganic: 'Produit non-bio',
+    prefProteinGreen: '{v}g protéines/100g — conforme à votre préférence',
+  },
+  en: {
+    tagline: 'Photograph a label → score out of 100',
+    addPhoto: 'Take or pick a photo',
+    addAnotherPhoto: 'Add another photo',
+    maxPhotos: 'Maximum {n} photos',
+    hintCapture: 'Up to 4 photos (front + ingredients + nutrition for best accuracy).',
+    scanBarcode: 'Scan a barcode',
+    analyse: 'Analyse',
+    analysing: 'Analysing…',
+    analysingN: 'Analysing {n} photos…',
+    barcodeDetected: 'Barcode {code} detected, checking Open Food Facts…',
+    serverUnavailable: 'Server unavailable, calling Groq directly…',
+    rescan: 'Scan another product',
+    settings: 'Settings',
+    settingsKey: 'Groq API key',
+    settingsKeyHint: 'Stored only on your device (localStorage). Required inside the APK or in direct mode.',
+    settingsMode: 'Mode',
+    modeAuto: 'Auto (server, fallback direct)',
+    modeServer: 'Server only',
+    modeDirect: 'Direct Groq (key required)',
+    settingsLanguage: 'Language',
+    settingsPreferences: 'Dietary preferences',
+    prefVegetarian: 'Vegetarian',
+    prefLowSugar: 'Low sugar',
+    prefLowSalt: 'Low salt',
+    prefHighProtein: 'High protein',
+    prefOrganic: 'Organic only',
+    cancel: 'Cancel',
+    save: 'Save',
+    redFlags: 'Red flags',
+    greenFlags: 'Green flags',
+    pillarDetail: 'Pillar breakdown',
+    ingredientsDetected: 'Detected ingredients',
+    nutritionTable: 'Nutrition facts',
+    compareNext: 'Compare with next scan',
+    compareWaiting: '✓ Waiting for next scan',
+    comparison: 'Comparison',
+    comparePrev: 'Previous',
+    compareCurrent: 'Current',
+    clear: 'Clear',
+    noFlag: 'None',
+    sourceOFF: '📦 Open Food Facts data',
+    sourceLLM: '📷 OCR by Llama 4 Scout',
+    confidenceHigh: '✓ High-confidence data',
+    confidenceMed: '≈ Partial data',
+    confidenceLow: '⚠ Uncertain extraction',
+    updateAvail: 'Update available: ',
+    install: 'Install',
+    whyThisFlag: 'Why this flag?',
+    ok: 'OK',
+    pillarProcessing: 'Processing',
+    pillarDensity: 'Nutrient density',
+    pillarNegatives: 'Negative nutrients',
+    pillarAdditives: 'Additives',
+    pillarIntegrity: 'Ingredient integrity',
+    deltaScore: 'Δ score',
+    betterCurrent: '(current better)',
+    betterPrev: '(previous better)',
+    newIngredients: 'Added',
+    lostIngredients: 'Dropped',
+    offline: 'Offline',
+    pendingScans: '{n} pending scan',
+    pendingScansN: '{n} pending scans',
+    retryAll: 'Retry',
+    cameraReady: 'Point at the barcode…',
+    cameraUnsupported: 'Video scan not supported in this browser.',
+    cameraDenied: 'Camera access denied.',
+    close: 'Close',
+    prefMeatRed: 'Contains meat (not vegetarian): {name}',
+    prefSugarRed: '{v}g sugars/100g — above your preference',
+    prefSaltRed: '{v}g salt/100g — above your preference',
+    prefNotOrganic: 'Not organic',
+    prefProteinGreen: '{v}g protein/100g — matches your preference',
+  },
+};
+
+const LS_LANG = 'scanneat.lang';
+
+function detectDefaultLang() {
+  const saved = localStorage.getItem(LS_LANG);
+  if (saved === 'fr' || saved === 'en') return saved;
+  const nav = (navigator.language || 'fr').toLowerCase();
+  return nav.startsWith('fr') ? 'fr' : 'en';
+}
+
+export let currentLang = detectDefaultLang();
+
+export function setLang(lang) {
+  if (lang !== 'fr' && lang !== 'en') return;
+  currentLang = lang;
+  localStorage.setItem(LS_LANG, lang);
+  applyStaticTranslations();
+}
+
+export function t(key, vars) {
+  const table = STRINGS[currentLang] ?? STRINGS.fr;
+  const fallback = STRINGS.fr;
+  let out = table[key] ?? fallback[key] ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      out = out.replace(`{${k}}`, String(v));
+    }
+  }
+  return out;
+}
+
+/**
+ * Apply translations to elements that declare a `data-i18n` attribute.
+ * For static text on load (and after a language change).
+ */
+export function applyStaticTranslations() {
+  document.documentElement.lang = currentLang;
+  for (const el of document.querySelectorAll('[data-i18n]')) {
+    const key = el.getAttribute('data-i18n');
+    if (key) el.textContent = t(key);
+  }
+  for (const el of document.querySelectorAll('[data-i18n-placeholder]')) {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (key) el.setAttribute('placeholder', t(key));
+  }
+  for (const el of document.querySelectorAll('[data-i18n-aria-label]')) {
+    const key = el.getAttribute('data-i18n-aria-label');
+    if (key) el.setAttribute('aria-label', t(key));
+  }
+}

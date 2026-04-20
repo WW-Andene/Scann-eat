@@ -11,80 +11,125 @@
   </head>
   <body>
     <aside id="update-banner" class="update-banner" hidden>
-      <span class="update-text">Mise à jour disponible : <strong id="update-version">—</strong></span>
-      <a id="update-install-btn" class="update-install" href="#" download rel="noopener">Installer</a>
-      <button id="update-dismiss-btn" class="update-dismiss" type="button" aria-label="Ignorer">×</button>
+      <span class="update-text"><span data-i18n="updateAvail">Mise à jour disponible : </span><strong id="update-version">—</strong></span>
+      <a id="update-install-btn" class="update-install" href="#" download rel="noopener" data-i18n="install">Installer</a>
+      <button id="update-dismiss-btn" class="update-dismiss" type="button" aria-label="×">×</button>
+    </aside>
+
+    <aside id="pending-banner" class="pending-banner" hidden>
+      <span id="pending-text" class="pending-text">—</span>
+      <button id="pending-retry" type="button" class="pending-retry" data-i18n="retryAll">Réessayer</button>
     </aside>
 
     <header>
-      <button id="settings-btn" class="settings-btn" type="button" aria-label="Réglages">&#9881;</button>
+      <button id="settings-btn" class="settings-btn" type="button" data-i18n-aria-label="settings" aria-label="Réglages">&#9881;</button>
       <h1>Scann-eat</h1>
-      <p class="tagline">Photographie une étiquette → note de 0 à 100</p>
+      <p class="tagline" data-i18n="tagline">Photographie une étiquette → note de 0 à 100</p>
     </header>
 
     <dialog id="settings-dialog" class="settings-dialog">
       <form method="dialog">
-        <h2>Réglages</h2>
+        <h2 data-i18n="settings">Réglages</h2>
         <label>
-          Clé API Groq
+          <span data-i18n="settingsKey">Clé API Groq</span>
           <input id="settings-key" type="password" placeholder="gsk_…" autocomplete="off" />
         </label>
-        <p class="hint">Stockée uniquement sur ton appareil (localStorage). Nécessaire dans l'APK ou en mode direct.</p>
+        <p class="hint" data-i18n="settingsKeyHint">Stockée uniquement sur ton appareil.</p>
         <label>
-          Mode
+          <span data-i18n="settingsMode">Mode</span>
           <select id="settings-mode">
-            <option value="auto">Auto (serveur, fallback direct)</option>
-            <option value="server">Serveur uniquement</option>
-            <option value="direct">Direct Groq (clé requise)</option>
+            <option value="auto" data-i18n="modeAuto">Auto</option>
+            <option value="server" data-i18n="modeServer">Serveur uniquement</option>
+            <option value="direct" data-i18n="modeDirect">Direct Groq</option>
           </select>
         </label>
+        <label>
+          <span data-i18n="settingsLanguage">Langue</span>
+          <select id="settings-language">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <fieldset class="prefs">
+          <legend data-i18n="settingsPreferences">Préférences alimentaires</legend>
+          <label class="pref-row"><input type="checkbox" id="pref-vegetarian" /> <span data-i18n="prefVegetarian">Végétarien</span></label>
+          <label class="pref-row"><input type="checkbox" id="pref-lowsugar" /> <span data-i18n="prefLowSugar">Faible en sucre</span></label>
+          <label class="pref-row"><input type="checkbox" id="pref-lowsalt" /> <span data-i18n="prefLowSalt">Faible en sel</span></label>
+          <label class="pref-row"><input type="checkbox" id="pref-highprotein" /> <span data-i18n="prefHighProtein">Riche en protéines</span></label>
+          <label class="pref-row"><input type="checkbox" id="pref-organic" /> <span data-i18n="prefOrganic">Bio uniquement</span></label>
+        </fieldset>
         <div class="dialog-actions">
-          <button id="settings-cancel" type="button" class="secondary">Annuler</button>
-          <button id="settings-save" type="submit">Enregistrer</button>
+          <button id="settings-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
+          <button id="settings-save" type="submit" data-i18n="save">Enregistrer</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="explain-dialog" class="settings-dialog">
+      <form method="dialog">
+        <h2 id="explain-title" data-i18n="whyThisFlag">Pourquoi ce drapeau ?</h2>
+        <p id="explain-body">—</p>
+        <div class="dialog-actions">
+          <button type="submit" data-i18n="ok">OK</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="camera-dialog" class="camera-dialog">
+      <div class="camera-frame">
+        <video id="camera-video" playsinline autoplay muted></video>
+        <div class="camera-reticle" aria-hidden="true"></div>
+        <div class="camera-status" id="camera-status" data-i18n="cameraReady">Pointer vers le code-barres…</div>
+        <button id="camera-close" type="button" class="camera-close" data-i18n="close">Fermer</button>
+      </div>
     </dialog>
 
     <main>
       <section class="capture">
         <div id="queue" class="queue" hidden></div>
-        <label class="capture-btn" for="file-input">
-          <span class="icon" aria-hidden="true">&#128247;</span>
-          <span class="label" id="capture-label">Prendre / choisir une photo</span>
-          <input
-            id="file-input"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            hidden
-          />
-        </label>
-        <button id="scan-btn" type="button" disabled>Analyser</button>
-        <p id="hint" class="hint">Jusqu'à 4 photos (face + ingrédients + nutrition pour un meilleur score).</p>
+        <div class="capture-actions">
+          <label class="capture-btn" for="file-input">
+            <span class="icon" aria-hidden="true">&#128247;</span>
+            <span class="label" id="capture-label" data-i18n="addPhoto">Prendre / choisir une photo</span>
+            <input
+              id="file-input"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              hidden
+            />
+          </label>
+          <button id="barcode-live-btn" type="button" class="capture-btn capture-btn-secondary" hidden>
+            <span class="icon" aria-hidden="true">📦</span>
+            <span class="label" data-i18n="scanBarcode">Scanner un code-barres</span>
+          </button>
+        </div>
+        <button id="scan-btn" type="button" disabled data-i18n="analyse">Analyser</button>
+        <p class="hint" data-i18n="hintCapture">Jusqu'à 4 photos (face + ingrédients + nutrition).</p>
       </section>
 
       <section id="status" class="status" hidden>
         <div class="spinner" aria-hidden="true"></div>
-        <span id="status-text">Analyse en cours…</span>
+        <span id="status-text" data-i18n="analysing">Analyse en cours…</span>
       </section>
 
       <section id="error" class="error" hidden></section>
 
       <section id="comparison" class="comparison" hidden>
         <div class="compare-header">
-          <h3>Comparaison</h3>
-          <button id="compare-clear" type="button" class="secondary compact">Effacer</button>
+          <h3 data-i18n="comparison">Comparaison</h3>
+          <button id="compare-clear" type="button" class="secondary compact" data-i18n="clear">Effacer</button>
         </div>
         <div class="compare-grid">
           <div class="compare-card" id="compare-a">
-            <span class="compare-label">Précédent</span>
+            <span class="compare-label" data-i18n="comparePrev">Précédent</span>
             <span class="compare-grade" data-target="a-grade">—</span>
             <strong class="compare-name" data-target="a-name">—</strong>
             <span class="compare-score"><span data-target="a-score">—</span> / 100</span>
           </div>
           <div class="compare-card" id="compare-b">
-            <span class="compare-label">Actuel</span>
+            <span class="compare-label" data-i18n="compareCurrent">Actuel</span>
             <span class="compare-grade" data-target="b-grade">—</span>
             <strong class="compare-name" data-target="b-name">—</strong>
             <span class="compare-score"><span data-target="b-score">—</span> / 100</span>
@@ -106,35 +151,43 @@
         <div class="product">
           <h2 id="product-name">—</h2>
           <p class="category" id="product-category"></p>
-          <p class="source" id="result-source" hidden></p>
+          <div class="meta-chips">
+            <span class="chip" id="result-source" hidden></span>
+            <span class="chip" id="result-confidence" hidden></span>
+          </div>
         </div>
 
         <div class="result-actions">
-          <button id="compare-next-btn" type="button" class="secondary">Comparer au prochain scan</button>
+          <button id="compare-next-btn" type="button" class="secondary" data-i18n="compareNext">Comparer au prochain scan</button>
         </div>
 
         <div class="flags">
           <div class="flag-col">
-            <h3>Drapeaux rouges</h3>
+            <h3 data-i18n="redFlags">Drapeaux rouges</h3>
             <ul id="red-flags"></ul>
           </div>
           <div class="flag-col">
-            <h3>Drapeaux verts</h3>
+            <h3 data-i18n="greenFlags">Drapeaux verts</h3>
             <ul id="green-flags"></ul>
           </div>
         </div>
 
         <details class="pillars">
-          <summary>Détail par pilier</summary>
+          <summary data-i18n="pillarDetail">Détail par pilier</summary>
           <ul id="pillar-list"></ul>
         </details>
 
         <details class="raw">
-          <summary>Ingrédients détectés</summary>
+          <summary data-i18n="ingredientsDetected">Ingrédients détectés</summary>
           <ol id="ingredient-list"></ol>
         </details>
 
-        <button id="reset-btn" type="button">Scanner un autre produit</button>
+        <details class="raw">
+          <summary data-i18n="nutritionTable">Valeurs nutritionnelles</summary>
+          <ul id="nutrition-list"></ul>
+        </details>
+
+        <button id="reset-btn" type="button" data-i18n="rescan">Scanner un autre produit</button>
       </section>
     </main>
 

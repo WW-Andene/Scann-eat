@@ -438,6 +438,12 @@ export interface CategoryThresholds {
   fiber_g: [number, number, number];
   expected_kcal_range: [number, number];
   expect_micronutrients: boolean;
+  /**
+   * Per-category saturated-fat thresholds [moderate, major, critical].
+   * Cheese, oil, dark chocolate etc. are fat-rich by nature — judging them
+   * against the generic [5, 10, 15] scale unfairly tanks their score.
+   */
+  sat_fat_thresholds?: [number, number, number];
 }
 
 const DEFAULT_THRESHOLDS: CategoryThresholds = {
@@ -447,13 +453,15 @@ const DEFAULT_THRESHOLDS: CategoryThresholds = {
   expect_micronutrients: false,
 };
 
+const DEFAULT_SAT_FAT: [number, number, number] = [5, 10, 15];
+
 export const CATEGORY_THRESHOLDS: Record<ProductCategory, CategoryThresholds> = {
   sandwich:         { protein_g: [5, 8, 12],   fiber_g: [2, 4, 6],  expected_kcal_range: [180, 320], expect_micronutrients: true  },
   ready_meal:       { protein_g: [4, 7, 10],   fiber_g: [2, 4, 6],  expected_kcal_range: [80, 200],  expect_micronutrients: true  },
   bread:            { protein_g: [6, 9, 12],   fiber_g: [3, 6, 9],  expected_kcal_range: [220, 300], expect_micronutrients: false },
   breakfast_cereal: { protein_g: [6, 10, 14],  fiber_g: [5, 8, 12], expected_kcal_range: [320, 420], expect_micronutrients: true  },
   yogurt:           { protein_g: [3, 5, 9],    fiber_g: [0, 1, 2],  expected_kcal_range: [40, 120],  expect_micronutrients: true  },
-  cheese:           { protein_g: [15, 20, 25], fiber_g: [0, 0, 0],  expected_kcal_range: [200, 450], expect_micronutrients: true  },
+  cheese:           { protein_g: [15, 20, 25], fiber_g: [0, 0, 0],  expected_kcal_range: [200, 450], expect_micronutrients: true,  sat_fat_thresholds: [12, 20, 30] },
   processed_meat:   { protein_g: [10, 15, 22], fiber_g: [0, 0, 1],  expected_kcal_range: [100, 400], expect_micronutrients: false },
   fresh_meat:       { protein_g: [15, 20, 25], fiber_g: [0, 0, 0],  expected_kcal_range: [100, 300], expect_micronutrients: true  },
   fish:             { protein_g: [15, 20, 25], fiber_g: [0, 0, 0],  expected_kcal_range: [80, 250],  expect_micronutrients: true  },
@@ -463,7 +471,7 @@ export const CATEGORY_THRESHOLDS: Record<ProductCategory, CategoryThresholds> = 
   beverage_juice:   { protein_g: [0, 0, 0],    fiber_g: [0, 1, 2],  expected_kcal_range: [20, 60],   expect_micronutrients: true  },
   beverage_water:   { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [0, 5],     expect_micronutrients: false },
   condiment:        { protein_g: [0, 3, 7],    fiber_g: [0, 1, 3],  expected_kcal_range: [20, 400],  expect_micronutrients: false },
-  oil_fat:          { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [700, 900], expect_micronutrients: false },
+  oil_fat:          { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [700, 900], expect_micronutrients: false, sat_fat_thresholds: [20, 35, 50] },
   other:            DEFAULT_THRESHOLDS,
 };
 
@@ -747,29 +755,30 @@ export function scoreNegativeNutrients(product: ProductInput): PillarScore {
 
   let score = MAX;
 
-  // ---- Saturated fat ----
+  // ---- Saturated fat (category-aware) ----
   const sat = nutrition.saturated_fat_g;
-  if (sat > 15) {
+  const [satMod, satMaj, satCrit] = thresholds.sat_fat_thresholds ?? DEFAULT_SAT_FAT;
+  if (sat > satCrit) {
     score -= 9;
     deductions.push({
       pillar: 'negative_nutrients',
-      reason: `Saturated fat ${sat}g/100g (>15g critical threshold)`,
+      reason: `Saturated fat ${sat}g/100g (>${satCrit}g critical for ${category})`,
       points: -9,
       severity: 'critical',
     });
-  } else if (sat > 10) {
+  } else if (sat > satMaj) {
     score -= 6;
     deductions.push({
       pillar: 'negative_nutrients',
-      reason: `Saturated fat ${sat}g/100g (>10g major threshold)`,
+      reason: `Saturated fat ${sat}g/100g (>${satMaj}g major for ${category})`,
       points: -6,
       severity: 'major',
     });
-  } else if (sat > 5) {
+  } else if (sat > satMod) {
     score -= 3;
     deductions.push({
       pillar: 'negative_nutrients',
-      reason: `Saturated fat ${sat}g/100g (>5g moderate threshold)`,
+      reason: `Saturated fat ${sat}g/100g (>${satMod}g moderate for ${category})`,
       points: -3,
       severity: 'moderate',
     });
