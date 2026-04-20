@@ -1011,6 +1011,33 @@ main {
 }
 .pa-row.positive .pa-points { color: var(--grade-a); }
 .pa-row.negative .pa-points { color: var(--grade-d); }
+.pa-row.veto-row {
+  background: rgba(255, 122, 122, 0.10);
+  border-left: 3px solid var(--danger);
+  padding-left: 0.5rem;
+}
+.pa-row.veto-row .pa-points { color: var(--danger); font-weight: 900; }
+.pa-row.veto {
+  grid-template-columns: 1fr;
+  background: rgba(255, 122, 122, 0.08);
+  border-left: 3px solid var(--danger);
+  padding-left: 0.6rem;
+  color: var(--danger);
+  font-size: 0.82rem;
+}
+
+.score-slot.veto {
+  background: rgba(255, 122, 122, 0.08);
+  border: 1px solid var(--danger);
+}
+.score-slot.veto .grade {
+  background: var(--danger);
+}
+.score-slot.veto .personal-delta[data-sign="neg"] {
+  color: var(--danger);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
 
 .capture #scan-btn {
   margin-top: 0.75rem;

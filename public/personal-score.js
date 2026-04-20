@@ -1,24 +1,29 @@
 /**
  * Personal-score adjustments layered on top of the classic score.
  *
- * Design: we do NOT recompute the audit. We apply a transparent set of
- * adjustments — each with a reason and points — that sum into a delta.
- * The personal score = classic + delta, clamped 0–100.
+ * Design: the diet is a HARD constraint; everything else is soft. When the
+ * product violates the user's diet, the personal score is capped at 0 (grade F)
+ * regardless of other merits — a product you cannot eat is a 0, not a 41.
+ * Compliance path runs the full adjustment chain (age / sex / activity /
+ * protein PRI / daily budgets / BMI / modifiers) and sums to a delta applied
+ * on top of the classic score, clamped 0–100.
  *
  * AUTHORITATIVE anchors for the adjustments:
  *   - Protein PRI by age: EFSA Scientific Opinion 2012;10(2):2557
  *     (0.83 g/kg for adults; ≥65y 1.0 g/kg for sarcopenia prevention).
  *   - Iron RNI by sex: EFSA Scientific Opinion 2015;13(10):4254 (adult
  *     men 11 mg/day; menstruating women 16 mg/day).
- *   - Sodium sensitivity, BMI-related thresholds: WHO Global Database on
- *     BMI (2000); WHO Salt Guideline (2012).
+ *   - Sodium sensitivity / BMI: WHO Global Database on BMI (2000);
+ *     WHO Salt Guideline (2012).
+ *   - Sat-fat, free-sugar daily budgets from TDEE × WHO %E conversions
+ *     (WHO Guideline on Saturated Fatty Acids 2023; WHO Sugars 2015).
  *   - Athlete protein / carb context: IOC Consensus on Sports Nutrition
  *     (Br J Sports Med 2018).
  *
- * EDITORIAL: point magnitudes (±2, ±5, ±15, ±30) are Scann-eat's choice,
- * not a validated calibration. Diet non-compliance uses a strong -30
- * penalty to reflect that a vegan is not going to eat a product with
- * meat regardless of how well-scored it is on other axes.
+ * EDITORIAL: the point magnitudes (±2, ±3, ±4, ±5) and the flat -30 fall-
+ * back when a diet violation is detected WITHOUT enough physiological data
+ * are Scann-eat's choice, not validated calibrations. The hard "0 for diet
+ * violation" cap is the defensible behaviour from a user-decision standpoint.
  */
 
 import { checkDiet, DIET_DEFS } from './diets.js';
@@ -31,13 +36,17 @@ import {
  * @returns {{
  *   personal_score: number,
  *   delta: number,
- *   adjustments: Array<{points: number, reason: string, category: 'diet' | 'age' | 'sex' | 'activity' | 'bmi'}>,
+ *   adjustments: Array<{points: number, reason: string, category: 'diet' | 'age' | 'sex' | 'activity' | 'bmi' | 'modifier', veto?: boolean}>,
  *   applicable: boolean,
- *   diet_reason: string | null
+ *   diet_reason: string | null,
+ *   veto: boolean
  * }}
  */
 export function computePersonalScore(audit, product, profile, lang = 'fr') {
-  const applicable = (profile?.diet && profile.diet !== 'none') || hasMinimalProfile(profile);
+  const applicable =
+    (profile?.diet && profile.diet !== 'none') ||
+    hasMinimalProfile(profile) ||
+    anyModifierOn(profile?.modifiers);
   if (!applicable) {
     return {
       personal_score: audit.score,
@@ -45,22 +54,28 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
       adjustments: [],
       applicable: false,
       diet_reason: null,
+      veto: false,
     };
   }
 
   const adjustments = [];
   let dietReason = null;
+  let veto = false;
 
-  // ===== DIET COMPLIANCE =====
+  // ===== DIET COMPLIANCE (HARD) =====
   if (profile.diet && profile.diet !== 'none') {
     const r = checkDiet(product, profile.diet, profile.custom_diet, lang);
     if (!r.compliant) {
+      // Hard veto — the product is not eligible for this user. Everything
+      // else is informational (still computed below) but the score caps at 0.
+      veto = true;
+      dietReason = r.reason;
       adjustments.push({
-        points: -30,
+        points: 0, // informational — actual capping is applied after the sum
         reason: r.reason,
         category: 'diet',
+        veto: true,
       });
-      dietReason = r.reason;
     } else if (r.certified) {
       adjustments.push({
         points: +5,
@@ -76,6 +91,62 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
           ? `${DIET_DEFS[profile.diet].label_en}-friendly ingredients: ${r.preferredHits.slice(0, 2).join(', ')}`
           : `Conforme ${DIET_DEFS[profile.diet].label_fr} : ${r.preferredHits.slice(0, 2).join(', ')}`,
         category: 'diet',
+      });
+    }
+  }
+
+  // ===== MODIFIERS (SOFT preferences from profile.modifiers) =====
+  const mods = profile.modifiers || {};
+  if (mods.lowSugar) {
+    const sugars = product.nutrition.added_sugars_g ?? product.nutrition.sugars_g;
+    if (sugars > 5) {
+      adjustments.push({
+        points: -3,
+        reason: lang === 'en'
+          ? `Low-sugar preference: ${sugars} g/100 g exceeds 5 g/100 g`
+          : `Préférence faible en sucre : ${sugars} g/100 g > 5 g/100 g`,
+        category: 'modifier',
+      });
+    }
+  }
+  if (mods.lowSalt) {
+    if (product.nutrition.salt_g > 0.75) {
+      adjustments.push({
+        points: -3,
+        reason: lang === 'en'
+          ? `Low-salt preference: ${product.nutrition.salt_g} g/100 g exceeds 0.75 g/100 g`
+          : `Préférence faible en sel : ${product.nutrition.salt_g} g/100 g > 0,75 g/100 g`,
+        category: 'modifier',
+      });
+    }
+  }
+  if (mods.highProtein) {
+    if (product.nutrition.protein_g >= 10) {
+      adjustments.push({
+        points: +3,
+        reason: lang === 'en'
+          ? `High-protein preference matched (${product.nutrition.protein_g} g/100 g)`
+          : `Préférence riche en protéines satisfaite (${product.nutrition.protein_g} g/100 g)`,
+        category: 'modifier',
+      });
+    }
+  }
+  if (mods.organic) {
+    if (product.organic) {
+      adjustments.push({
+        points: +2,
+        reason: lang === 'en'
+          ? `Organic-only preference: product is organic (EU Reg. 2018/848)`
+          : `Préférence bio : produit certifié bio (Règl. UE 2018/848)`,
+        category: 'modifier',
+      });
+    } else {
+      adjustments.push({
+        points: -3,
+        reason: lang === 'en'
+          ? `Organic-only preference: product is not certified organic`
+          : `Préférence bio : produit non-bio`,
+        category: 'modifier',
       });
     }
   }
@@ -101,7 +172,6 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
       });
     }
     if (profile.age_years < 18) {
-      // Children / adolescents: sugar and additive concerns are amplified.
       if (product.nutrition.sugars_g > 15) {
         adjustments.push({
           points: -4,
@@ -162,7 +232,6 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
     }
   }
   if (profile.activity === 'light' || profile.activity === 'moderate') {
-    // Neutral band: protein bonus halved, sugar penalty halved.
     if (product.nutrition.protein_g >= 15) {
       adjustments.push({
         points: +1,
@@ -185,12 +254,10 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
     }
   }
 
-  // ===== PROTEIN PRI (uses weight_kg + age_years) =====
+  // ===== PROTEIN PRI =====
   const priTarget = proteinPRI_g(profile);
   if (priTarget != null) {
-    const per100 = product.nutrition.protein_g;
-    // "Protein-dense" = a 100 g serving covers ≥20 % of the user's daily PRI.
-    const pctOfPRI = (per100 / priTarget) * 100;
+    const pctOfPRI = (product.nutrition.protein_g / priTarget) * 100;
     if (pctOfPRI >= 20) {
       adjustments.push({
         points: +2,
@@ -202,11 +269,9 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
     }
   }
 
-  // ===== DAILY TARGET CONTEXT (uses weight_kg + height_cm + age_years + activity) =====
+  // ===== DAILY TARGET CONTEXT =====
   const targets = dailyTargets(profile);
   if (targets) {
-    // Single-serving cost: if a 100 g portion uses ≥50 % of the user's daily
-    // sat-fat budget, that's a strong personalized red flag.
     const satFatPct = (product.nutrition.saturated_fat_g / Math.max(1, targets.sat_fat_g_max)) * 100;
     if (satFatPct >= 50) {
       adjustments.push({
@@ -244,7 +309,7 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
   const bmiValue = bmi(profile);
   const bmiCat = bmiCategory(bmiValue);
   if (bmiCat === 'overweight' || bmiCat?.startsWith('obese')) {
-    if (product.nutrition.sat_fat_g > 5 || product.nutrition.sugars_g > 15) {
+    if (product.nutrition.saturated_fat_g > 5 || product.nutrition.sugars_g > 15) {
       adjustments.push({
         points: -4,
         reason: lang === 'en'
@@ -267,14 +332,21 @@ export function computePersonalScore(audit, product, profile, lang = 'fr') {
   }
 
   const delta = adjustments.reduce((s, a) => s + a.points, 0);
-  const personal_score = Math.max(0, Math.min(100, audit.score + delta));
+  // Hard veto: if diet violated, personal score is flat 0 regardless of sum.
+  const personal_score = veto ? 0 : Math.max(0, Math.min(100, audit.score + delta));
   return {
     personal_score: Math.round(personal_score),
-    delta,
+    delta: veto ? -audit.score : delta,
     adjustments,
     applicable: true,
     diet_reason: dietReason,
+    veto,
   };
+}
+
+function anyModifierOn(m) {
+  if (!m || typeof m !== 'object') return false;
+  return !!(m.lowSugar || m.lowSalt || m.highProtein || m.organic);
 }
 
 /** Map the 0-100 personal score to the same A+/A/B/C/D/F grade scale. */

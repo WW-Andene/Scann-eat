@@ -15,21 +15,59 @@
 
 const LS_PROFILE = 'scanneat.profile';
 
+export const DEFAULT_MODIFIERS = {
+  lowSugar: false,
+  lowSalt: false,
+  highProtein: false,
+  organic: false,
+};
+
 export const DEFAULT_PROFILE = {
   sex: null,            // 'male' | 'female' | 'other'
   age_years: null,
   height_cm: null,
   weight_kg: null,
   activity: null,       // sedentary | light | moderate | active | very_active
-  diet: 'none',         // see diets.js
+  diet: 'none',         // HARD constraint — violation caps personal score at 0
   custom_diet: null,    // { forbidden: string[], preferred: string[] } when diet==='custom'
+  modifiers: { ...DEFAULT_MODIFIERS }, // SOFT preferences — fine-tune within compatible products
 };
+
+const LEGACY_PREFS_KEY = 'scanneat.prefs';
 
 export function getProfile() {
   try {
     const raw = localStorage.getItem(LS_PROFILE);
-    if (!raw) return { ...DEFAULT_PROFILE };
-    return { ...DEFAULT_PROFILE, ...JSON.parse(raw) };
+    let p = raw ? { ...DEFAULT_PROFILE, ...JSON.parse(raw) } : { ...DEFAULT_PROFILE };
+
+    // One-time migration: the legacy LS_PREFS key held the dietary preference
+    // checkboxes from the Settings dialog. Consolidate them into the profile.
+    if (!p.modifiers || typeof p.modifiers !== 'object') {
+      p.modifiers = { ...DEFAULT_MODIFIERS };
+    } else {
+      p.modifiers = { ...DEFAULT_MODIFIERS, ...p.modifiers };
+    }
+    const legacy = localStorage.getItem(LEGACY_PREFS_KEY);
+    if (legacy) {
+      try {
+        const old = JSON.parse(legacy);
+        if (old && typeof old === 'object') {
+          p.modifiers = {
+            lowSugar: p.modifiers.lowSugar || !!old.lowSugar,
+            lowSalt: p.modifiers.lowSalt || !!old.lowSalt,
+            highProtein: p.modifiers.highProtein || !!old.highProtein,
+            organic: p.modifiers.organic || !!old.organic,
+          };
+          // Map legacy "vegetarian" checkbox into the diet dropdown if unset.
+          if (old.vegetarian && (!p.diet || p.diet === 'none')) {
+            p.diet = 'vegetarian';
+          }
+          setProfile(p);
+          localStorage.removeItem(LEGACY_PREFS_KEY);
+        }
+      } catch { /* ignore corrupt legacy blob */ }
+    }
+    return p;
   } catch { return { ...DEFAULT_PROFILE }; }
 }
 

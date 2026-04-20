@@ -183,21 +183,76 @@ describe('Personal score uses every profile field', () => {
     },
   });
 
-  it('diet non-compliance applies -30 regardless of other fields', () => {
+  it('diet violation is a HARD VETO: personal score caps at 0 regardless of classic', () => {
     const profile = {
       sex: null, age_years: null, height_cm: null, weight_kg: null, activity: null,
       diet: 'vegan', custom_diet: null,
     };
     const r = computePersonalScore(makeAudit(70), makeProduct({}, [{ name: 'lait entier' }]), profile, 'fr');
-    assert.ok(r.adjustments.some((a) => a.points === -30 && a.category === 'diet'));
-    assert.equal(r.personal_score, 40);
+    assert.equal(r.veto, true, 'veto flag must be set');
+    assert.equal(r.personal_score, 0, 'hard cap at 0 — a product you cannot eat is 0, not 41');
+    // The violation still appears in adjustments list for transparency.
+    assert.ok(r.adjustments.some((a) => a.veto === true && a.category === 'diet'));
   });
 
-  it('halal certification gives +5 override instead of -30', () => {
+  it('Dairy-free + Skyr-like product: score is 0, not 41', () => {
+    const profile = {
+      sex: null, age_years: null, height_cm: null, weight_kg: null, activity: null,
+      diet: 'dairy_free', custom_diet: null,
+    };
+    const skyrLike = {
+      name: 'Skyr',
+      category: 'yogurt',
+      nova_class: 4,
+      ingredients: [
+        { name: 'yaourt maigre (lait)' },
+        { name: 'poire 7%' },
+      ],
+      nutrition: {
+        energy_kcal: 60, fat_g: 0.2, saturated_fat_g: 0.1, carbs_g: 8,
+        sugars_g: 8, fiber_g: 0.3, protein_g: 10, salt_g: 0.12,
+      },
+    };
+    const r = computePersonalScore(makeAudit(71), skyrLike, profile, 'fr');
+    assert.equal(r.veto, true);
+    assert.equal(r.personal_score, 0);
+  });
+
+  it('halal certification still gives +5 bonus when no violation', () => {
     const profile = { sex: null, age_years: null, height_cm: null, weight_kg: null, activity: null, diet: 'halal', custom_diet: null };
-    const r = computePersonalScore(makeAudit(70), makeProduct({}, [{ name: 'gélatine' }], 'Bonbon certifié halal AVS'), profile, 'fr');
+    const r = computePersonalScore(
+      makeAudit(70),
+      makeProduct({}, [{ name: 'gélatine' }], 'Bonbon certifié halal AVS'),
+      profile, 'fr',
+    );
+    assert.equal(r.veto, false);
     assert.ok(r.adjustments.some((a) => a.points === +5 && a.category === 'diet'));
     assert.equal(r.personal_score, 75);
+  });
+
+  it('Modifier "lowSugar" applies a -3 soft penalty on high-sugar product', () => {
+    const profile = {
+      sex: null, age_years: null, height_cm: null, weight_kg: null, activity: null,
+      diet: 'none', custom_diet: null,
+      modifiers: { lowSugar: true, lowSalt: false, highProtein: false, organic: false },
+    };
+    const r = computePersonalScore(makeAudit(70), makeProduct({ sugars_g: 12 }), profile, 'fr');
+    assert.ok(r.adjustments.some((a) => a.category === 'modifier' && a.points === -3));
+    assert.equal(r.personal_score, 67);
+  });
+
+  it('Modifier "organic" penalizes non-organic, rewards organic', () => {
+    const profile = {
+      sex: null, age_years: null, height_cm: null, weight_kg: null, activity: null,
+      diet: 'none', custom_diet: null,
+      modifiers: { organic: true, lowSugar: false, lowSalt: false, highProtein: false },
+    };
+    const notOrganic = { ...makeProduct({}), organic: false };
+    const organic = { ...makeProduct({}), organic: true };
+    const r1 = computePersonalScore(makeAudit(70), notOrganic, profile, 'fr');
+    assert.ok(r1.adjustments.some((a) => a.category === 'modifier' && a.points === -3));
+    const r2 = computePersonalScore(makeAudit(70), organic, profile, 'fr');
+    assert.ok(r2.adjustments.some((a) => a.category === 'modifier' && a.points === +2));
   });
 
   it('height + weight + activity + age feed the sat-fat budget check', () => {

@@ -85,45 +85,9 @@ const queue = []; // { id, dataUrl, base64, mime, barcode? }
 let lastData = null;
 
 // ============================================================================
-// Preferences
+// Preferences → Profile modifiers (moved into Profile; this block kept for
+// the single UI-side responsibility: projecting the veto status onto flags).
 // ============================================================================
-
-function getPrefs() {
-  try {
-    return JSON.parse(localStorage.getItem(LS_PREFS) || '{}');
-  } catch { return {}; }
-}
-function setPrefs(p) {
-  localStorage.setItem(LS_PREFS, JSON.stringify(p));
-}
-
-/**
- * Add preference-driven red/green flags on top of the engine output.
- * The score is not changed — only the UI surfaces additional concerns.
- */
-function applyPreferenceFlags(data) {
-  const prefs = getPrefs();
-  const extras = { red: [], green: [] };
-  const meatRe = /viande|porc|b[oœ]euf|poulet|dinde|canard|jambon|saucisse|bacon|agneau|lardon|chorizo|merguez/i;
-
-  if (prefs.vegetarian) {
-    const meatIng = data.product.ingredients.find((i) => meatRe.test(i.name));
-    if (meatIng) extras.red.push(t('prefMeatRed', { name: meatIng.name }));
-  }
-  if (prefs.lowSugar && data.product.nutrition.sugars_g > 5) {
-    extras.red.push(t('prefSugarRed', { v: data.product.nutrition.sugars_g }));
-  }
-  if (prefs.lowSalt && data.product.nutrition.salt_g > 0.75) {
-    extras.red.push(t('prefSaltRed', { v: data.product.nutrition.salt_g }));
-  }
-  if (prefs.organic && !data.product.organic) {
-    extras.red.push(t('prefNotOrganic'));
-  }
-  if (prefs.highProtein && data.product.nutrition.protein_g >= 10) {
-    extras.green.push(t('prefProteinGreen', { v: data.product.nutrition.protein_g }));
-  }
-  return extras;
-}
 
 // ============================================================================
 // Confidence heuristic
@@ -467,9 +431,8 @@ function renderAudit(data) {
   renderAdditiveSummary(data.product);
   show(shareBtn);
 
-  const extras = applyPreferenceFlags(data);
-  renderList('red-flags', [...audit.red_flags, ...extras.red], t('noFlag'));
-  renderList('green-flags', [...audit.green_flags, ...extras.green], t('noFlag'));
+  renderList('red-flags', audit.red_flags, t('noFlag'));
+  renderList('green-flags', audit.green_flags, t('noFlag'));
 
   const pillars = [
     [t('pillarProcessing'), audit.pillars.processing],
@@ -893,41 +856,55 @@ const personalAdjustmentsList = $('personal-adjustments-list');
 function renderPersonalScore(audit, product) {
   const profile = getProfile();
   const r = computePersonalScore(audit, product, profile, currentLang);
+  personalSlot.classList.toggle('veto', !!r.veto);
   if (!r.applicable) {
     hide(personalSlot);
     hide(personalAdjustmentsEl);
     return;
   }
   const g = personalGrade(r.personal_score);
-  $('personal-grade-el').textContent = g;
-  $('personal-grade-el').dataset.grade = g;
-  $('personal-score-el').textContent = String(r.personal_score);
+  $('personal-grade-el').textContent = r.veto ? '⛔' : g;
+  $('personal-grade-el').dataset.grade = r.veto ? 'F' : g;
+  $('personal-score-el').textContent = r.veto ? '0' : String(r.personal_score);
   const deltaEl = $('personal-delta-el');
-  if (r.delta === 0) deltaEl.textContent = '';
-  else deltaEl.textContent = r.delta > 0 ? `(+${r.delta})` : `(${r.delta})`;
-  deltaEl.dataset.sign = r.delta > 0 ? 'pos' : r.delta < 0 ? 'neg' : 'zero';
+  if (r.veto) {
+    deltaEl.textContent = t('vetoLabel');
+    deltaEl.dataset.sign = 'neg';
+  } else if (r.delta === 0) {
+    deltaEl.textContent = '';
+  } else {
+    deltaEl.textContent = r.delta > 0 ? `(+${r.delta})` : `(${r.delta})`;
+    deltaEl.dataset.sign = r.delta > 0 ? 'pos' : r.delta < 0 ? 'neg' : 'zero';
+  }
   $('personal-verdict-el').textContent = r.diet_reason || '';
   show(personalSlot);
 
   personalAdjustmentsList.innerHTML = '';
   if (r.adjustments.length === 0) {
     hide(personalAdjustmentsEl);
-  } else {
-    for (const a of r.adjustments) {
-      const li = document.createElement('li');
-      li.className = `pa-row ${a.category} ${a.points > 0 ? 'positive' : 'negative'}`;
-      const pts = document.createElement('span');
-      pts.className = 'pa-points';
-      pts.textContent = `${a.points > 0 ? '+' : ''}${a.points}`;
-      const reason = document.createElement('span');
-      reason.className = 'pa-reason';
-      reason.textContent = String(a.reason ?? '');
-      li.appendChild(pts);
-      li.appendChild(reason);
-      personalAdjustmentsList.appendChild(li);
-    }
-    show(personalAdjustmentsEl);
+    return;
   }
+  if (r.veto) {
+    const note = document.createElement('li');
+    note.className = 'pa-row veto';
+    note.textContent = t('vetoExplain');
+    personalAdjustmentsList.appendChild(note);
+  }
+  for (const a of r.adjustments) {
+    const li = document.createElement('li');
+    const posNeg = a.points > 0 ? 'positive' : a.points < 0 ? 'negative' : 'neutral';
+    li.className = `pa-row ${a.category} ${posNeg} ${a.veto ? 'veto-row' : ''}`.trim();
+    const pts = document.createElement('span');
+    pts.className = 'pa-points';
+    pts.textContent = a.veto ? '⛔' : `${a.points > 0 ? '+' : ''}${a.points}`;
+    const reason = document.createElement('span');
+    reason.className = 'pa-reason';
+    reason.textContent = String(a.reason ?? '');
+    li.appendChild(pts);
+    li.appendChild(reason);
+    personalAdjustmentsList.appendChild(li);
+  }
+  show(personalAdjustmentsEl);
 }
 
 // ============================================================================
@@ -960,6 +937,11 @@ function openProfileDialog() {
   profileDiet.value = p.diet || 'none';
   profileCustomForbidden.value = (p.custom_diet?.forbidden || []).join('\n');
   profileCustomPreferred.value = (p.custom_diet?.preferred || []).join('\n');
+  const m = p.modifiers || {};
+  $('mod-lowsugar').checked = !!m.lowSugar;
+  $('mod-lowsalt').checked = !!m.lowSalt;
+  $('mod-highprotein').checked = !!m.highProtein;
+  $('mod-organic').checked = !!m.organic;
   toggleCustomDietWrap();
   renderDerived();
   profileDialog.showModal();
@@ -988,6 +970,12 @@ function readProfileFromForm() {
           preferred: profileCustomPreferred.value.split('\n').map((s) => s.trim()).filter(Boolean),
         }
       : null,
+    modifiers: {
+      lowSugar: !!$('mod-lowsugar')?.checked,
+      lowSalt: !!$('mod-lowsalt')?.checked,
+      highProtein: !!$('mod-highprotein')?.checked,
+      organic: !!$('mod-organic')?.checked,
+    },
   };
 }
 
@@ -1265,12 +1253,6 @@ settingsBtn?.addEventListener('click', () => {
   modeSelect.value = localStorage.getItem(LS_MODE) || (isCapacitor ? 'direct' : 'auto');
   langSelect.value = currentLang;
   themeSelect.value = localStorage.getItem(LS_THEME) || 'dark';
-  const prefs = getPrefs();
-  $('pref-vegetarian').checked = !!prefs.vegetarian;
-  $('pref-lowsugar').checked = !!prefs.lowSugar;
-  $('pref-lowsalt').checked = !!prefs.lowSalt;
-  $('pref-highprotein').checked = !!prefs.highProtein;
-  $('pref-organic').checked = !!prefs.organic;
   settingsDialog.showModal();
 });
 settingsSave?.addEventListener('click', (e) => {
@@ -1281,13 +1263,6 @@ settingsSave?.addEventListener('click', (e) => {
   localStorage.setItem(LS_THEME, themeSelect.value);
   setLang(langSelect.value);
   applyTheme();
-  setPrefs({
-    vegetarian: $('pref-vegetarian').checked,
-    lowSugar: $('pref-lowsugar').checked,
-    lowSalt: $('pref-lowsalt').checked,
-    highProtein: $('pref-highprotein').checked,
-    organic: $('pref-organic').checked,
-  });
   settingsDialog.close();
   applyStaticTranslations();
 });

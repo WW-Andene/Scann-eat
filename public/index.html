@@ -59,14 +59,7 @@
             <option value="auto" data-i18n="themeAuto">Système</option>
           </select>
         </label>
-        <fieldset class="prefs">
-          <legend data-i18n="settingsPreferences">Préférences alimentaires</legend>
-          <label class="pref-row"><input type="checkbox" id="pref-vegetarian" /> <span data-i18n="prefVegetarian">Végétarien</span></label>
-          <label class="pref-row"><input type="checkbox" id="pref-lowsugar" /> <span data-i18n="prefLowSugar">Faible en sucre</span></label>
-          <label class="pref-row"><input type="checkbox" id="pref-lowsalt" /> <span data-i18n="prefLowSalt">Faible en sel</span></label>
-          <label class="pref-row"><input type="checkbox" id="pref-highprotein" /> <span data-i18n="prefHighProtein">Riche en protéines</span></label>
-          <label class="pref-row"><input type="checkbox" id="pref-organic" /> <span data-i18n="prefOrganic">Bio uniquement</span></label>
-        </fieldset>
+        <p class="hint settings-profile-hint" data-i18n="settingsProfileHint">Les préférences alimentaires (régime, faible sucre, bio, etc.) sont maintenant dans le Profil 👤.</p>
         <div class="dialog-actions">
           <button id="about-btn" type="button" class="secondary" data-i18n="about">À propos</button>
           <button id="settings-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
@@ -181,6 +174,13 @@
               <textarea id="profile-custom-preferred" rows="2" placeholder="olive\nsaumon"></textarea>
             </label>
           </div>
+          <fieldset class="full prefs">
+            <legend data-i18n="profileModifiers">Modificateurs (préférences souples)</legend>
+            <label class="pref-row"><input type="checkbox" id="mod-lowsugar" /> <span data-i18n="prefLowSugar">Faible en sucre</span></label>
+            <label class="pref-row"><input type="checkbox" id="mod-lowsalt" /> <span data-i18n="prefLowSalt">Faible en sel</span></label>
+            <label class="pref-row"><input type="checkbox" id="mod-highprotein" /> <span data-i18n="prefHighProtein">Riche en protéines</span></label>
+            <label class="pref-row"><input type="checkbox" id="mod-organic" /> <span data-i18n="prefOrganic">Bio uniquement</span></label>
+          </fieldset>
         </div>
         <div class="profile-derived" id="profile-derived" hidden>
           <strong data-i18n="profileDerived">Calculs dérivés</strong>
