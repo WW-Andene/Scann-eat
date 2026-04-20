@@ -116,16 +116,29 @@ const STRINGS = {
     novaInferred: 'NOVA recalculé',
     about: 'À propos',
     disclaimerTitle: 'Information, pas conseil médical',
-    disclaimerBody: `Scann-eat agrège des données d'Open Food Facts, une lecture OCR par Llama 4 Scout et un moteur de scoring basé sur la littérature (OMS, EFSA, IARC, études NOVA).
+    disclaimerBody: `Scann-eat distingue explicitement deux types de données :
 
-Limites à connaître :
-• Les pondérations (20/25/25/15/15) et les seuils sont éditoriaux, pas une norme médicale.
-• La détection d'allergènes est heuristique : pour une allergie sévère, lis toujours l'étiquette réelle — les mentions "peut contenir" ne sont pas captées.
-• Les données Open Food Facts sont collaboratives : un produit reformulé peut ne pas être à jour.
+AUTORITAIRES (traçables à une source nommée) :
+• Seuils des nutriments négatifs — FSA "Front of pack labelling guidance" 2016 (rouge sat ≥5 g/100 g, sucres ≥22,5 g/100 g, sel ≥1,5 g/100 g).
+• Références journalières — OMS Guidelines (sat ≤10 %E, sucres libres ≤10 %E idéal <5 %E, sel <5 g/j, trans zéro REPLACE 2018).
+• Cadre NOVA — Monteiro et al., Public Health Nutrition 2019;22(5).
+• Association UPF / risque CV — Srour et al., BMJ 2019;365:l1451.
+• Charcuterie = IARC Groupe 1 — Monographie Vol 114 (2015).
+• Chaque additif dans la base a un champ 'source' citant EFSA, IARC, règlement UE ou étude primaire.
+
+ÉDITORIAUX (jugement Scann-eat) :
+• Pondérations des piliers (20/25/25/15/15) et seuils de notes A+ → F.
+• Ajustements par catégorie (fromage sat fat, condiment sucre).
+• Auto-correction NOVA lorsque l'entrée semble fausse.
+• Pénalités premier ingrédient, bonus graisses saines / oméga-3, caps de veto.
+• Puce "confiance" (high/medium/low).
+
+Limites pratiques :
+• Détection d'allergènes heuristique — pour une allergie sévère, lis l'étiquette réelle. Les "peut contenir" ne sont pas captés.
+• Données Open Food Facts collaboratives — un produit reformulé peut ne pas être à jour.
 • L'OCR Llama 4 peut mal lire une photo floue ; la puce "confiance" tente de le signaler.
-• Les classifications IARC citées concernent les produits d'arrivée (p. ex. charcuterie Groupe 1), pas forcément l'additif isolé.
 
-Cette app est une aide à la décision, pas un avis nutritionniste ou médical.`,
+Cette app est une aide à la décision, pas un avis nutritionniste ou médical. Pour une décision cruciale (allergie, pathologie), confirme avec un professionnel de santé et l'étiquette originale.`,
     onboarding4Title: 'Information, pas conseil médical',
     onboarding4Body: 'Les notes agrègent des données publiques (Open Food Facts) et un OCR par modèle vision. Limites des allergènes, fraîcheur des données, pondérations éditoriales — lis "À propos" dans les réglages.',
   },
@@ -240,16 +253,29 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical.`
     novaInferred: 'NOVA recalculated',
     about: 'About',
     disclaimerTitle: 'Guidance, not medical advice',
-    disclaimerBody: `Scann-eat combines Open Food Facts data, OCR by Llama 4 Scout, and a scoring engine based on published literature (WHO, EFSA, IARC, NOVA studies).
+    disclaimerBody: `Scann-eat explicitly separates two data types:
 
-Known limitations:
-• The pillar weights (20/25/25/15/15) and thresholds are editorial — not a medical standard.
-• Allergen detection is heuristic: for severe allergies, always read the actual label. "May contain" notices aren't captured.
-• Open Food Facts data is crowd-sourced: reformulated products may not be up-to-date.
+AUTHORITATIVE (traceable to a named source):
+• Negative-nutrient thresholds — FSA "Front of pack labelling guidance" 2016 (Red sat fat ≥5 g/100 g, sugars ≥22.5 g/100 g, salt ≥1.5 g/100 g).
+• Daily-intake references — WHO Guidelines (sat ≤10 %E, free sugars ≤10 %E ideally <5 %E, salt <5 g/day, trans zero REPLACE 2018).
+• NOVA framework — Monteiro et al., Public Health Nutrition 2019;22(5).
+• UPF / CV risk association — Srour et al., BMJ 2019;365:l1451.
+• Processed meat = IARC Group 1 — Monograph Vol 114 (2015).
+• Every additive carries a 'source' field citing EFSA, IARC, EU regulation, or primary study.
+
+EDITORIAL (Scann-eat's own judgment):
+• Pillar weights (20/25/25/15/15) and A+ → F grade breakpoints.
+• Category-specific adjustments (cheese sat-fat, condiment sugar).
+• Auto-NOVA correction when the input appears wrong.
+• First-ingredient penalty, healthy-fat / omega-3 bonuses, veto caps.
+• Confidence chip (high/medium/low).
+
+Practical limits:
+• Allergen detection is heuristic — for severe allergies, read the actual label. "May contain" notices aren't captured.
+• Open Food Facts data is crowd-sourced — reformulated products may not be up-to-date.
 • Llama 4 OCR can misread blurry photos; the confidence chip tries to flag this.
-• Cited IARC classifications apply to the finished food (e.g. processed meat = Group 1), not necessarily the isolated additive.
 
-This app is decision support, not nutrition or medical advice.`,
+This app is decision support, not nutrition or medical advice. For critical decisions (allergies, medical conditions), confirm with a healthcare professional and the original label.`,
     onboarding4Title: 'Guidance, not medical advice',
     onboarding4Body: 'Scores aggregate public data (Open Food Facts) and vision-model OCR. Read "About" in settings for limitations — especially the allergen caveat.',
   },

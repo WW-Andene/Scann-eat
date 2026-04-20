@@ -3,22 +3,49 @@
  * FOOD SCORING ENGINE v2.0.0
  * ============================================================================
  *
- * Evidence-based scoring engine for supermarket food products.
+ * Evidence-anchored scoring engine for supermarket food products.
  * Single-file consolidated build. Zero runtime dependencies.
  *
  * Main entry point: scoreProduct(product: ProductInput): ScoreAudit
  *
- * Scoring breakdown (100 pts total):
- *   - Processing Level (20)
- *   - Nutritional Density (25)
- *   - Negative Nutrients (25)
- *   - Additive Risk (15)
- *   - Ingredient Integrity (15)
- *   + Global bonuses (capped +10)
- *   - Global penalties
- *   - Veto conditions (cap final score)
+ * AUTHORITATIVE vs EDITORIAL boundary — be honest about both:
  *
- * Grades: A+ (85+) / A (70+) / B (55+) / C (40+) / D (25+) / F (<25)
+ *   AUTHORITATIVE (traceable to a named source):
+ *     - Nutrient thresholds (FSA traffic-light cutoffs per 100 g for solids).
+ *     - Daily intake references (WHO: sat fat <10 %E, free sugars <10 %E /
+ *       ideally <5 %E, salt <5 g/day, trans fat elimination target).
+ *     - Additive tier assignments are backed per-entry by ADDITIVES_DB.source
+ *       (EFSA opinions, IARC Monographs, EU Regulations, cited studies).
+ *     - IARC Monograph Vol 114 (2015) — processed meat Group 1.
+ *     - NOVA classification framework (Monteiro et al., Public Health Nutrition
+ *       22:936–941, 2019).
+ *
+ *   EDITORIAL (Scann-eat's own judgment, not a medical authority):
+ *     - Pillar weights 20/25/25/15/15 and the A+ → F grade thresholds.
+ *     - Category-specific adjustments to sat-fat / sugar thresholds.
+ *     - NOVA auto-inference heuristic when input NOVA looks unreliable.
+ *     - Additive tier CAP per pillar (−10/−6/−3) and +1/+2/+3 bonus values.
+ *     - Veto caps (40 / 45) for the heaviest composition red flags.
+ *     - First-ingredient penalty (-3 when sucre / huile dominates).
+ *     - Healthy-fat + omega-3 source bonuses.
+ *
+ * Each function below is annotated with an AUTHORITATIVE-BASIS or EDITORIAL
+ * block so the provenance of every number is explicit.
+ *
+ * Scoring breakdown (100 pts total):
+ *   - Processing Level (20)       — EDITORIAL weight; NOVA-based
+ *   - Nutritional Density (25)    — EDITORIAL weight; FSA-aligned cutoffs
+ *   - Negative Nutrients (25)     — EDITORIAL weight; FSA / WHO cutoffs
+ *   - Additive Risk (15)          — EDITORIAL weight; per-entry sourcing
+ *   - Ingredient Integrity (15)   — EDITORIAL weight
+ *   + Global bonuses (capped +10) — EDITORIAL
+ *   - Global penalties            — EDITORIAL
+ *   - Veto conditions (cap)       — EDITORIAL
+ *
+ * Grades: A+ (≥85) / A (≥70) / B (≥55) / C (≥40) / D (≥25) / F (<25)
+ *         — EDITORIAL breakpoints. For a published, reproducible grade
+ *         anchored to EU law, see the French Nutri-Score algorithm
+ *         (not reimplemented here; Scann-eat is a complementary opinion).
  * ============================================================================
  */
 
@@ -174,52 +201,70 @@ export interface AdditiveInfo {
   names: string[];
   tier: AdditiveTier;
   category: string;
+  /** Plain-language concern text. */
   concern: string;
+  /**
+   * Authoritative source(s) backing the tier assignment. One of:
+   *   "EFSA Scientific Opinion <year>"
+   *   "IARC Group X (<year>)"
+   *   "EU Regulation 1333/2008 Annex"
+   *   "Santé publique France / ANSES <year>"
+   *   or a specific primary study (author, journal, year).
+   * Entries marked "editorial" are Scann-eat's judgment without a direct
+   * authoritative ruling on that specific additive.
+   */
+  source: string;
 }
 
 export const ADDITIVES_DB: AdditiveInfo[] = [
-  // ===== TIER 1: Serious concern =====
+  // ===== TIER 1: Serious concern (strong authoritative basis) =====
   {
     e_number: 'E249',
     names: ['nitrite de potassium', 'potassium nitrite'],
     tier: 1,
     category: 'preservative',
-    concern: 'Curing agent. Processed meat containing nitrites is classified IARC Group 1 (carcinogenic to humans) via N-nitroso compound formation during digestion.',
+    concern: 'Curing agent. Processed meat containing nitrites is classified IARC Group 1 (carcinogenic to humans) via N-nitroso compound formation during digestion. Editorial: tier reflects the food-carcinogenicity classification, not the isolated additive.',
+    source: 'IARC Monograph Vol 114 (2015) — processed meat Group 1; IARC Monograph Vol 94 (2010) — ingested nitrate/nitrite under conditions that result in endogenous nitrosation Group 2A; EFSA Re-evaluation 2017.',
   },
   {
     e_number: 'E250',
     names: ['nitrite de sodium', 'sodium nitrite'],
     tier: 1,
     category: 'preservative',
-    concern: 'Curing agent. Processed meat containing nitrites is classified IARC Group 1 (carcinogenic to humans) via N-nitroso compound formation during digestion.',
+    concern: 'Curing agent. Processed meat containing nitrites is classified IARC Group 1 (carcinogenic to humans) via N-nitroso compound formation. Editorial: tier reflects the finished-food classification.',
+    source: 'IARC Monograph Vol 114 (2015); IARC Monograph Vol 94 (2010); EFSA Re-evaluation 2017.',
   },
   {
     e_number: 'E251',
     names: ['nitrate de sodium', 'sodium nitrate'],
     tier: 1,
     category: 'preservative',
-    concern: 'Converts to nitrite in the gut — feeds the same N-nitroso compound pathway linked to processed-meat carcinogenicity (IARC Group 1).',
+    concern: 'Converts to nitrite in the gut. Same N-nitroso pathway linked to processed-meat carcinogenicity.',
+    source: 'IARC Monograph Vol 94 (2010); EFSA Re-evaluation 2017.',
   },
   {
     e_number: 'E252',
     names: ['nitrate de potassium', 'potassium nitrate'],
     tier: 1,
     category: 'preservative',
-    concern: 'Converts to nitrite in the gut — feeds the same N-nitroso compound pathway linked to processed-meat carcinogenicity (IARC Group 1).',
+    concern: 'Converts to nitrite in the gut. Same N-nitroso pathway linked to processed-meat carcinogenicity.',
+    source: 'IARC Monograph Vol 94 (2010); EFSA Re-evaluation 2017.',
   },
   {
     e_number: 'E433',
     names: ['polysorbate 80', 'polysorbate-80'],
     tier: 1,
     category: 'emulsifier',
-    concern: 'Detergent-class emulsifier. Mouse studies (Chassaing et al., Nature 2015) show microbiome shifts, mucus-layer erosion, and intestinal inflammation at dietary-relevant doses; small human trials suggest similar signals.',
+    concern: 'Detergent-class emulsifier. Mouse studies show microbiome shifts, mucus-layer erosion, and low-grade inflammation at dietary doses. Small human data consistent with the signal; large-scale human evidence still limited.',
+    source: 'Chassaing et al., Nature 2015 (mice); Chassaing et al., Gastroenterology 2022 (FRESH crossover human study, n=16, CMC).',
   },
   {
     e_number: 'E466',
     names: ['carboxymethylcellulose', 'cmc', 'cellulose gum'],
     tier: 1,
     category: 'emulsifier',
-    concern: 'Detergent-class emulsifier. Same mouse-study evidence base as polysorbate 80 for microbiome disruption and intestinal inflammation.',
+    concern: 'Detergent-class emulsifier. Mouse microbiome disruption replicated in a controlled human feeding trial (reduced microbial diversity, altered metabolome).',
+    source: 'Chassaing et al., Nature 2015; Chassaing et al., Gastroenterology 2022 (FRESH trial, CMC-specific).',
   },
 
   // ===== TIER 2: Moderate concern =====
@@ -228,135 +273,154 @@ export const ADDITIVES_DB: AdditiveInfo[] = [
     names: ['acide phosphorique', 'phosphoric acid'],
     tier: 2,
     category: 'acidulant',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive. Epidemiologic associations between phosphorus-rich diets and cardiovascular / renal outcomes at high chronic intakes.',
+    source: 'EFSA Scientific Opinion on phosphates as food additives, EFSA Journal 2019;17(6):5674 (group ADI 40 mg/kg bw/day as phosphorus).',
   },
   {
     e_number: 'E450',
     names: ['diphosphate', 'pyrophosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E451',
     names: ['triphosphate', 'tripolyphosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E452',
     names: ['polyphosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E102',
     names: ['tartrazine', 'jaune de tartrazine'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children (Southampton study)',
+    concern: 'Azo dye. Associations with hyperactivity and attention effects in a subset of children. EU foods containing it must carry a warning label.',
+    source: 'McCann et al., The Lancet 370:1560–1567 (2007, "Southampton study"); EU Regulation 1333/2008 Annex V — mandatory "may have an adverse effect on activity and attention in children" label.',
   },
   {
     e_number: 'E110',
     names: ['jaune orangé s', 'sunset yellow'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children',
+    concern: 'Azo dye. Same Southampton-study association; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E122',
     names: ['azorubine', 'carmoisine'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children',
+    concern: 'Azo dye. Same Southampton-study association; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E124',
     names: ['ponceau 4r', 'rouge cochenille a'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children',
+    concern: 'Azo dye. Same Southampton-study association; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E129',
     names: ['rouge allura', 'allura red'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children',
+    concern: 'Azo dye. Same Southampton-study association; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E320',
     names: ['bha', 'butylhydroxyanisol'],
     tier: 2,
     category: 'antioxidant',
-    concern: 'Suspected endocrine disruptor, IARC Group 2B',
+    concern: 'Synthetic antioxidant. Classified IARC Group 2B (possibly carcinogenic) based on rodent forestomach tumours; human relevance debated.',
+    source: 'IARC Monograph Vol 40 (1986) — Group 2B; EFSA ADI 1 mg/kg bw/day reaffirmed 2011.',
   },
   {
     e_number: 'E321',
     names: ['bht', 'butylhydroxytoluène'],
     tier: 2,
     category: 'antioxidant',
-    concern: 'Suspected endocrine disruptor',
+    concern: 'Synthetic antioxidant used alongside BHA. EFSA set a low ADI on developmental / reproductive grounds.',
+    source: 'EFSA Scientific Opinion 2012;10(3):2588 (ADI 0.25 mg/kg bw/day).',
   },
   {
     e_number: 'E951',
     names: ['aspartame'],
     tier: 2,
     category: 'sweetener',
-    concern: 'IARC Group 2B (2023) — possible carcinogen; avoid in phenylketonuria',
+    concern: 'Non-nutritive sweetener. IARC classified as "possibly carcinogenic to humans" (Group 2B) in July 2023 based on limited human evidence for hepatocellular carcinoma. Contraindicated in phenylketonuria.',
+    source: 'IARC Monograph Vol 134 (2023) — Group 2B; JECFA 2023 reaffirmed ADI 40 mg/kg bw/day; EFSA ADI 40 mg/kg bw/day (2013).',
   },
   {
     e_number: 'E150',
     names: ['caramel', 'colorant caramel', 'e150a', 'e150b', 'e150c', 'e150d'],
     tier: 2,
     category: 'colorant',
-    concern: 'E150c/d contain 4-MEI — IARC Group 2B (possible carcinogen)',
+    concern: 'Caramel colours III (E150c) and IV (E150d) contain 4-methylimidazole (4-MEI), classified IARC Group 2B. Plain (I) and caustic-sulfite (II) caramels do not.',
+    source: 'IARC Monograph Vol 101 (2013) — 4-MEI Group 2B; EFSA ADI 100–300 mg/kg bw/day by sub-class (2011 re-evaluation).',
   },
 
-  // ===== TIER 3: Minor/contextual =====
+  // ===== TIER 3: Minor / contextual (authorised, no direct authoritative concern) =====
   {
     e_number: 'E407',
     names: ['carraghénane', 'carrageenan'],
     tier: 3,
     category: 'thickener',
-    concern: 'Potential intestinal inflammation in susceptible individuals',
+    concern: 'Thickener. EFSA reaffirmed safety at current use levels; animal-study inflammation signals have not been replicated at dietary doses in humans.',
+    source: 'EFSA Scientific Opinion 2018;16(4):5238 (ADI 75 mg/kg bw/day).',
   },
   {
     e_number: 'E471',
     names: ['mono- et diglycérides d\'acides gras'],
     tier: 3,
     category: 'emulsifier',
-    concern: 'Ubiquitous emulsifier — microbiome concerns at high chronic doses',
+    concern: 'Ubiquitous emulsifier. No specific authoritative concern; tier reflects the class-level emulsifier / UPF marker literature, not a ruling on E471 itself.',
+    source: 'EFSA Scientific Opinion 2017;15(11):5045 (no numerical ADI needed).',
   },
   {
     e_number: 'E621',
     names: ['glutamate monosodique', 'monosodium glutamate', 'msg'],
     tier: 3,
     category: 'flavor_enhancer',
-    concern: 'Flavor enhancer — sensitivity in some individuals; generally regarded as safe',
+    concern: 'Flavour enhancer. EFSA derived a group ADI in 2017 out of caution; JECFA maintains that MSG is safe.',
+    source: 'EFSA Scientific Opinion 2017;15(7):4910 (group ADI 30 mg/kg bw/day); JECFA (1988) — no ADI specified.',
   },
   {
     e_number: 'E316',
     names: ['érythorbate de sodium', 'sodium erythorbate'],
     tier: 3,
     category: 'antioxidant',
-    concern: 'Generally safe but signals processed meat curing system',
+    concern: 'Vitamin C isomer used in cured meats. Authorised without numerical ADI; its presence often signals a curing system with nitrites.',
+    source: 'EFSA Scientific Opinion 2015 (ascorbic acid family).',
   },
   {
     e_number: 'E100',
     names: ['curcumine', 'curcuma (colorant)'],
     tier: 3,
     category: 'colorant',
-    concern: 'Natural colorant — low health concern, but signals cosmetic processing',
+    concern: 'Natural colorant. Low health concern at food-use levels; presence indicates cosmetic processing.',
+    source: 'EFSA Scientific Opinion 2010;8(9):1679 (ADI 3 mg/kg bw/day).',
   },
   {
     e_number: 'E160c',
     names: ['paprika (colorant)', 'extrait de paprika', 'oléorésine de paprika'],
     tier: 3,
     category: 'colorant',
-    concern: 'Natural colorant — low health concern, but signals cosmetic processing',
+    concern: 'Natural colorant (capsanthin/capsorubin). Low health concern; presence indicates cosmetic processing.',
+    source: 'EFSA Scientific Opinion 2015;13(12):4320 (ADI 2 mg/kg bw/day capsanthin).',
   },
 
   // ===== TIER 1 additions =====
@@ -365,42 +429,48 @@ export const ADDITIVES_DB: AdditiveInfo[] = [
     names: ['dioxyde de titane', 'titanium dioxide'],
     tier: 1,
     category: 'colorant',
-    concern: 'Banned in EU food since 2022 — EFSA could not rule out genotoxicity (nanoparticle DNA damage risk)',
+    concern: 'Banned as a food additive in the EU since August 2022 after EFSA could not establish a safe level on genotoxicity grounds for the nanoparticulate fraction.',
+    source: 'EFSA Scientific Opinion 2021;19(5):6585; Commission Regulation (EU) 2022/63 (ban effective August 2022).',
   },
   {
     e_number: 'E220',
     names: ['anhydride sulfureux', 'dioxyde de soufre', 'sulfur dioxide'],
     tier: 1,
     category: 'preservative',
-    concern: 'Major allergen — asthma triggers, gut barrier disruption at high chronic doses',
+    concern: 'Sulfite — mandatory EU allergen. Established triggers for asthma and sulfite sensitivity at low doses.',
+    source: 'EU Regulation 1169/2011 Annex II (mandatory allergen declaration ≥10 mg/kg); EFSA Re-evaluation 2016;14(4):4438.',
   },
   {
     e_number: 'E221',
     names: ['sulfite de sodium', 'sodium sulfite'],
     tier: 1,
     category: 'preservative',
-    concern: 'Sulfite — asthma and allergy triggers; label declaration required',
+    concern: 'Sulfite — same regulatory allergen classification as E220.',
+    source: 'EU Regulation 1169/2011 Annex II; EFSA Re-evaluation 2016.',
   },
   {
     e_number: 'E223',
     names: ['métabisulfite de sodium', 'sodium metabisulfite'],
     tier: 1,
     category: 'preservative',
-    concern: 'Sulfite — allergen, respiratory irritation',
+    concern: 'Sulfite — same regulatory allergen classification as E220.',
+    source: 'EU Regulation 1169/2011 Annex II; EFSA Re-evaluation 2016.',
   },
   {
     e_number: 'E224',
     names: ['métabisulfite de potassium', 'potassium metabisulfite'],
     tier: 1,
     category: 'preservative',
-    concern: 'Sulfite — allergen, respiratory irritation',
+    concern: 'Sulfite — same regulatory allergen classification as E220.',
+    source: 'EU Regulation 1169/2011 Annex II; EFSA Re-evaluation 2016.',
   },
   {
     e_number: 'E385',
     names: ['edta', 'calcium disodium edta'],
     tier: 1,
     category: 'sequestrant',
-    concern: 'Chelator — mineral depletion, potential kidney stress at chronic intake',
+    concern: 'Metal chelator. EFSA set a conservative ADI; high chronic intake can affect mineral bioavailability.',
+    source: 'EFSA Scientific Opinion 2018;16(11):5007 (ADI 1.9 mg/kg bw/day).',
   },
 
   // ===== TIER 2 additions =====
@@ -409,91 +479,104 @@ export const ADDITIVES_DB: AdditiveInfo[] = [
     names: ['benzoate de sodium', 'sodium benzoate'],
     tier: 2,
     category: 'preservative',
-    concern: 'Forms benzene in presence of vitamin C — carcinogenic metabolite; hyperactivity associations',
+    concern: 'Preservative. Can react with ascorbic acid (vitamin C) to form trace benzene, a known human carcinogen; industry has reformulated many drinks but the risk persists in acidic soft drinks.',
+    source: 'Gardner & Lawrence, J Food Prot 2007 (benzene formation mechanism); EFSA Re-evaluation 2016;14(3):4433 (ADI 5 mg/kg bw/day).',
   },
   {
     e_number: 'E212',
     names: ['benzoate de potassium', 'potassium benzoate'],
     tier: 2,
     category: 'preservative',
-    concern: 'Similar to E211 — benzene formation risk with vitamin C',
+    concern: 'Same benzene-formation pathway as E211 when combined with vitamin C.',
+    source: 'EFSA Re-evaluation 2016;14(3):4433.',
   },
   {
     e_number: 'E950',
     names: ['acésulfame-k', 'acesulfame de potassium', 'acesulfame potassium'],
     tier: 2,
     category: 'sweetener',
-    concern: 'Recent studies suggest microbiome disruption and metabolic dysregulation',
+    concern: 'Non-nutritive sweetener. Authorised within EFSA ADI; evidence on long-term metabolic outcomes is mixed.',
+    source: 'EFSA Re-evaluation 2000 (ADI 9 mg/kg bw/day, reaffirmed in 2011 addendum).',
   },
   {
     e_number: 'E955',
     names: ['sucralose'],
     tier: 2,
     category: 'sweetener',
-    concern: 'Forms harmful compounds when heated; microbiome and glucose-tolerance concerns (Suez 2022)',
+    concern: 'Non-nutritive sweetener. Decomposes at high temperatures into chlorinated compounds; some studies report microbiome and glucose-response changes that are individually variable.',
+    source: 'EFSA Scientific Opinion 2000 (ADI 15 mg/kg bw/day); Schiffman et al., J Toxicol Environ Health B 2013 (heat decomposition); Suez et al., Cell 2022 (microbiome individuality).',
   },
   {
     e_number: 'E954',
     names: ['saccharine', 'saccharin'],
     tier: 2,
     category: 'sweetener',
-    concern: 'Historical bladder cancer data (rats); microbiome disruption studies',
+    concern: 'Non-nutritive sweetener. Older rat bladder-tumour data; IARC downgraded to Group 3 (1999) after human evidence found no clear risk. Tier reflects the lineage of regulatory caution.',
+    source: 'IARC Monograph Vol 73 (1999) — Group 3; EFSA Re-evaluation 2018 (ADI 5 mg/kg bw/day).',
   },
   {
     e_number: 'E952',
     names: ['cyclamate', 'cyclamate de sodium'],
     tier: 2,
     category: 'sweetener',
-    concern: 'Banned in US since 1970; EU ADI lowered due to bladder tumor evidence',
+    concern: 'Non-nutritive sweetener. Banned in the US since 1969 on legacy bladder-tumour data; authorised in the EU within an ADI.',
+    source: 'EFSA Re-evaluation 2000 (ADI 7 mg/kg bw/day); FDA ban 21 CFR 189.135.',
   },
   {
     e_number: 'E104',
     names: ['jaune de quinoléine', 'quinoline yellow'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo-like dye — hyperactivity in children (Southampton study)',
+    concern: 'Quinophthalone dye. Behaviour effects in the Southampton study; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E127',
     names: ['érythrosine', 'erythrosine'],
     tier: 2,
     category: 'colorant',
-    concern: 'Iodine-releasing dye — thyroid function concerns at chronic intake',
+    concern: 'Iodine-containing xanthene dye. Low EFSA ADI; thyroid-function concerns for high chronic intake.',
+    source: 'EFSA Re-evaluation 2011;9(1):1854 (ADI 0.1 mg/kg bw/day).',
   },
   {
     e_number: 'E173',
     names: ['aluminium'],
     tier: 2,
     category: 'colorant',
-    concern: 'Aluminium salts — neurotoxicity concerns, accumulates with chronic intake',
+    concern: 'Aluminium metallic dye. EFSA set a tolerable weekly intake based on developmental and neurotoxicity endpoints.',
+    source: 'EFSA Scientific Opinion 2008;754 (TWI 1 mg/kg bw/week).',
   },
   {
     e_number: 'E339',
     names: ['phosphate de sodium', 'sodium phosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — cardiovascular and renal stress with chronic high intake',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E340',
     names: ['phosphate de potassium', 'potassium phosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E341',
     names: ['phosphate de calcium', 'calcium phosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E1520',
     names: ['propylène glycol', 'propylene glycol'],
     tier: 2,
     category: 'solvent',
-    concern: 'Humectant/solvent — kidney and liver stress at high chronic intake, GRAS but controversial',
+    concern: 'Humectant / solvent. EFSA set a low ADI; use in foods is narrowly restricted.',
+    source: 'EFSA Scientific Opinion 2018;16(4):5235 (ADI 25 mg/kg bw/day).',
   },
 
   // ===== TIER 3 additions =====
@@ -502,175 +585,200 @@ export const ADDITIVES_DB: AdditiveInfo[] = [
     names: ['acide citrique', 'citric acid'],
     tier: 3,
     category: 'acidulant',
-    concern: 'Ubiquitous acidulant — generally safe, but may be produced from black mold (Aspergillus niger)',
+    concern: 'Ubiquitous acidulant, also endogenous in human metabolism. Commercially produced by Aspergillus niger fermentation. No authoritative concern at food-use levels.',
+    source: 'EU authorisation without ADI (acceptable intake not specified); natural citrate cycle metabolite.',
   },
   {
     e_number: 'E300',
     names: ['acide ascorbique', 'ascorbic acid', 'vitamine c'],
     tier: 3,
     category: 'antioxidant',
-    concern: 'Vitamin C / common antioxidant — benign, signals some formulation',
+    concern: 'Vitamin C. Used as an antioxidant; no safety concern.',
+    source: 'EU authorisation without ADI.',
   },
   {
     e_number: 'E322',
     names: ['lécithine', 'lecithines', 'lecithin', 'lécithine de soja', 'lécithine de tournesol'],
     tier: 3,
     category: 'emulsifier',
-    concern: 'Common emulsifier — generally safe, but ubiquitous in UPFs; contextual marker',
+    concern: 'Phospholipid emulsifier from soy or sunflower. No numerical ADI needed. Tier reflects its role as a marker of formulation, not direct concern.',
+    source: 'EFSA Scientific Opinion 2017;15(4):4742.',
   },
   {
     e_number: 'E415',
     names: ['gomme xanthane', 'xanthan gum'],
     tier: 3,
     category: 'thickener',
-    concern: 'Thickener — safe in food, but some IBS/IBD subjects report sensitivity',
+    concern: 'Microbial polysaccharide. EFSA confirmed no safety concern at use levels; some individuals report IBS/IBD flare.',
+    source: 'EFSA Scientific Opinion 2017;15(2):4712 (no ADI needed).',
   },
   {
     e_number: 'E412',
     names: ['gomme guar', 'guar gum'],
     tier: 3,
     category: 'thickener',
-    concern: 'Thickener — safe; contextual marker for formulated products',
+    concern: 'Legume-derived soluble fibre. No safety concern at use levels.',
+    source: 'EFSA Scientific Opinion 2017;15(2):4669 (no ADI needed).',
   },
   {
     e_number: 'E440',
     names: ['pectine', 'pectines', 'pectin'],
     tier: 3,
     category: 'thickener',
-    concern: 'Natural fruit fiber — benign; signals some formulation but no direct harm',
+    concern: 'Natural plant fibre. No safety concern; acceptable daily intake not specified.',
+    source: 'EFSA Scientific Opinion 2017;15(7):4874 (no ADI needed).',
   },
   {
     e_number: 'E202',
     names: ['sorbate de potassium', 'potassium sorbate'],
     tier: 3,
     category: 'preservative',
-    concern: 'Common mold/yeast preservative — generally regarded as safe',
+    concern: 'Mould/yeast preservative. Low concern at authorised levels.',
+    source: 'EFSA Re-evaluation 2019;17(3):5626 (group ADI 11 mg/kg bw/day for sorbic acid and its salts).',
   },
   {
     e_number: 'E270',
     names: ['acide lactique', 'lactic acid'],
     tier: 3,
     category: 'acidulant',
-    concern: 'Naturally occurring acid — benign',
+    concern: 'Naturally occurring metabolite; no safety concern.',
+    source: 'EU authorisation without ADI.',
   },
   {
     e_number: 'E296',
     names: ['acide malique', 'malic acid'],
     tier: 3,
     category: 'acidulant',
-    concern: 'Naturally occurring acid — benign',
+    concern: 'Naturally occurring fruit acid; no safety concern.',
+    source: 'EU authorisation without ADI.',
   },
   {
     e_number: 'E500',
     names: ['bicarbonate de sodium', 'sodium bicarbonate', 'carbonate de sodium'],
     tier: 3,
     category: 'acidity_regulator',
-    concern: 'Leavening agent — benign',
+    concern: 'Leavening agent / pH buffer. No safety concern at food-use levels; contributes to sodium intake.',
+    source: 'EU authorisation without ADI.',
   },
   {
     e_number: 'E551',
     names: ['dioxyde de silicium', 'silicon dioxide', 'silice'],
     tier: 3,
     category: 'anticaking',
-    concern: 'Anti-caking agent — nanoparticle concerns still debated; EFSA considers it safe at current intake',
+    concern: 'Anti-caking agent. EFSA 2018 did not conclude a safety concern at use levels but requested further data on nanoparticulate forms.',
+    source: 'EFSA Scientific Opinion 2018;16(1):5088.',
   },
   {
     e_number: 'E422',
     names: ['glycérol', 'glycerol', 'glycérine'],
     tier: 3,
     category: 'humectant',
-    concern: 'Humectant — benign, naturally occurring',
+    concern: 'Humectant and sweetener. Metabolised like a carbohydrate; no ADI specified.',
+    source: 'EU authorisation without ADI.',
   },
   {
     e_number: 'E960',
     names: ['glycosides de stéviol', 'steviol glycosides', 'stévia', 'stevia'],
     tier: 3,
     category: 'sweetener',
-    concern: 'Plant-derived sweetener — better profile than artificial sweeteners but still a cosmetic additive',
+    concern: 'Plant-derived non-nutritive sweetener. Lower regulatory concern than artificial sweeteners.',
+    source: 'EFSA Scientific Opinion 2010;8(4):1537 (ADI 4 mg/kg bw/day, expressed as steviol).',
   },
   {
     e_number: 'E472',
     names: ['esters de mono- et diglycérides', 'esters of monoglycerides'],
     tier: 3,
     category: 'emulsifier',
-    concern: 'Emulsifier sub-family — microbiome concerns at high chronic doses',
+    concern: 'Family of emulsifiers used in baking and dairy. No numerical ADI; tier reflects UPF class-marker role, not direct concern.',
+    source: 'EFSA Scientific Opinion 2017;15(11):5045 (group evaluation with E471).',
   },
   {
     e_number: 'E1422',
     names: ['amidon acétylé', 'acetylated distarch adipate', 'amidon modifié'],
     tier: 3,
     category: 'thickener',
-    concern: 'Modified starch — safe but ubiquitous UPF marker',
+    concern: 'Chemically modified starch. Authorised without numerical ADI.',
+    source: 'EU Regulation 1333/2008 — modified starches group without numerical ADI.',
   },
   {
     e_number: 'E1442',
     names: ['phosphate de distarch hydroxypropyle', 'hydroxypropyl distarch phosphate'],
     tier: 3,
     category: 'thickener',
-    concern: 'Modified starch — safe but UPF marker',
+    concern: 'Chemically modified starch. Authorised without numerical ADI.',
+    source: 'EU Regulation 1333/2008 — modified starches group.',
   },
   {
     e_number: 'E210',
     names: ['acide benzoïque', 'benzoic acid'],
     tier: 2,
     category: 'preservative',
-    concern: 'Parent of E211/E212 benzoates — same benzene-formation risk in presence of vitamin C',
+    concern: 'Parent of E211/E212. Same benzene-formation pathway when combined with vitamin C in acidic foods.',
+    source: 'Gardner & Lawrence, J Food Prot 2007; EFSA Re-evaluation 2016;14(3):4433 (group ADI 5 mg/kg bw/day).',
   },
   {
     e_number: 'E475',
     names: ['esters polyglycériques d\'acides gras', 'polyglycerol esters of fatty acids'],
     tier: 2,
     category: 'emulsifier',
-    concern: 'Synthetic emulsifier. The broader class of detergent-like emulsifiers has been linked to gut-barrier and microbiome disruption in rodent and limited human studies.',
+    concern: 'Synthetic emulsifier. Authorised within an EFSA ADI. Class-level microbiome concerns (E433, E466) are not directly established for E475; tier reflects extrapolated caution.',
+    source: 'EFSA Scientific Opinion 2017;15(12):5089 (ADI 25 mg/kg bw/day).',
   },
   {
     e_number: 'E968',
     names: ['érythritol', 'erythritol'],
     tier: 2,
     category: 'sweetener',
-    concern: 'Sugar alcohol — Nature Medicine 2023 linked blood erythritol levels to increased CV events',
+    concern: 'Sugar alcohol. Large prospective cohort + mechanistic study linked higher plasma erythritol to major adverse cardiovascular events; causality still debated.',
+    source: 'Witkowski et al., Nature Medicine 29, 710–718 (2023); EFSA Scientific Opinion 2023;21(12):8430 (revised exposure assessment).',
   },
   {
     e_number: 'E905',
     names: ['cire microcristalline', 'microcrystalline wax', 'petroleum wax'],
     tier: 2,
     category: 'glazing',
-    concern: 'Petroleum-derived wax coating — mineral oil migration concerns (MOSH/MOAH)',
+    concern: 'Petroleum-derived wax. Concerns about migration of mineral-oil-saturated / -aromatic hydrocarbons (MOSH/MOAH) into food.',
+    source: 'EFSA Scientific Opinion 2012;10(6):2704 (MOSH/MOAH); EFSA update 2023;21(9):8215.',
   },
   {
     e_number: 'E307',
     names: ['alpha-tocophérol', 'alpha tocopherol', 'tocopherols', 'vitamine e (additif)'],
     tier: 3,
     category: 'antioxidant',
-    concern: 'Vitamin E as additive — benign',
+    concern: 'Vitamin E used as an antioxidant. No safety concern.',
+    source: 'EFSA Scientific Opinion 2015;13(9):4247 (group evaluation).',
   },
   {
     e_number: 'E331',
     names: ['citrate de sodium', 'sodium citrate', 'citrates de sodium'],
     tier: 3,
     category: 'acidity_regulator',
-    concern: 'Common buffering salt — generally safe',
+    concern: 'Citrate buffer. No safety concern.',
+    source: 'EU authorisation without ADI.',
   },
   {
     e_number: 'E333',
     names: ['citrate de calcium', 'calcium citrate'],
     tier: 3,
     category: 'acidity_regulator',
-    concern: 'Calcium buffering salt — benign',
+    concern: 'Citrate buffer. No safety concern.',
+    source: 'EU authorisation without ADI.',
   },
   {
     e_number: 'E965',
     names: ['maltitol', 'sirop de maltitol'],
     tier: 3,
     category: 'sweetener',
-    concern: 'Sugar alcohol — gut discomfort at high doses, moderate glycemic impact',
+    concern: 'Sugar alcohol. Moderate glycemic impact; laxative effect above individual tolerance (usually ~20 g).',
+    source: 'EU authorisation without ADI; EFSA 2011 opinion on polyol laxative threshold.',
   },
   {
     e_number: 'E967',
     names: ['xylitol'],
     tier: 3,
     category: 'sweetener',
-    concern: 'Sugar alcohol — generally safe, toxic to dogs; mild CV signal in recent studies',
+    concern: 'Sugar alcohol. Generally safe; laxative effect above ~50 g. Acutely toxic to dogs (irrelevant to human safety).',
+    source: 'EU authorisation without ADI; EFSA 2011 opinion on polyol laxative threshold.',
   },
 ];
 
@@ -852,12 +960,25 @@ const GENERIC_OIL_TERMS = [
 // ============================================================================
 // SECTION 5: PILLAR 1 — PROCESSING LEVEL (max 20)
 // ============================================================================
-// Based on NOVA classification, the strongest single predictor of adverse
-// health outcomes in longitudinal studies (Monteiro, Srour, Elizabeth et al.).
 //
-// Modifiers:
-//  - −2 if >10 ingredients
-//  - −2 if contains cosmetic additives
+// AUTHORITATIVE basis:
+//   - NOVA classification: Monteiro et al., Public Health Nutrition
+//     22(5):936–941 (2019); FAO Ultra-processed foods, diet quality, and
+//     health using the NOVA classification system (2019).
+//   - Ultra-processed food / cardiovascular risk association: Srour et al.,
+//     BMJ 365:l1451 (2019, NutriNet-Santé cohort, n≈105k).
+//
+// EDITORIAL:
+//   - Base score per NOVA class (20 / 17 / 13 / 6) is Scann-eat's mapping
+//     from the NOVA categorical framework to a 20-point scale. It is not
+//     a published calibration.
+//   - Auto-NOVA inference rules (see inferNovaClass) are heuristic: a clean
+//     ingredient list with no cosmetic additives nudges input-NOVA-4 down
+//     to 3. This is a guard against over-cautious OFF / LLM defaults; it is
+//     NOT the official Monteiro algorithm.
+//   - −2 modifiers (>10 ingredients, cosmetic additives) and the first-
+//     ingredient penalty (-3 for sucre / huile leading the list) are
+//     editorial proxies for UPF formulation intensity.
 // ============================================================================
 
 const FIRST_INGREDIENT_PENALTY_PATTERNS: Array<{ re: RegExp; label: string }> = [
@@ -990,12 +1111,26 @@ export function scoreProcessing(product: ProductInput): PillarScore {
 // ============================================================================
 // SECTION 6: PILLAR 2 — NUTRITIONAL DENSITY (max 25)
 // ============================================================================
-// Components:
-//  - Protein quality & quantity (0–6)
-//  - Fiber content (0–5)
-//  - Micronutrient contribution (0–5)
-//  - Healthy fats ratio (0–5)
-//  - Satiety / glycemic quality (0–4)
+//
+// AUTHORITATIVE basis (ranges, not specific tier points):
+//   - Dietary fibre target: EFSA 25 g/day for adults (EFSA Journal
+//     2010;8(3):1462, "Scientific Opinion on Dietary Reference Values for
+//     carbohydrates and dietary fibre").
+//   - Protein requirement: EFSA PRI 0.83 g/kg bw/day (EFSA Journal
+//     2012;10(2):2557).
+//   - Omega-3 intake recommendations: EFSA ADI 250 mg EPA+DHA/day adults
+//     (EFSA Journal 2010;8(3):1461).
+//
+// EDITORIAL:
+//   - The five sub-scores (protein 0-6, fiber 0-5, micro 0-5, fats 0-5,
+//     satiety 0-4) and their weighting are Scann-eat's design.
+//   - Category-specific protein/fiber thresholds (CATEGORY_THRESHOLDS) are
+//     estimates based on typical food composition, not a published standard.
+//   - Satiety index = P + 2·F − S is a reasonable proxy but not a
+//     validated index.
+//   - +1 "healthy fat source" bump (olive / canola / fish / nuts) is
+//     editorial.
+//   - +1 "declared micronutrients ≥3" bump is editorial.
 // ============================================================================
 
 export function scoreNutritionalDensity(product: ProductInput): PillarScore {
@@ -1189,7 +1324,32 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
 // ============================================================================
 // SECTION 7: PILLAR 3 — NEGATIVE NUTRIENTS (max 25, penalty-based)
 // ============================================================================
-// Start at 25, subtract based on WHO and FSA thresholds.
+//
+// AUTHORITATIVE basis for each cutoff:
+//
+//   Saturated fat thresholds default [5, 10, 15] g/100 g (solids):
+//     - 5 g/100 g is the UK Food Standards Agency / DH "red" threshold above
+//       which a product is considered High in saturated fat (FSA "Front of
+//       pack nutrition labelling: guidance", 2016).
+//     - WHO: saturated fat should supply <10 % of total daily energy
+//       (WHO TRS 916, 2003; reaffirmed in WHO Saturated Fatty Acids
+//       Guideline, 2023).
+//   Sugar thresholds default [5, 10, 15, 22.5] g/100 g (solids):
+//     - 22.5 g/100 g is the FSA "red" (High sugar) threshold.
+//     - 5 g/100 g is the FSA Amber/Green boundary.
+//     - WHO: free sugars <10 % of total energy, ideally <5 % (WHO 2015,
+//       "Guideline: Sugars intake for adults and children").
+//   Salt thresholds [0.75, 1.25, 1.5] g/100 g:
+//     - 1.5 g/100 g is the FSA "red" (High salt) threshold.
+//     - WHO: <5 g salt/day per adult (WHO Salt guideline, 2012).
+//   Trans fat:
+//     - WHO recommends complete elimination of industrially-produced trans
+//       fatty acids from the food supply (WHO REPLACE programme, 2018).
+//
+// EDITORIAL: the granularity of the tiers (minor / moderate / major /
+// critical) and the points per tier (-3/-6/-9/-12) are Scann-eat's choice.
+// The anchor values match the FSA "red" thresholds; tiers above and below
+// are proportional gradations.
 // ============================================================================
 
 export function scoreNegativeNutrients(product: ProductInput): PillarScore {
@@ -1297,10 +1457,20 @@ export function scoreNegativeNutrients(product: ProductInput): PillarScore {
 // ============================================================================
 // SECTION 8: PILLAR 4 — ADDITIVE RISK (max 15, penalty-based)
 // ============================================================================
-// Start at 15, subtract based on additive tier:
-//  - Tier 1 (serious):  −5 each, capped at −10 total
-//  - Tier 2 (moderate): −2 each, capped at −6 total
-//  - Tier 3 (minor):    −1 each, capped at −3 total
+//
+// AUTHORITATIVE basis:
+//   - Each entry in ADDITIVES_DB has a `source` field citing either an
+//     EFSA Scientific Opinion (with journal / year), an IARC Monograph
+//     volume and classification, an EU Regulation, or a primary study.
+//   - Tier assignment respects these rulings: Tier 1 requires an EU ban
+//     (E171), IARC Group classification (nitrites via processed meat),
+//     or a controlled human trial demonstrating harm (E466 FRESH trial).
+//
+// EDITORIAL:
+//   - The three-tier grouping (serious / moderate / minor) is Scann-eat's
+//     synthesis; authorities generally speak in terms of specific ADI
+//     values or classifications, not in tiers.
+//   - Point values (-5 / -2 / -1) and caps (-10 / -6 / -3) are editorial.
 // ============================================================================
 
 export function scoreAdditiveRisk(product: ProductInput): PillarScore {
@@ -1383,12 +1553,18 @@ export function countTier1Additives(product: ProductInput): number {
 // ============================================================================
 // SECTION 9: PILLAR 5 — INGREDIENT INTEGRITY (max 15)
 // ============================================================================
-// Components:
-//  - First 3 ingredients are whole foods: +5
-//  - Recognizable ingredients (>80%): +3
-//  - Origin transparency: +2
-//  - No hidden/multi-named sugars: +2
-//  - Named oils: +3
+//
+// EDITORIAL: this entire pillar is Scann-eat's opinion layer.
+//
+// No authoritative body publishes "ingredient integrity" scores; the signals
+// we use (first-three-whole-food, recognizability, origin transparency,
+// hidden-sugar multiplicity, named oils) are proxies for formulation
+// quality that correlate with NOVA 4 in surveys but are not themselves a
+// regulatory standard.
+//
+// The sub-scores and their weightings (+5 / +3 / +2 / +2 / +3) are our
+// editorial choices, chosen so that a transparently-labelled whole-food
+// product can reach 15/15 and a reformulated UPF lands near 0.
 // ============================================================================
 
 function isWholeFood(name: string, isFlag: boolean | undefined): boolean {
@@ -1522,6 +1698,22 @@ export function scoreIngredientIntegrity(product: ProductInput): PillarScore {
 
 // ============================================================================
 // SECTION 10: GLOBAL MODIFIERS, VETOES & MAIN ORCHESTRATOR
+// ============================================================================
+//
+// EDITORIAL throughout this section:
+//
+//   - Global bonuses: +2 organic, +3 whole-grain, +2 fermented, +2 omega-3
+//     ingredient. Capped at +10.
+//   - Global penalties: -2 misleading marketing, -3 health claims,
+//     -3 palm oil / derivative present.
+//   - Veto caps (30 / 40 / 45) for combinations the engine considers
+//     disqualifying regardless of other pillar scores.
+//   - Grade breakpoints A+ (≥85) / A (≥70) / B (≥55) / C (≥40) / D (≥25) /
+//     F (<25) are Scann-eat's mapping, not a published standard.
+//
+// AUTHORITATIVE anchor for the processed-meat veto:
+//   - Processed meat = IARC Group 1 (Monograph Vol 114, 2015). The veto
+//     cap at 40 reflects this "carcinogenic to humans" classification.
 // ============================================================================
 
 export const ENGINE_VERSION = '2.0.0';

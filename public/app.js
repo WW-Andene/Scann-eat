@@ -574,7 +574,9 @@ function buildIngredientRow(ing) {
     li.classList.add('explainable');
     li.addEventListener('click', () => {
       explainTitle.textContent = `${ing.name}${e}`;
-      explainBody.textContent = info.concern;
+      const parts = [info.concern];
+      if (info.source) parts.push(`\n\nSource : ${info.source}`);
+      explainBody.textContent = parts.join('');
       explainDialog.showModal();
     });
   }
