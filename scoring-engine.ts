@@ -1494,6 +1494,19 @@ function computeGlobalBonuses(product: ProductInput): Deduction[] {
   if (product.fermented) {
     bonuses.push({ pillar: 'global_bonus', reason: 'Contains fermented / probiotic content', points: 2, severity: 'info' });
   }
+  // Omega-3 sources: flax / chia / walnut / fatty fish signal EPA/DHA/ALA.
+  const omega3 = product.ingredients.find((ing) => {
+    const n = ing.name.toLowerCase();
+    return /(graine de )?lin\b|\bchia\b|\bnoix\b|saumon|sardine|maquereau|hareng|anchois/.test(n);
+  });
+  if (omega3) {
+    bonuses.push({
+      pillar: 'global_bonus',
+      reason: `Omega-3 source: ${omega3.name}`,
+      points: 2,
+      severity: 'info',
+    });
+  }
   return bonuses;
 }
 
@@ -1511,6 +1524,19 @@ function computeGlobalPenalties(product: ProductInput): Deduction[] {
     penalties.push({
       pillar: 'global_penalty',
       reason: 'Health claims present — verify vs composition',
+      points: -3,
+      severity: 'moderate',
+    });
+  }
+  // Palm-oil / palm kernel detection (all variants).
+  const palm = product.ingredients.find((ing) => {
+    const n = ing.name.toLowerCase();
+    return /huile de palme|huile de palmiste|graisse de palme|st[eé]arine de palme|ol[eé]ine de palme|palm oil|palm kernel|coprah/.test(n);
+  });
+  if (palm) {
+    penalties.push({
+      pillar: 'global_penalty',
+      reason: `Palm oil or derivative: ${palm.name}`,
       points: -3,
       severity: 'moderate',
     });

@@ -50,6 +50,14 @@
             <option value="en">English</option>
           </select>
         </label>
+        <label>
+          <span data-i18n="theme">Thème</span>
+          <select id="settings-theme">
+            <option value="dark" data-i18n="themeDark">Sombre</option>
+            <option value="light" data-i18n="themeLight">Clair</option>
+            <option value="auto" data-i18n="themeAuto">Système</option>
+          </select>
+        </label>
         <fieldset class="prefs">
           <legend data-i18n="settingsPreferences">Préférences alimentaires</legend>
           <label class="pref-row"><input type="checkbox" id="pref-vegetarian" /> <span data-i18n="prefVegetarian">Végétarien</span></label>
@@ -69,6 +77,41 @@
       <form method="dialog">
         <h2 id="explain-title" data-i18n="whyThisFlag">Pourquoi ce drapeau ?</h2>
         <p id="explain-body">—</p>
+        <div class="dialog-actions">
+          <button type="submit" data-i18n="ok">OK</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="onboarding-dialog" class="onboarding-dialog">
+      <div class="ob-slide" data-slide="1">
+        <span class="ob-icon">📷</span>
+        <h2 data-i18n="onboarding1Title">Photographie une étiquette</h2>
+        <p data-i18n="onboarding1Body">Prends jusqu'à 4 photos…</p>
+      </div>
+      <div class="ob-slide" data-slide="2" hidden>
+        <span class="ob-icon">📦</span>
+        <h2 data-i18n="onboarding2Title">Scan code-barres instantané</h2>
+        <p data-i18n="onboarding2Body">Open Food Facts lookup…</p>
+      </div>
+      <div class="ob-slide" data-slide="3" hidden>
+        <span class="ob-icon">⚙</span>
+        <h2 data-i18n="onboarding3Title">Configurable, hors ligne, exportable</h2>
+        <p data-i18n="onboarding3Body">Groq key, language, preferences…</p>
+      </div>
+      <div class="ob-dots" aria-hidden="true">
+        <span class="ob-dot active"></span><span class="ob-dot"></span><span class="ob-dot"></span>
+      </div>
+      <div class="dialog-actions">
+        <button id="ob-skip" type="button" class="secondary" data-i18n="skip">Passer</button>
+        <button id="ob-next" type="button" data-i18n="next">Suivant</button>
+      </div>
+    </dialog>
+
+    <dialog id="pillar-dialog" class="settings-dialog">
+      <form method="dialog">
+        <h2 id="pillar-dialog-title" data-i18n="pillarDetails">Détail du pilier</h2>
+        <ul id="pillar-dialog-list" class="pillar-dialog-list"></ul>
         <div class="dialog-actions">
           <button type="submit" data-i18n="ok">OK</button>
         </div>
@@ -133,6 +176,18 @@
           <h2 data-i18n="recentScans">Scans récents</h2>
           <button id="clear-history" class="secondary compact" type="button" data-i18n="clearHistory">Effacer</button>
         </div>
+        <div class="recent-filter">
+          <input id="history-search" type="search" data-i18n-placeholder="searchHistory" placeholder="Rechercher…" />
+          <select id="history-grade">
+            <option value="" data-i18n="allGrades">Toutes notes</option>
+            <option value="A+">A+</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="F">F</option>
+          </select>
+        </div>
         <ul id="recent-list" class="recent-list"></ul>
       </section>
 
@@ -183,7 +238,10 @@
 
         <div class="result-actions">
           <button id="compare-next-btn" type="button" class="secondary" data-i18n="compareNext">Comparer au prochain scan</button>
+          <button id="share-btn" type="button" class="secondary" hidden data-i18n="share">Partager</button>
         </div>
+
+        <p class="additive-summary" id="additive-summary"></p>
 
         <div class="flags">
           <div class="flag-col">

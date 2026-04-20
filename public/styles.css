@@ -1,6 +1,9 @@
-:root {
+:root,
+[data-theme="dark"] {
   --bg: #0f1a14;
   --panel: #162220;
+  --panel-2: #1b2a25;
+  --border: #2a3d37;
   --accent: #9be3a6;
   --text: #e7efe9;
   --muted: #89968f;
@@ -12,6 +15,24 @@
   --grade-d: #ee8a4a;
   --grade-f: #ee4a4a;
   color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #f4f7f5;
+  --panel: #ffffff;
+  --panel-2: #eaf1ec;
+  --border: #d0dbd4;
+  --accent: #2f9d4f;
+  --text: #13241a;
+  --muted: #5b6b61;
+  --danger: #c5434b;
+  --grade-aplus: #2f9d4f;
+  --grade-a: #4fb663;
+  --grade-b: #a9c23c;
+  --grade-c: #c9a53b;
+  --grade-d: #cb6b35;
+  --grade-f: #b8363c;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -675,6 +696,117 @@ main {
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* ==========================================================================
+   History filter
+   ========================================================================== */
+.recent-filter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.recent-filter input,
+.recent-filter select {
+  padding: 0.5rem 0.7rem;
+  background: #0f1a14;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+[data-theme="light"] .recent-filter input,
+[data-theme="light"] .recent-filter select { background: #fff; }
+.recent-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 1rem 0;
+  list-style: none;
+}
+
+/* ==========================================================================
+   Onboarding
+   ========================================================================== */
+.onboarding-dialog {
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 18px;
+  padding: 1.5rem 1.5rem 1rem;
+  max-width: 420px;
+  width: calc(100vw - 2rem);
+  text-align: center;
+}
+.onboarding-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.ob-slide { padding: 1rem 0; }
+.ob-icon { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+.onboarding-dialog h2 { margin: 0.2rem 0; font-size: 1.1rem; }
+.onboarding-dialog p { color: var(--muted); font-size: 0.92rem; line-height: 1.4; }
+.ob-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0.5rem 0 1rem;
+}
+.ob-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.ob-dot.active { background: var(--accent); }
+
+/* ==========================================================================
+   Pillar dialog
+   ========================================================================== */
+.pillar-dialog-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.pillar-d-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.3rem 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.pillar-d-row:last-child { border-bottom: none; }
+.pd-points {
+  font-weight: 700;
+  text-align: right;
+  color: var(--muted);
+}
+.pillar-d-row.bonus .pd-points { color: var(--grade-a); }
+.pillar-d-row.deduction .pd-points { color: var(--grade-d); }
+.pd-evidence {
+  grid-column: 2;
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.2rem;
+}
+
+/* ==========================================================================
+   Additive summary
+   ========================================================================== */
+.additive-summary {
+  margin: 0.6rem 0 0;
+  padding: 0.45rem 0.75rem;
+  background: var(--panel-2);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.additive-summary[data-worst="1"] { border-left: 3px solid var(--grade-f); color: var(--danger); }
+.additive-summary[data-worst="2"] { border-left: 3px solid var(--grade-d); }
+.additive-summary[data-worst="3"] { border-left: 3px solid var(--grade-c); }
+
+.pillar-clickable { cursor: pointer; }
+.pillar-clickable:hover .pillar-bar { outline: 1px solid var(--accent); }
 
 .capture #scan-btn {
   margin-top: 0.75rem;

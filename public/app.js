@@ -47,12 +47,28 @@ const updateInstallBtn = $('update-install-btn');
 const updateDismissBtn = $('update-dismiss-btn');
 const updateVersionEl = $('update-version');
 
+const pillarDialog = $('pillar-dialog');
+const pillarDialogTitle = $('pillar-dialog-title');
+const pillarDialogList = $('pillar-dialog-list');
+
+const obDialog = $('onboarding-dialog');
+const obSkip = $('ob-skip');
+const obNext = $('ob-next');
+
+const historySearchInput = $('history-search');
+const historyGradeSelect = $('history-grade');
+const additiveSummaryEl = $('additive-summary');
+const shareBtn = $('share-btn');
+const themeSelect = $('settings-theme');
+
 const LS_KEY = 'scanneat.groq_key';
 const LS_MODE = 'scanneat.mode';
 const LS_COMPARE_ARMED = 'scanneat.compare_armed';
 const LS_COMPARE_PREV = 'scanneat.compare_prev';
 const LS_DISMISSED_VERSION = 'scanneat.dismissed_update';
 const LS_PREFS = 'scanneat.prefs';
+const LS_ONBOARDED = 'scanneat.onboarded';
+const LS_THEME = 'scanneat.theme';
 
 const MAX_IMAGES = 4;
 const MAX_DIM = 1600;
@@ -438,6 +454,8 @@ function renderAudit(data) {
 
   renderAllergens(data.product);
   renderSparseHint(data);
+  renderAdditiveSummary(data.product);
+  show(shareBtn);
 
   const extras = applyPreferenceFlags(data);
   renderList('red-flags', [...audit.red_flags, ...extras.red], t('noFlag'));
@@ -454,12 +472,13 @@ function renderAudit(data) {
   for (const [label, pillar] of pillars) {
     const pct = Math.round((pillar.score / pillar.max) * 100);
     const li = document.createElement('li');
-    li.className = 'pillar-row';
+    li.className = 'pillar-row pillar-clickable';
     li.innerHTML = `
       <span class="pillar-label">${label}</span>
       <span class="pillar-bar"><span class="pillar-bar-fill" style="width:${pct}%"></span></span>
       <strong class="pillar-value">${pillar.score} / ${pillar.max}</strong>
     `;
+    li.addEventListener('click', () => openPillarDialog(label, pillar));
     pillarList.appendChild(li);
   }
   if (warnings?.length) {
@@ -599,6 +618,101 @@ function openExplanation(reason) {
   explainDialog.showModal();
 }
 
+function openPillarDialog(label, pillar) {
+  pillarDialogTitle.textContent = `${label} — ${pillar.score} / ${pillar.max}`;
+  pillarDialogList.innerHTML = '';
+  const all = [
+    ...pillar.bonuses.map((b) => ({ ...b, kind: 'bonus' })),
+    ...pillar.deductions.map((d) => ({ ...d, kind: 'deduction' })),
+  ];
+  if (all.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = '—';
+    pillarDialogList.appendChild(li);
+  }
+  for (const item of all) {
+    const li = document.createElement('li');
+    li.className = `pillar-d-row ${item.kind}`;
+    li.innerHTML = `
+      <span class="pd-points">${item.points > 0 ? '+' : ''}${item.points}</span>
+      <span class="pd-reason">${item.reason}</span>
+      ${item.evidence ? `<small class="pd-evidence">${item.evidence}</small>` : ''}
+    `;
+    pillarDialogList.appendChild(li);
+  }
+  pillarDialog.showModal();
+}
+
+function renderAdditiveSummary(product) {
+  const tiers = { 1: 0, 2: 0, 3: 0 };
+  for (const ing of product.ingredients) {
+    if (!ing.e_number) continue;
+    const info = window.__additivesIndex?.[ing.e_number];
+    if (info) tiers[info.tier]++;
+  }
+  const total = tiers[1] + tiers[2] + tiers[3];
+  if (total === 0) {
+    additiveSummaryEl.textContent = t('additiveNone');
+    additiveSummaryEl.dataset.worst = 'none';
+  } else {
+    additiveSummaryEl.textContent = t('additiveSummary', {
+      total, t1: tiers[1], t2: tiers[2], t3: tiers[3],
+    });
+    additiveSummaryEl.dataset.worst = tiers[1] > 0 ? '1' : tiers[2] > 0 ? '2' : '3';
+  }
+}
+
+async function shareCurrentScan() {
+  if (!lastData || !navigator.share) return;
+  try {
+    await navigator.share({
+      title: 'Scann-eat',
+      text: t('shareText', {
+        name: lastData.audit.product_name || 'Produit',
+        score: lastData.audit.score,
+        grade: lastData.audit.grade,
+      }),
+    });
+  } catch { /* user cancelled */ }
+}
+
+// ---------- Theme ----------
+
+function applyTheme() {
+  const pref = localStorage.getItem(LS_THEME) || 'dark';
+  const mediaLight = pref === 'auto' && window.matchMedia?.('(prefers-color-scheme: light)').matches;
+  const actual = pref === 'light' || mediaLight ? 'light' : 'dark';
+  document.documentElement.dataset.theme = actual;
+}
+applyTheme();
+window.matchMedia?.('(prefers-color-scheme: light)')?.addEventListener('change', applyTheme);
+
+// ---------- Onboarding ----------
+
+function maybeShowOnboarding() {
+  if (localStorage.getItem(LS_ONBOARDED) === '1') return;
+  let current = 1;
+  const slides = obDialog.querySelectorAll('.ob-slide');
+  const dots = obDialog.querySelectorAll('.ob-dot');
+  const render = () => {
+    slides.forEach((s) => {
+      s.hidden = Number(s.dataset.slide) !== current;
+    });
+    dots.forEach((d, i) => d.classList.toggle('active', i + 1 === current));
+    obNext.textContent = current === 3 ? t('start') : t('next');
+  };
+  obNext.onclick = () => {
+    if (current < 3) { current++; render(); }
+    else { localStorage.setItem(LS_ONBOARDED, '1'); obDialog.close(); }
+  };
+  obSkip.onclick = () => {
+    localStorage.setItem(LS_ONBOARDED, '1');
+    obDialog.close();
+  };
+  render();
+  obDialog.showModal();
+}
+
 // ============================================================================
 // Comparison
 // ============================================================================
@@ -735,10 +849,25 @@ function timeAgo(ts) {
 }
 
 async function renderRecentScans() {
-  const items = await listScans().catch(() => []);
+  const all = await listScans().catch(() => []);
   recentListEl.innerHTML = '';
-  if (items.length === 0) { hide(recentScansEl); return; }
-  for (const item of items.slice(0, 8)) {
+  if (all.length === 0) { hide(recentScansEl); return; }
+  const query = (historySearchInput?.value || '').trim().toLowerCase();
+  const gradeFilter = historyGradeSelect?.value || '';
+  const items = all.filter((i) => {
+    if (query && !(i.name || '').toLowerCase().includes(query)) return false;
+    if (gradeFilter && i.grade !== gradeFilter) return false;
+    return true;
+  });
+  if (items.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'recent-empty';
+    li.textContent = '—';
+    recentListEl.appendChild(li);
+    show(recentScansEl);
+    return;
+  }
+  for (const item of items.slice(0, 12)) {
     const li = document.createElement('li');
     li.className = 'recent-item';
     li.dataset.id = item.id;
@@ -801,6 +930,9 @@ clearHistoryBtn?.addEventListener('click', async () => {
   await clearScans();
   renderRecentScans();
 });
+
+historySearchInput?.addEventListener('input', () => renderRecentScans());
+historyGradeSelect?.addEventListener('change', () => renderRecentScans());
 
 // ============================================================================
 // Auto-update (APK only)
@@ -871,6 +1003,7 @@ settingsBtn?.addEventListener('click', () => {
   keyInput.value = getKey();
   modeSelect.value = localStorage.getItem(LS_MODE) || (isCapacitor ? 'direct' : 'auto');
   langSelect.value = currentLang;
+  themeSelect.value = localStorage.getItem(LS_THEME) || 'dark';
   const prefs = getPrefs();
   $('pref-vegetarian').checked = !!prefs.vegetarian;
   $('pref-lowsugar').checked = !!prefs.lowSugar;
@@ -884,7 +1017,9 @@ settingsSave?.addEventListener('click', (e) => {
   const key = keyInput.value.trim();
   if (key) localStorage.setItem(LS_KEY, key); else localStorage.removeItem(LS_KEY);
   localStorage.setItem(LS_MODE, modeSelect.value);
+  localStorage.setItem(LS_THEME, themeSelect.value);
   setLang(langSelect.value);
+  applyTheme();
   setPrefs({
     vegetarian: $('pref-vegetarian').checked,
     lowSugar: $('pref-lowsugar').checked,
@@ -905,6 +1040,9 @@ updateDismissBtn?.addEventListener('click', () => {
 
 pendingRetry?.addEventListener('click', () => { retryPending(); });
 
+if (!navigator.share) hide(shareBtn);
+shareBtn?.addEventListener('click', shareCurrentScan);
+
 if ('serviceWorker' in navigator && !isCapacitor) {
   navigator.serviceWorker.register('/service-worker.js').catch(() => {});
 }
@@ -922,3 +1060,4 @@ document.addEventListener('visibilitychange', () => {
 renderQueue();
 updatePendingBanner();
 renderRecentScans();
+maybeShowOnboarding();

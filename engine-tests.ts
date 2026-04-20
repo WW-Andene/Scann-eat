@@ -333,6 +333,49 @@ describe('engine fixtures — real French supermarket products', () => {
     );
   });
 
+  it('Palm oil adds a global penalty regardless of E-number', () => {
+    const audit = scoreProduct({
+      name: 'Biscuit avec huile de palme',
+      category: 'snack_sweet',
+      nova_class: 4,
+      ingredients: [
+        { name: 'farine de blé', category: 'food' },
+        { name: 'sucre', category: 'food' },
+        { name: 'huile de palme', category: 'food' },
+        { name: 'sel', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 480, fat_g: 20, saturated_fat_g: 10, carbs_g: 65,
+        sugars_g: 25, added_sugars_g: 22, fiber_g: 2, protein_g: 6, salt_g: 0.5,
+      },
+      named_oils: true,
+    });
+    const palm = audit.global_penalties.find((p) => /Palm oil/i.test(p.reason));
+    assert.ok(palm, 'palm oil should add a global penalty');
+    assert.equal(palm.points, -3);
+  });
+
+  it('Omega-3 source adds a global bonus (saumon / noix / lin)', () => {
+    const audit = scoreProduct({
+      name: 'Mélange graines et noix',
+      category: 'snack_salty',
+      nova_class: 1,
+      ingredients: [
+        { name: 'noix', is_whole_food: true, category: 'food' },
+        { name: 'graines de lin', is_whole_food: true, category: 'food' },
+        { name: 'sel', category: 'food' },
+      ],
+      nutrition: {
+        energy_kcal: 540, fat_g: 40, saturated_fat_g: 5, carbs_g: 15,
+        sugars_g: 3, added_sugars_g: 0, fiber_g: 8, protein_g: 15, salt_g: 0.3,
+      },
+      named_oils: true,
+    });
+    const o3 = audit.global_bonuses.find((b) => /Omega-3/.test(b.reason));
+    assert.ok(o3, 'omega-3 source should add a bonus');
+    assert.equal(o3.points, 2);
+  });
+
   it('Healthy fat source (olive oil) lifts borderline fatScore', () => {
     // Vinaigrette-style product with 30g fat, 5g sat. Ratio 0.17 already
     // gives full fatScore=5, so a pure test needs a borderline ratio.
