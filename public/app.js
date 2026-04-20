@@ -8,7 +8,7 @@ import {
   bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets, proteinPRI_g,
 } from '/profile.js';
 import { computePersonalScore, personalGrade } from '/personal-score.js';
-import { logEntry, listByDate, deleteEntry, clearDate, dailyTotals, buildEntry, todayISO } from '/consumption.js';
+import { logEntry, logQuickAdd, listByDate, deleteEntry, clearDate, dailyTotals, buildEntry, todayISO, groupByMeal, MEALS } from '/consumption.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -1307,6 +1307,7 @@ document.addEventListener('visibilitychange', () => {
 
 const portionPanel = $('portion-panel');
 const portionInput = $('portion-grams');
+const portionMealSelect = $('portion-meal');
 const portionPresetPack = $('portion-preset-pack');
 const logBtn = $('log-btn');
 const logKcalPreview = $('log-kcal-preview');
@@ -1316,7 +1317,12 @@ const dashboardRows = $('dashboard-rows');
 const dashboardEntries = $('dashboard-entries');
 const dashboardLog = $('dashboard-log');
 const dashboardDateEl = $('dashboard-date');
+const dashboardRemainingEl = $('dashboard-remaining');
 const clearTodayBtn = $('clear-today');
+const quickAddBtn = $('quick-add-btn');
+const quickAddDialog = $('quick-add-dialog');
+const qaCancel = $('qa-cancel');
+const qaSave = $('qa-save');
 
 function setupPortionPanel(product) {
   const weight = product?.weight_g;
@@ -1355,13 +1361,51 @@ logBtn?.addEventListener('click', async () => {
   if (!lastData) return;
   const grams = Math.max(0, Number(portionInput.value) || 0);
   if (grams <= 0) return;
+  const meal = portionMealSelect?.value || 'snack';
   try {
-    const entry = await logEntry(lastData.product, grams);
+    const entry = await logEntry(lastData.product, grams, meal);
     logToast.textContent = t('logged', { grams, kcal: Math.round(entry.kcal) });
     show(logToast);
     await renderDashboard();
   } catch (err) {
     console.error('[log]', err);
+  }
+});
+
+// ----- Quick Add -----
+quickAddBtn?.addEventListener('click', () => {
+  // reset fields
+  for (const id of ['qa-name', 'qa-kcal', 'qa-carbs', 'qa-protein', 'qa-fat', 'qa-satfat', 'qa-sugars', 'qa-salt']) {
+    const el = $(id);
+    if (el) el.value = '';
+  }
+  // pick a default meal by time-of-day
+  const hour = new Date().getHours();
+  const defaultMeal = hour < 10 ? 'breakfast' : hour < 14 ? 'lunch' : hour < 18 ? 'snack' : 'dinner';
+  if ($('qa-meal')) $('qa-meal').value = defaultMeal;
+  quickAddDialog.showModal();
+});
+qaCancel?.addEventListener('click', (e) => { e.preventDefault(); quickAddDialog.close(); });
+qaSave?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const kcal = Number($('qa-kcal')?.value) || 0;
+  if (kcal <= 0) { $('qa-kcal')?.focus(); return; }
+  try {
+    await logQuickAdd({
+      name: $('qa-name')?.value || '',
+      meal: $('qa-meal')?.value || 'snack',
+      kcal,
+      carbs_g: Number($('qa-carbs')?.value) || 0,
+      protein_g: Number($('qa-protein')?.value) || 0,
+      fat_g: Number($('qa-fat')?.value) || 0,
+      sat_fat_g: Number($('qa-satfat')?.value) || 0,
+      sugars_g: Number($('qa-sugars')?.value) || 0,
+      salt_g: Number($('qa-salt')?.value) || 0,
+    });
+    quickAddDialog.close();
+    await renderDashboard();
+  } catch (err) {
+    console.error('[quickAdd]', err);
   }
 });
 
@@ -1379,6 +1423,7 @@ function pctClass(pct) {
 async function renderDashboard() {
   const profile = getProfile();
   const targets = dailyTargets(profile);
+  const entries = await listByDate().catch(() => []);
   const totals = await dailyTotals().catch(() => null);
   if (!totals) { hide(dashboardEl); return; }
 
@@ -1388,12 +1433,27 @@ async function renderDashboard() {
     weekday: 'short', day: 'numeric', month: 'short',
   });
 
+  // "Remaining" line (MFP-style Remaining = Goal − Food).
+  if (targets) {
+    const rem = [];
+    const remKcal = targets.kcal - totals.kcal;
+    rem.push(`${Math.round(remKcal)} kcal`);
+    if (targets.free_sugars_g_max > 0) rem.push(`${round1(targets.free_sugars_g_max - totals.sugars_g)} g ${t('dashSugars').toLowerCase()}`);
+    if (targets.salt_g_max > 0) rem.push(`${round3(targets.salt_g_max - totals.salt_g)} g ${t('dashSalt').toLowerCase()}`);
+    dashboardRemainingEl.textContent = `${t('dashRemaining')} : ${rem.join(' · ')}`;
+    show(dashboardRemainingEl);
+  } else {
+    hide(dashboardRemainingEl);
+  }
+
   const rows = [
-    { key: 'dashKcal', value: totals.kcal, target: targets?.kcal, unit: 'kcal' },
-    { key: 'dashSatFat', value: totals.sat_fat_g, target: targets?.sat_fat_g_max, unit: 'g' },
-    { key: 'dashSugars', value: totals.sugars_g, target: targets?.free_sugars_g_max, unit: 'g' },
-    { key: 'dashSalt', value: totals.salt_g, target: targets?.salt_g_max, unit: 'g' },
-    { key: 'dashProtein', value: totals.protein_g, target: null, unit: 'g' },
+    { key: 'dashKcal',    value: totals.kcal,       target: targets?.kcal,              unit: 'kcal' },
+    { key: 'dashCarbs',   value: totals.carbs_g,    target: targets?.carbs_g_target,    unit: 'g' },
+    { key: 'dashProtein', value: totals.protein_g,  target: targets?.protein_g_target,  unit: 'g' },
+    { key: 'dashFat',     value: totals.fat_g,      target: targets?.fat_g_target,      unit: 'g' },
+    { key: 'dashSatFat',  value: totals.sat_fat_g,  target: targets?.sat_fat_g_max,     unit: 'g' },
+    { key: 'dashSugars',  value: totals.sugars_g,   target: targets?.free_sugars_g_max, unit: 'g' },
+    { key: 'dashSalt',    value: totals.salt_g,     target: targets?.salt_g_max,        unit: 'g' },
   ];
 
   dashboardRows.innerHTML = '';
@@ -1429,43 +1489,83 @@ async function renderDashboard() {
     dashboardRows.appendChild(li);
   }
 
-  // Entries list
-  const entries = await listByDate().catch(() => []);
+  // Per-meal entry list
   dashboardEntries.innerHTML = '';
   if (entries.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'dash-entry-empty';
-    li.textContent = t('dashEmpty');
-    dashboardEntries.appendChild(li);
+    const p = document.createElement('p');
+    p.className = 'dash-entry-empty';
+    p.textContent = t('dashEmpty');
+    dashboardEntries.appendChild(p);
     hide(dashboardLog);
   } else {
-    for (const e of entries.slice().sort((a, b) => b.timestamp - a.timestamp)) {
-      const li = document.createElement('li');
-      li.className = 'dash-entry';
-      const name = document.createElement('span');
-      name.className = 'dash-entry-name';
-      name.textContent = `${e.product_name} · ${e.grams} g`;
-      const kcal = document.createElement('strong');
-      kcal.textContent = `${Math.round(e.kcal)} kcal`;
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'dash-entry-del';
-      del.setAttribute('aria-label', t('deleteEntry'));
-      del.textContent = '×';
-      del.addEventListener('click', async () => {
-        await deleteEntry(e.id);
-        await renderDashboard();
-      });
-      li.appendChild(name);
-      li.appendChild(kcal);
-      li.appendChild(del);
-      dashboardEntries.appendChild(li);
+    const grouped = groupByMeal(entries);
+    const mealLabels = {
+      breakfast: t('mealBreakfast'),
+      lunch: t('mealLunch'),
+      dinner: t('mealDinner'),
+      snack: t('mealSnack'),
+    };
+    for (const m of MEALS) {
+      const bucket = grouped[m];
+      if (bucket.entries.length === 0) continue;
+      const section = document.createElement('section');
+      section.className = 'meal-section';
+      const header = document.createElement('div');
+      header.className = 'meal-header';
+      const name = document.createElement('strong');
+      name.textContent = mealLabels[m];
+      const kcal = document.createElement('span');
+      kcal.className = 'meal-kcal';
+      kcal.textContent = `${Math.round(bucket.totals.kcal)} kcal`;
+      header.appendChild(name);
+      header.appendChild(kcal);
+      section.appendChild(header);
+      const ul = document.createElement('ul');
+      ul.className = 'meal-entries';
+      for (const e of bucket.entries.slice().sort((a, b) => b.timestamp - a.timestamp)) {
+        const li = document.createElement('li');
+        li.className = 'dash-entry';
+        const nm = document.createElement('span');
+        nm.className = 'dash-entry-name';
+        nm.textContent = e.quickAdd
+          ? `${e.product_name} · ${t('quickAdd')}`
+          : `${e.product_name} · ${e.grams} g`;
+        const k = document.createElement('strong');
+        k.textContent = `${Math.round(e.kcal)} kcal`;
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'dash-entry-del';
+        del.setAttribute('aria-label', t('deleteEntry'));
+        del.textContent = '×';
+        del.addEventListener('click', async () => {
+          await deleteEntry(e.id);
+          await renderDashboard();
+        });
+        li.appendChild(nm);
+        li.appendChild(k);
+        li.appendChild(del);
+        ul.appendChild(li);
+      }
+      section.appendChild(ul);
+      dashboardEntries.appendChild(section);
+    }
+    // Diary Complete chip: something logged in each of the 3 main meals.
+    const main3 = ['breakfast', 'lunch', 'dinner']
+      .every((k) => grouped[k].entries.length > 0);
+    if (main3) {
+      const chip = document.createElement('p');
+      chip.className = 'diary-complete';
+      chip.textContent = t('diaryComplete');
+      dashboardEntries.appendChild(chip);
     }
     show(dashboardLog);
   }
 
   show(dashboardEl);
 }
+
+function round1(x) { return Math.round(x * 10) / 10; }
+function round3(x) { return Math.round(x * 1000) / 1000; }
 
 renderQueue();
 updatePendingBanner();

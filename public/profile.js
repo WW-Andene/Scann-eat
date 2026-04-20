@@ -138,16 +138,23 @@ export function proteinPRI_g(p) {
 }
 
 /**
- * Daily targets derived from TDEE + WHO sat-fat / free-sugar / salt guidelines.
- * Sat fat: <10 %E → grams = 0.10 * kcal / 9 (9 kcal per g fat).
- * Sugars: <10 %E free sugars → grams = 0.10 * kcal / 4.
- * Salt: <5 g/day regardless of kcal (WHO 2012).
+ * Daily targets derived from TDEE + WHO/EFSA macronutrient distribution
+ * ranges. Fat/carb targets use midpoints of the EFSA Acceptable Macro-
+ * nutrient Distribution Ranges (AMDR, EFSA Journal 2010;8(3):1461) because
+ * no single "target" is authoritative — 45-65 %E carbs / 20-35 %E fat.
+ *
+ * Sat fat: <10 %E → grams = 0.10 × kcal / 9 (WHO SFA Guideline 2023).
+ * Free sugars: <10 %E ideal <5 %E (WHO Sugars Guideline 2015).
+ * Salt: <5 g/day flat (WHO Salt Guideline 2012).
+ * Protein: EFSA PRI 0.83 g/kg/d (1.0 g/kg/d ≥65y).
  */
 export function dailyTargets(p) {
   const tdee = tdeeKcal(p);
   if (tdee == null) return null;
   return {
     kcal: tdee,
+    carbs_g_target: Math.round((0.50 * tdee) / 4),         // AMDR midpoint 45-65 %E
+    fat_g_target: Math.round((0.30 * tdee) / 9),           // AMDR midpoint 20-35 %E
     sat_fat_g_max: Math.round((0.10 * tdee) / 9),
     free_sugars_g_max: Math.round((0.10 * tdee) / 4),
     free_sugars_g_ideal: Math.round((0.05 * tdee) / 4),

@@ -270,14 +270,59 @@
       <section id="daily-dashboard" class="daily-dashboard" hidden>
         <div class="dashboard-header">
           <h2><span data-i18n="todayTitle">Aujourd'hui</span> · <span id="dashboard-date"></span></h2>
-          <button id="clear-today" class="secondary compact" type="button" data-i18n="clearToday">Effacer</button>
+          <div class="dashboard-actions">
+            <button id="quick-add-btn" class="compact chip-btn accent" type="button" data-i18n="quickAdd">Quick Add</button>
+            <button id="clear-today" class="secondary compact" type="button" data-i18n="clearToday">Effacer</button>
+          </div>
         </div>
+        <p id="dashboard-remaining" class="dashboard-remaining" hidden></p>
         <ul id="dashboard-rows" class="dashboard-rows"></ul>
         <details class="dashboard-log" id="dashboard-log" hidden>
           <summary data-i18n="todayEntries">Aliments loggés</summary>
-          <ul id="dashboard-entries"></ul>
+          <div id="dashboard-entries" class="dashboard-entries"></div>
         </details>
       </section>
+
+      <dialog id="quick-add-dialog" class="settings-dialog">
+        <form method="dialog">
+          <h2 data-i18n="quickAddTitle">Quick Add</h2>
+          <p class="hint" data-i18n="quickAddHint">Logger des calories sans scanner un produit (repas au restaurant, plat maison…).</p>
+          <label>
+            <span data-i18n="qaName">Nom (optionnel)</span>
+            <input id="qa-name" type="text" autocomplete="off" />
+          </label>
+          <label>
+            <span data-i18n="qaMeal">Repas</span>
+            <select id="qa-meal">
+              <option value="breakfast" data-i18n="mealBreakfast">Petit-déjeuner</option>
+              <option value="lunch" data-i18n="mealLunch">Déjeuner</option>
+              <option value="dinner" data-i18n="mealDinner">Dîner</option>
+              <option value="snack" selected data-i18n="mealSnack">Collation</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="qaKcal">Calories</span>
+            <input id="qa-kcal" type="number" min="0" step="1" inputmode="numeric" />
+          </label>
+          <div class="qa-macros">
+            <label><span data-i18n="qaCarbs">Glucides (g)</span><input id="qa-carbs" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+            <label><span data-i18n="qaProtein">Protéines (g)</span><input id="qa-protein" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+            <label><span data-i18n="qaFat">Lipides (g)</span><input id="qa-fat" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+          </div>
+          <details class="qa-more">
+            <summary data-i18n="qaAdvanced">Détails avancés</summary>
+            <div class="qa-macros">
+              <label><span data-i18n="qaSatFat">AGS (g)</span><input id="qa-satfat" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+              <label><span data-i18n="qaSugars">Sucres (g)</span><input id="qa-sugars" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+              <label><span data-i18n="qaSalt">Sel (g)</span><input id="qa-salt" type="number" min="0" step="0.01" inputmode="decimal" /></label>
+            </div>
+          </details>
+          <div class="dialog-actions">
+            <button id="qa-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
+            <button id="qa-save" type="submit" data-i18n="logPortion">Logger</button>
+          </div>
+        </form>
+      </dialog>
 
       <section id="recent-scans" class="recent-scans" hidden>
         <div class="recent-header">
@@ -369,13 +414,24 @@
         </div>
 
         <div class="portion-panel" id="portion-panel">
-          <label class="portion-input">
-            <span data-i18n="portionLabel">Portion consommée</span>
-            <span class="portion-row">
-              <input id="portion-grams" type="number" min="1" max="2000" step="1" inputmode="decimal" value="100" />
-              <span>g</span>
-            </span>
-          </label>
+          <div class="portion-row-flex">
+            <label class="portion-input">
+              <span data-i18n="portionLabel">Portion consommée</span>
+              <span class="portion-row">
+                <input id="portion-grams" type="number" min="1" max="2000" step="1" inputmode="decimal" value="100" />
+                <span>g</span>
+              </span>
+            </label>
+            <label class="portion-input">
+              <span data-i18n="mealLabel">Repas</span>
+              <select id="portion-meal">
+                <option value="breakfast" data-i18n="mealBreakfast">Petit-déjeuner</option>
+                <option value="lunch" data-i18n="mealLunch">Déjeuner</option>
+                <option value="dinner" data-i18n="mealDinner">Dîner</option>
+                <option value="snack" selected data-i18n="mealSnack">Collation</option>
+              </select>
+            </label>
+          </div>
           <div class="portion-presets">
             <button type="button" class="chip-btn" data-portion="50">50 g</button>
             <button type="button" class="chip-btn" data-portion="100">100 g</button>
