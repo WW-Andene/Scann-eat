@@ -114,6 +114,20 @@ const STRINGS = {
     ingAdditives: 'Additifs',
     exportHistory: 'Exporter l\'historique',
     novaInferred: 'NOVA recalculé',
+    about: 'À propos',
+    disclaimerTitle: 'Information, pas conseil médical',
+    disclaimerBody: `Scann-eat agrège des données d'Open Food Facts, une lecture OCR par Llama 4 Scout et un moteur de scoring basé sur la littérature (OMS, EFSA, IARC, études NOVA).
+
+Limites à connaître :
+• Les pondérations (20/25/25/15/15) et les seuils sont éditoriaux, pas une norme médicale.
+• La détection d'allergènes est heuristique : pour une allergie sévère, lis toujours l'étiquette réelle — les mentions "peut contenir" ne sont pas captées.
+• Les données Open Food Facts sont collaboratives : un produit reformulé peut ne pas être à jour.
+• L'OCR Llama 4 peut mal lire une photo floue ; la puce "confiance" tente de le signaler.
+• Les classifications IARC citées concernent les produits d'arrivée (p. ex. charcuterie Groupe 1), pas forcément l'additif isolé.
+
+Cette app est une aide à la décision, pas un avis nutritionniste ou médical.`,
+    onboarding4Title: 'Information, pas conseil médical',
+    onboarding4Body: 'Les notes agrègent des données publiques (Open Food Facts) et un OCR par modèle vision. Limites des allergènes, fraîcheur des données, pondérations éditoriales — lis "À propos" dans les réglages.',
   },
   en: {
     tagline: 'Photograph a label → score out of 100',
@@ -224,6 +238,20 @@ const STRINGS = {
     ingAdditives: 'Additives',
     exportHistory: 'Export history',
     novaInferred: 'NOVA recalculated',
+    about: 'About',
+    disclaimerTitle: 'Guidance, not medical advice',
+    disclaimerBody: `Scann-eat combines Open Food Facts data, OCR by Llama 4 Scout, and a scoring engine based on published literature (WHO, EFSA, IARC, NOVA studies).
+
+Known limitations:
+• The pillar weights (20/25/25/15/15) and thresholds are editorial — not a medical standard.
+• Allergen detection is heuristic: for severe allergies, always read the actual label. "May contain" notices aren't captured.
+• Open Food Facts data is crowd-sourced: reformulated products may not be up-to-date.
+• Llama 4 OCR can misread blurry photos; the confidence chip tries to flag this.
+• Cited IARC classifications apply to the finished food (e.g. processed meat = Group 1), not necessarily the isolated additive.
+
+This app is decision support, not nutrition or medical advice.`,
+    onboarding4Title: 'Guidance, not medical advice',
+    onboarding4Body: 'Scores aggregate public data (Open Food Facts) and vision-model OCR. Read "About" in settings for limitations — especially the allergen caveat.',
   },
 };
 

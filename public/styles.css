@@ -852,6 +852,20 @@ main {
 .pillar-clickable { cursor: pointer; }
 .pillar-clickable:hover .pillar-bar { outline: 1px solid var(--accent); }
 
+.disclaimer-body {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--panel-2);
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0.4rem 0 0.2rem;
+}
+
 .capture #scan-btn {
   margin-top: 0.75rem;
   width: 100%;

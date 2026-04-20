@@ -67,6 +67,7 @@
           <label class="pref-row"><input type="checkbox" id="pref-organic" /> <span data-i18n="prefOrganic">Bio uniquement</span></label>
         </fieldset>
         <div class="dialog-actions">
+          <button id="about-btn" type="button" class="secondary" data-i18n="about">À propos</button>
           <button id="settings-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
           <button id="settings-save" type="submit" data-i18n="save">Enregistrer</button>
         </div>
@@ -99,13 +100,28 @@
         <h2 data-i18n="onboarding3Title">Configurable, hors ligne, exportable</h2>
         <p data-i18n="onboarding3Body">Groq key, language, preferences…</p>
       </div>
+      <div class="ob-slide" data-slide="4" hidden>
+        <span class="ob-icon">ⓘ</span>
+        <h2 data-i18n="onboarding4Title">Information, pas conseil médical</h2>
+        <p data-i18n="onboarding4Body">—</p>
+      </div>
       <div class="ob-dots" aria-hidden="true">
-        <span class="ob-dot active"></span><span class="ob-dot"></span><span class="ob-dot"></span>
+        <span class="ob-dot active"></span><span class="ob-dot"></span><span class="ob-dot"></span><span class="ob-dot"></span>
       </div>
       <div class="dialog-actions">
         <button id="ob-skip" type="button" class="secondary" data-i18n="skip">Passer</button>
         <button id="ob-next" type="button" data-i18n="next">Suivant</button>
       </div>
+    </dialog>
+
+    <dialog id="about-dialog" class="settings-dialog">
+      <form method="dialog">
+        <h2 id="about-title" data-i18n="disclaimerTitle">Information, pas conseil médical</h2>
+        <pre class="disclaimer-body" id="about-body" data-i18n="disclaimerBody">—</pre>
+        <div class="dialog-actions">
+          <button type="submit" data-i18n="ok">OK</button>
+        </div>
+      </form>
     </dialog>
 
     <dialog id="pillar-dialog" class="settings-dialog">
