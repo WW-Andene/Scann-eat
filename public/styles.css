@@ -373,64 +373,106 @@ button:focus-visible {
   border: none;
 }
 
+/* ========== DIALOGS =======================================================
+   Settings · Profile · Pillar detail · Explain · About · QuickAdd · Weight
+   · Templates · Camera · Onboarding.
+   All use the same settings-dialog class for consistency.
+   ========================================================================== */
 .settings-dialog {
   border: none;
-  border-radius: 16px;
-  padding: 1.25rem;
+  border-radius: var(--r-xl);
+  padding: var(--sp-6);
   background: var(--panel);
   color: var(--text);
-  max-width: 420px;
+  max-width: 480px;
   width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  font-size: inherit;
+  line-height: 1.5;
 }
 .settings-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(10, 10, 10, 0.65);
 }
-.settings-dialog h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+.settings-dialog h2 {
+  margin: 0 0 var(--sp-4);
+  font-size: 1.3em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.settings-dialog p {
+  margin: 0 0 var(--sp-4);
+  color: var(--muted);
+  line-height: 1.45;
+}
 .settings-dialog label {
   display: block;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
+  margin-bottom: var(--sp-4);
+  font-size: 0.95em;
+  color: var(--text);
+  font-weight: 500;
+}
+.settings-dialog label > span {
+  display: block;
+  margin-bottom: var(--sp-2);
   color: var(--muted);
+  font-weight: 600;
+  font-size: 0.92em;
 }
 .settings-dialog input,
-.settings-dialog select {
+.settings-dialog select,
+.settings-dialog textarea {
   display: block;
   width: 100%;
-  margin-top: 0.35rem;
-  padding: 0.55rem 0.7rem;
-  background: #0f1a14;
+  padding: 14px 16px;
+  background: var(--panel-2);
   color: var(--text);
-  border: 1px solid #2a3d37;
-  border-radius: 10px;
-  font-size: 0.95rem;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-md);
+  font-size: 1em;
+  font-family: inherit;
+  font-weight: 500;
+  min-height: 52px;
   box-sizing: border-box;
+  transition: border-color 120ms ease;
 }
+[data-theme="light"] .settings-dialog input,
+[data-theme="light"] .settings-dialog select,
+[data-theme="light"] .settings-dialog textarea { background: #fff; }
+.settings-dialog input:focus-visible,
+.settings-dialog select:focus-visible,
+.settings-dialog textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 107, 69, 0.25);
+}
+.settings-dialog textarea {
+  min-height: 80px;
+  resize: vertical;
+  line-height: 1.45;
+}
+.settings-dialog button {
+  font-size: 1em;
+  padding: 14px 20px;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  flex-wrap: wrap;
 }
-.secondary {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid #2a3d37;
-}
-header h1 {
-  margin: 0;
-  font-size: 1.75rem;
-  letter-spacing: -0.02em;
-}
-.tagline {
-  color: var(--muted);
-  margin: 0.25rem 0 0;
-  font-size: 0.95rem;
+.dialog-actions button { min-width: 110px; }
+@media (max-width: 420px) {
+  .dialog-actions { flex-direction: column-reverse; }
+  .dialog-actions button { width: 100%; }
 }
 
 main {
-  max-width: 640px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0 var(--sp-4) var(--sp-6);
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -572,61 +614,65 @@ main {
 }
 .compact { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
 
+/* ========== COMPARISON CARD ==============================================
+   Side-by-side "previous" vs "current" scan.
+   ========================================================================== */
 .comparison {
   background: var(--panel);
-  border-radius: 16px;
-  padding: 1rem 1.1rem;
+  color: var(--text);
+  border-radius: var(--r-xl);
+  padding: var(--sp-5);
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: var(--sp-4);
 }
 .compare-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--sp-3);
 }
 .compare-header h3 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.95em;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  font-weight: 700;
 }
 .compare-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.6rem;
+  gap: var(--sp-3);
 }
 .compare-card {
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto auto;
-  gap: 0.15rem 0.6rem;
+  gap: var(--sp-1) var(--sp-3);
   align-items: center;
-  background: #0f1a14;
-  border: 1px solid #2a3d37;
-  border-radius: 12px;
-  padding: 0.6rem 0.75rem;
+  background: var(--panel-2);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
 }
 .compare-label {
   grid-column: 1 / -1;
-  font-size: 0.7rem;
+  font-size: 0.78em;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  font-weight: 700;
 }
 .compare-grade {
   grid-row: 2 / span 2;
-  font-size: 1.6rem;
+  font-size: 1.9em;
   font-weight: 700;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid; place-items: center;
+  border-radius: var(--r-pill);
   background: var(--muted);
-  color: #0f1a14;
+  color: #1B1B1F;
   line-height: 1;
 }
 .compare-grade[data-grade="A+"] { background: var(--grade-aplus); }
@@ -636,130 +682,69 @@ main {
 .compare-grade[data-grade="D"]  { background: var(--grade-d); }
 .compare-grade[data-grade="F"]  { background: var(--grade-f); }
 .compare-name {
-  font-size: 0.9rem;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--text);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .compare-score {
-  font-size: 0.85rem;
+  font-size: 0.92em;
   color: var(--muted);
 }
 .compare-delta {
   margin: 0;
-  font-size: 0.85rem;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--panel-2);
+  border-radius: var(--r-sm);
+  font-size: 0.95em;
   color: var(--muted);
+  line-height: 1.5;
 }
-.compare-delta strong { color: var(--text); }
+.compare-delta strong { color: var(--text); font-weight: 700; }
 
-.update-banner {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0.8rem;
-  background: #1b2a25;
-  border-bottom: 1px solid var(--accent);
-  font-size: 0.85rem;
-}
-.update-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.update-install {
-  text-decoration: none;
-  background: var(--accent);
-  color: #0f1a14;
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-.update-dismiss {
-  background: transparent;
-  color: var(--muted);
-  border: none;
-  font-size: 1.1rem;
-  padding: 0;
-  width: 1.6rem;
-  height: 1.6rem;
-  cursor: pointer;
-}
-
-.pending-banner {
-  position: sticky;
-  top: 0;
-  z-index: 9;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 0.8rem;
-  background: #2a1f10;
-  border-bottom: 1px solid #f0c74a;
-  font-size: 0.85rem;
-}
-.pending-text { flex: 1; color: var(--grade-c); }
-.pending-retry {
-  background: var(--grade-c); color: #0f1a14;
-  padding: 0.3rem 0.8rem; border-radius: 999px;
-  font-size: 0.8rem; font-weight: 600; border: none; cursor: pointer;
-}
-
-.capture-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.capture-actions > .capture-btn { flex: 1 1 10rem; }
-.capture-btn-secondary {
-  background: #182a23;
-  border-style: solid;
-  padding: 1.3rem 1rem;
-}
-
-.meta-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.3rem; }
-.chip {
-  display: inline-block;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  background: #1b2a25;
-  color: var(--text);
-  border: 1px solid #2a3d37;
-}
-.chip[data-level="high"]   { border-color: var(--grade-a); color: var(--grade-a); }
-.chip[data-level="medium"] { border-color: var(--grade-c); color: var(--grade-c); }
-.chip[data-level="low"]    { border-color: var(--danger); color: var(--danger); }
-
-.flag-col li.explainable {
-  cursor: pointer;
-  text-decoration: underline dotted var(--muted);
-  text-underline-offset: 3px;
-}
-.flag-col li.explainable:hover { color: var(--accent); }
+/* Legacy `.update-banner` below was redundant; the earlier Step-2 version
+   is now the canonical one — this block kept to consume the replaced
+   closing brace from the edit. */
+/* Legacy duplicate banner/capture blocks removed — Step-2 versions win. */
+.capture-actions > .capture-btn { flex: 1; }
+/* Legacy duplicates removed — Step-2/3 versions of .capture-btn-secondary,
+   .meta-chips, .chip, .flag-col li.explainable are canonical. */
 
 .prefs {
-  border: 1px solid #2a3d37;
-  border-radius: 12px;
-  padding: 0.5rem 0.85rem 0.3rem;
-  margin: 0.6rem 0;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  margin: var(--sp-3) 0;
 }
-.prefs legend { color: var(--muted); font-size: 0.8rem; padding: 0 0.3rem; }
+.prefs legend {
+  color: var(--muted);
+  font-size: 0.85em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 var(--sp-2);
+}
 .pref-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0.35rem 0;
-  font-size: 0.9rem;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  font-size: 1em;
   color: var(--text);
+  cursor: pointer;
+  min-height: 40px;
 }
-.pref-row input[type=checkbox] { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); margin: 0; }
+.pref-row input[type=checkbox] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+  margin: 0;
+  min-height: auto;
+  flex-shrink: 0;
+}
 
 #nutrition-list {
   list-style: none;
@@ -788,6 +773,9 @@ main {
 #nutrition-list li:last-child span,
 #nutrition-list li:last-child strong { border-bottom: none; }
 
+/* ========== CAMERA DIALOG (live barcode scanner) =========================
+   Full-screen dark overlay with centered reticle.
+   ========================================================================== */
 .camera-dialog {
   border: none;
   background: transparent;
@@ -795,14 +783,14 @@ main {
   max-width: 100vw;
   max-height: 100vh;
 }
-.camera-dialog::backdrop { background: rgba(0, 0, 0, 0.92); }
+.camera-dialog::backdrop { background: rgba(10, 10, 10, 0.94); }
 .camera-frame {
   position: relative;
   width: 92vw;
-  max-width: 480px;
+  max-width: 520px;
   aspect-ratio: 3 / 4;
   background: #000;
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   overflow: hidden;
 }
 .camera-frame video {
@@ -811,103 +799,131 @@ main {
 .camera-reticle {
   position: absolute;
   top: 50%; left: 50%;
-  width: 70%; height: 30%;
+  width: 72%; height: 30%;
   transform: translate(-50%, -50%);
   border: 3px solid var(--accent);
-  border-radius: 12px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+  border-radius: var(--r-md);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
 }
 .camera-status {
   position: absolute;
-  bottom: 4.5rem;
+  bottom: 5rem;
   left: 0; right: 0;
   text-align: center;
   color: #fff;
-  font-size: 0.85rem;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  font-size: 1em;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  padding: 0 var(--sp-4);
 }
 .camera-close {
   position: absolute;
-  bottom: 1rem;
+  bottom: var(--sp-4);
   left: 50%;
   transform: translateX(-50%);
-  padding: 0.6rem 1.4rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  border: 1px solid var(--accent);
-  font-size: 0.9rem;
-  cursor: pointer;
+  padding: 14px 28px;
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  color: var(--text);
+  border: none;
+  font-size: 1em;
+  font-weight: 600;
+  min-height: 52px;
 }
+.camera-close:hover { background: var(--panel-2); }
 
-/* ==========================================================================
-   Recent scans
+/* ========== RECENT SCANS ==================================================
    ========================================================================== */
 .recent-scans {
   background: var(--panel);
-  border-radius: 16px;
-  padding: 0.9rem 1rem 1rem;
+  color: var(--text);
+  border-radius: var(--r-xl);
+  padding: var(--sp-5);
 }
 .recent-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 0.5rem;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
 }
 .recent-header h2 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.95em;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  font-weight: 700;
 }
+.recent-filter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+.recent-filter input,
+.recent-filter select {
+  padding: 12px 14px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-md);
+  font-size: 1em;
+  font-family: inherit;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+[data-theme="light"] .recent-filter input,
+[data-theme="light"] .recent-filter select { background: #fff; }
 .recent-list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--sp-3);
 }
 .recent-item {
   display: grid;
-  grid-template-columns: 48px 1fr auto;
+  grid-template-columns: 56px 1fr 40px;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0.5rem;
-  background: #0f1a14;
-  border: 1px solid #1f2e28;
-  border-radius: 12px;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--panel-2);
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
   cursor: pointer;
-  transition: border-color 0.15s ease;
+  transition: border-color 140ms ease, transform 100ms ease;
 }
 .recent-item:hover { border-color: var(--accent); }
+.recent-item:active { transform: scale(0.99); }
 .recent-thumb {
-  width: 48px; height: 48px;
-  border-radius: 10px;
+  width: 56px; height: 56px;
+  border-radius: var(--r-sm);
   overflow: hidden;
-  background: #000;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem;
+  background: var(--panel-3);
+  display: grid; place-items: center;
+  font-size: 1.4em;
 }
 .recent-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .recent-meta {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 0.15rem 0.6rem;
+  gap: 2px var(--sp-3);
   min-width: 0;
 }
 .recent-grade {
   grid-row: 1 / span 2;
   font-weight: 700;
-  width: 1.7rem;
-  height: 1.7rem;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 8px;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid; place-items: center;
+  border-radius: var(--r-pill);
   background: var(--muted);
-  color: #0f1a14;
-  font-size: 0.9rem;
+  color: #1B1B1F;
+  font-size: 1em;
 }
 .recent-grade[data-grade="A+"] { background: var(--grade-aplus); }
 .recent-grade[data-grade="A"]  { background: var(--grade-a); }
@@ -916,7 +932,9 @@ main {
 .recent-grade[data-grade="D"]  { background: var(--grade-d); }
 .recent-grade[data-grade="F"]  { background: var(--grade-f); }
 .recent-name {
-  font-size: 0.95rem;
+  font-size: 1em;
+  font-weight: 500;
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -925,17 +943,22 @@ main {
 .recent-when {
   grid-column: 2;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.85em;
 }
 .recent-del {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 1.2rem;
-  padding: 0 0.3rem;
-  cursor: pointer;
+  font-size: 1.3em;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  min-height: auto;
+  border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
 }
-.recent-del:hover { color: var(--danger); }
+.recent-del:hover { background: var(--panel-3); color: var(--danger); }
 
 /* ==========================================================================
    Allergen chips
@@ -1173,30 +1196,50 @@ main {
   border: none;
   background: var(--panel);
   color: var(--text);
-  border-radius: 18px;
-  padding: 1.5rem 1.5rem 1rem;
-  max-width: 420px;
+  border-radius: var(--r-xl);
+  padding: var(--sp-7) var(--sp-6) var(--sp-5);
+  max-width: 480px;
   width: calc(100vw - 2rem);
   text-align: center;
 }
-.onboarding-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
-.ob-slide { padding: 1rem 0; }
-.ob-icon { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
-.onboarding-dialog h2 { margin: 0.2rem 0; font-size: 1.1rem; }
-.onboarding-dialog p { color: var(--muted); font-size: 0.92rem; line-height: 1.4; }
+.onboarding-dialog::backdrop { background: rgba(10, 10, 10, 0.65); }
+.ob-slide {
+  padding: var(--sp-5) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+}
+.ob-icon {
+  font-size: 3.5em;
+  line-height: 1;
+}
+.onboarding-dialog h2 {
+  margin: 0;
+  font-size: 1.4em;
+  font-weight: 700;
+}
+.onboarding-dialog p {
+  color: var(--muted);
+  font-size: 1em;
+  line-height: 1.5;
+  max-width: 34ch;
+  margin: 0;
+}
 .ob-dots {
   display: flex;
   justify-content: center;
-  gap: 0.35rem;
-  margin: 0.5rem 0 1rem;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 var(--sp-4);
 }
 .ob-dot {
   display: inline-block;
-  width: 7px; height: 7px;
+  width: 10px; height: 10px;
   border-radius: 50%;
-  background: var(--border);
+  background: var(--border-strong);
+  transition: background 180ms ease;
 }
-.ob-dot.active { background: var(--accent); }
+.ob-dot.active { background: var(--accent); width: 28px; border-radius: var(--r-pill); }
 
 /* ==========================================================================
    Pillar dialog
@@ -1210,11 +1253,12 @@ main {
 }
 .pillar-d-row {
   display: grid;
-  grid-template-columns: 3rem 1fr;
-  gap: 0.3rem 0.75rem;
-  padding: 0.5rem 0;
+  grid-template-columns: 3.5rem 1fr;
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3) var(--sp-2);
   border-bottom: 1px solid var(--border);
-  font-size: 0.88rem;
+  font-size: 0.96em;
+  line-height: 1.4;
 }
 .pillar-d-row:last-child { border-bottom: none; }
 .pd-points {
@@ -1222,14 +1266,16 @@ main {
   text-align: right;
   color: var(--muted);
 }
-.pillar-d-row.bonus .pd-points { color: var(--grade-a); }
+.pillar-d-row.bonus .pd-points     { color: var(--success); }
 .pillar-d-row.deduction .pd-points { color: var(--grade-d); }
+.pd-reason { color: var(--text); }
 .pd-evidence {
   grid-column: 2;
   display: block;
   color: var(--muted);
-  font-size: 0.78rem;
-  margin-top: 0.2rem;
+  font-size: 0.88em;
+  margin-top: var(--sp-1);
+  line-height: 1.4;
 }
 
 /* ========== ADDITIVE SUMMARY ==============================================
@@ -1250,15 +1296,15 @@ main {
 .disclaimer-body {
   white-space: pre-wrap;
   font-family: inherit;
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-size: 0.96em;
+  line-height: 1.55;
   color: var(--text);
   background: var(--panel-2);
-  padding: 0.85rem 1rem;
-  border-radius: 10px;
-  max-height: 50vh;
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-md);
+  max-height: 55vh;
   overflow-y: auto;
-  margin: 0.4rem 0 0.2rem;
+  margin: var(--sp-3) 0 var(--sp-2);
 }
 
 /* ==========================================================================
@@ -1267,26 +1313,39 @@ main {
 .profile-btn {
   right: 3.6rem;  /* sit next to the settings gear */
 }
+/* ========== PROFILE DIALOG GRID ===========================================
+   ========================================================================== */
 .profile-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem 0.75rem;
-  margin-top: 0.5rem;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
 }
 .profile-grid label.full,
 .profile-grid .full { grid-column: 1 / -1; }
-.profile-grid label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; color: var(--muted); }
+.profile-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  font-size: 0.92em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 0;
+}
 .profile-grid input,
 .profile-grid select,
 .profile-grid textarea {
-  padding: 0.5rem 0.65rem;
-  background: #0f1a14;
+  padding: 12px 14px;
+  background: var(--panel-2);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 0.92rem;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-md);
+  font-size: 1em;
+  font-weight: 500;
+  min-height: 48px;
   width: 100%;
   font-family: inherit;
+  box-sizing: border-box;
 }
 [data-theme="light"] .profile-grid input,
 [data-theme="light"] .profile-grid select,
@@ -1295,130 +1354,98 @@ main {
 .custom-diet-wrap {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.55rem;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
   background: var(--panel-2);
-  border-radius: 10px;
+  border-radius: var(--r-md);
 }
 
 .profile-derived {
-  margin-top: 0.7rem;
-  padding: 0.7rem 0.85rem;
+  margin-top: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
   background: var(--panel-2);
-  border-radius: 10px;
-  font-size: 0.82rem;
+  border-radius: var(--r-md);
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+.profile-derived > strong {
+  display: block;
+  margin-bottom: var(--sp-2);
+  color: var(--text);
+  font-weight: 700;
 }
 .profile-derived ul {
   list-style: none;
   padding: 0;
-  margin: 0.4rem 0 0.5rem;
+  margin: var(--sp-3) 0 var(--sp-3);
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.2rem 0.75rem;
+  gap: var(--sp-2) var(--sp-4);
 }
 .profile-derived li { display: contents; }
 .profile-derived li span { color: var(--muted); }
-.profile-derived li strong { text-align: right; }
+.profile-derived li strong { text-align: right; color: var(--text); font-weight: 700; }
+.profile-derived .hint { font-size: 0.82em; }
 
-/* ==========================================================================
-   Dual score card
-   ========================================================================== */
-.score-card.dual {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.5rem;
-  padding: 0.8rem;
-}
-.score-card.dual:has(#personal-slot:not([hidden])) {
-  grid-template-columns: 1fr 1fr;
-}
-.score-slot {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  background: var(--panel-2);
-  padding: 0.7rem 0.8rem;
-  border-radius: 12px;
-  min-width: 0;
-}
-.score-kind {
-  font-size: 0.68rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.score-row {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-.score-slot .grade {
-  grid-row: auto;
-  font-size: 2rem;
-  width: 2.6rem;
-  height: 2.6rem;
-}
-.score-slot .score strong { font-size: 1.4rem; }
-.score-slot .verdict { font-size: 0.78rem; min-height: 1em; }
-.personal-delta {
-  font-weight: 700;
-  margin-left: 0.25rem;
-}
-.personal-delta[data-sign="pos"] { color: var(--grade-a); }
-.personal-delta[data-sign="neg"] { color: var(--grade-d); }
-
-@media (max-width: 520px) {
-  .score-card.dual:has(#personal-slot:not([hidden])) {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ==========================================================================
-   Personal adjustments list
+/* ========== PERSONAL ADJUSTMENTS ==========================================
+   Collapsible list shown below the result card when a profile is active.
    ========================================================================== */
 .personal-adjustments {
   background: var(--panel);
-  border-radius: 12px;
-  padding: 0.6rem 1rem;
+  color: var(--text);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4) var(--sp-5);
 }
 .personal-adjustments > summary {
   cursor: pointer;
-  font-size: 0.88rem;
+  font-size: 1em;
+  color: var(--text);
+  font-weight: 600;
+  list-style: none;
+}
+.personal-adjustments > summary::-webkit-details-marker { display: none; }
+.personal-adjustments > summary::before {
+  content: "▸  ";
   color: var(--muted);
 }
+.personal-adjustments[open] > summary::before { content: "▾  "; }
 .personal-adjustments ul {
   list-style: none;
   padding: 0;
-  margin: 0.5rem 0 0;
+  margin: var(--sp-3) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
 }
 .pa-row {
   display: grid;
-  grid-template-columns: 3rem 1fr;
-  gap: 0.3rem 0.75rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
+  grid-template-columns: 3.5rem 1fr;
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel-2);
+  border-radius: var(--r-sm);
+  font-size: 0.96em;
+  line-height: 1.45;
+  margin: 0;
 }
-.pa-row:last-child { border-bottom: none; }
 .pa-points {
   font-weight: 700;
   text-align: right;
+  color: var(--text);
 }
-.pa-row.positive .pa-points { color: var(--grade-a); }
+.pa-row.positive .pa-points { color: var(--success); }
 .pa-row.negative .pa-points { color: var(--grade-d); }
 .pa-row.veto-row {
-  background: rgba(255, 122, 122, 0.10);
-  border-left: 3px solid var(--danger);
-  padding-left: 0.5rem;
+  background: rgba(229, 75, 94, 0.12);
+  border-left: 4px solid var(--danger);
 }
 .pa-row.veto-row .pa-points { color: var(--danger); font-weight: 900; }
 .pa-row.veto {
   grid-template-columns: 1fr;
-  background: rgba(255, 122, 122, 0.08);
-  border-left: 3px solid var(--danger);
-  padding-left: 0.6rem;
+  background: rgba(229, 75, 94, 0.10);
+  border-left: 4px solid var(--danger);
   color: var(--danger);
-  font-size: 0.82rem;
+  font-size: 0.92em;
 }
 
 /* ========== DAILY DASHBOARD ===============================================
@@ -1688,46 +1715,83 @@ main {
   margin: 0.4rem 0;
 }
 
-/* Macro split custom wrap */
+/* ========== MACRO SPLIT CUSTOM WRAP (Profile dialog) =====================
+   ========================================================================== */
 .macro-custom-wrap {
   background: var(--panel-2);
-  padding: 0.55rem 0.7rem;
-  border-radius: 10px;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
 }
 .macro-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.45rem;
-  margin-bottom: 0.35rem;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
 }
-#macro-custom-sum { font-size: 0.78rem; margin: 0; }
-#macro-custom-sum[data-state="ok"] { color: var(--grade-a); }
+#macro-custom-sum { font-size: 0.88em; margin: 0; font-weight: 600; }
+#macro-custom-sum[data-state="ok"]  { color: var(--success); }
 #macro-custom-sum[data-state="off"] { color: var(--grade-d); }
 
-.weight-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-.w-history { list-style: none; padding: 0; margin: 0.3rem 0 0; max-height: 40vh; overflow-y: auto; }
-.weight-history summary { cursor: pointer; font-size: 0.82rem; color: var(--muted); margin: 0.4rem 0; }
+/* ========== WEIGHT DIALOG ================================================
+   ========================================================================== */
+.weight-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.w-history {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-3) 0 0;
+  max-height: 40vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.weight-history summary {
+  cursor: pointer;
+  font-size: 1em;
+  color: var(--text);
+  font-weight: 600;
+  padding: var(--sp-2) 0;
+  list-style: none;
+}
+.weight-history summary::-webkit-details-marker { display: none; }
+.weight-history summary::before {
+  content: "▸  ";
+  color: var(--muted);
+}
+.weight-history[open] summary::before { content: "▾  "; }
 
-/* Meal templates */
+/* ========== MEAL TEMPLATES DIALOG ========================================
+   ========================================================================== */
 .tpl-list {
   list-style: none;
   padding: 0;
-  margin: 0.5rem 0;
+  margin: var(--sp-3) 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--sp-3);
 }
 .tpl-item {
   background: var(--panel-2);
-  border-radius: 10px;
-  padding: 0.55rem 0.7rem;
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--sp-2);
 }
-.tpl-head { display: flex; justify-content: space-between; align-items: baseline; }
-.tpl-kcal { color: var(--muted); font-size: 0.82rem; }
-.tpl-actions { display: flex; gap: 0.35rem; justify-content: flex-end; }
+.tpl-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+}
+.tpl-head strong { color: var(--text); font-size: 1em; }
+.tpl-kcal { color: var(--muted); font-size: 0.92em; }
+.tpl-actions {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
 
 /* Portion panel */
 /* ========== PORTION PANEL (on result card) ================================

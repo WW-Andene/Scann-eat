@@ -59,6 +59,34 @@
             <option value="auto" data-i18n="themeAuto">Système</option>
           </select>
         </label>
+
+        <fieldset class="prefs">
+          <legend data-i18n="reading">Lecture</legend>
+          <label>
+            <span data-i18n="fontSize">Taille du texte</span>
+            <select id="settings-font-size">
+              <option value="normal" data-i18n="fontSizeNormal">Normale</option>
+              <option value="large" data-i18n="fontSizeLarge">Grande</option>
+              <option value="xlarge" data-i18n="fontSizeXLarge">Très grande</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="fontFamily">Police</span>
+            <select id="settings-font-family">
+              <option value="atkinson" data-i18n="fontFamilyAtkinson">Atkinson (basse vision)</option>
+              <option value="lexend" data-i18n="fontFamilyLexend">Lexend (dyslexie)</option>
+              <option value="system" data-i18n="fontFamilySystem">Système</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="motionLabel">Mouvement</span>
+            <select id="settings-motion">
+              <option value="normal" data-i18n="motionNormal">Normal</option>
+              <option value="reduced" data-i18n="motionReduced">Réduit</option>
+            </select>
+          </label>
+        </fieldset>
+
         <p class="hint settings-profile-hint" data-i18n="settingsProfileHint">Les préférences alimentaires (régime, faible sucre, bio, etc.) sont maintenant dans le Profil 👤.</p>
         <div class="dialog-actions">
           <button id="about-btn" type="button" class="secondary" data-i18n="about">À propos</button>
@@ -509,6 +537,7 @@
         </div>
 
         <div class="result-actions">
+          <button id="read-aloud-btn" type="button" class="secondary" data-i18n="readAloud">Lire à voix haute</button>
           <button id="compare-next-btn" type="button" class="secondary" data-i18n="compareNext">Comparer au prochain scan</button>
           <button id="share-btn" type="button" class="secondary" hidden data-i18n="share">Partager</button>
         </div>

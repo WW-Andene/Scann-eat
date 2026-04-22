@@ -77,6 +77,9 @@ const LS_DISMISSED_VERSION = 'scanneat.dismissed_update';
 const LS_PREFS = 'scanneat.prefs';
 const LS_ONBOARDED = 'scanneat.onboarded';
 const LS_THEME = 'scanneat.theme';
+const LS_FONT_SIZE = 'scanneat.font_size';     // 'normal' | 'large' | 'xlarge'
+const LS_FONT_FAMILY = 'scanneat.font_family'; // 'atkinson' | 'lexend' | 'system'
+const LS_MOTION = 'scanneat.motion';            // 'normal' | 'reduced'
 
 const MAX_IMAGES = 4;
 const MAX_DIM = 1600;
@@ -710,6 +713,75 @@ function applyTheme() {
   document.documentElement.dataset.theme = actual;
 }
 applyTheme();
+
+// ---------- Reading accessibility (font size / family / motion) ----------
+
+function applyReadingPrefs() {
+  const body = document.body;
+  const size = localStorage.getItem(LS_FONT_SIZE) || 'normal';
+  const family = localStorage.getItem(LS_FONT_FAMILY) || 'atkinson';
+  const motion = localStorage.getItem(LS_MOTION) || 'normal';
+
+  body.classList.remove('font-size-large', 'font-size-xlarge');
+  if (size === 'large')  body.classList.add('font-size-large');
+  if (size === 'xlarge') body.classList.add('font-size-xlarge');
+
+  body.classList.remove('font-lexend', 'font-system');
+  if (family === 'lexend') body.classList.add('font-lexend');
+  if (family === 'system') body.classList.add('font-system');
+
+  body.classList.toggle('reduce-motion', motion === 'reduced');
+}
+applyReadingPrefs();
+
+// ---------- Read-aloud (SpeechSynthesis) ----------
+
+const SPEECH = globalThis.speechSynthesis;
+let speaking = false;
+
+function isSpeechSupported() {
+  return !!SPEECH && typeof globalThis.SpeechSynthesisUtterance === 'function';
+}
+
+function readAloud(text) {
+  if (!isSpeechSupported() || !text) return;
+  stopReading();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = (currentLang === 'en' ? 'en-US' : 'fr-FR');
+  utter.rate = 1.0;
+  utter.pitch = 1.0;
+  utter.onend = () => { speaking = false; updateReadAloudButton(); };
+  utter.onerror = () => { speaking = false; updateReadAloudButton(); };
+  speaking = true;
+  updateReadAloudButton();
+  SPEECH.speak(utter);
+}
+
+function stopReading() {
+  if (!isSpeechSupported()) return;
+  SPEECH.cancel();
+  speaking = false;
+  updateReadAloudButton();
+}
+
+function updateReadAloudButton() {
+  const btn = document.getElementById('read-aloud-btn');
+  if (!btn) return;
+  btn.textContent = speaking ? t('stopReading') : t('readAloud');
+}
+
+/** Compose the short phrase read when the user taps Read Aloud. */
+function composeReadAloudText(data) {
+  if (!data?.audit) return '';
+  const name = data.audit.product_name || data.product?.name || '';
+  const score = data.audit.score;
+  const grade = data.audit.grade;
+  const verdict = data.audit.verdict || '';
+  if (currentLang === 'en') {
+    return `${name}. Score ${score} out of 100. Grade ${grade}. ${verdict}`;
+  }
+  return `${name}. Score ${score} sur 100. Note ${grade}. ${verdict}`;
+}
 window.matchMedia?.('(prefers-color-scheme: light)')?.addEventListener('change', applyTheme);
 
 // ---------- Onboarding ----------
@@ -1300,6 +1372,12 @@ settingsBtn?.addEventListener('click', () => {
   modeSelect.value = localStorage.getItem(LS_MODE) || (isCapacitor ? 'direct' : 'auto');
   langSelect.value = currentLang;
   themeSelect.value = localStorage.getItem(LS_THEME) || 'dark';
+  const fontSizeSel = document.getElementById('settings-font-size');
+  const fontFamSel = document.getElementById('settings-font-family');
+  const motionSel = document.getElementById('settings-motion');
+  if (fontSizeSel) fontSizeSel.value = localStorage.getItem(LS_FONT_SIZE) || 'normal';
+  if (fontFamSel)  fontFamSel.value  = localStorage.getItem(LS_FONT_FAMILY) || 'atkinson';
+  if (motionSel)   motionSel.value   = localStorage.getItem(LS_MOTION) || 'normal';
   settingsDialog.showModal();
 });
 settingsSave?.addEventListener('click', (e) => {
@@ -1308,8 +1386,15 @@ settingsSave?.addEventListener('click', (e) => {
   if (key) localStorage.setItem(LS_KEY, key); else localStorage.removeItem(LS_KEY);
   localStorage.setItem(LS_MODE, modeSelect.value);
   localStorage.setItem(LS_THEME, themeSelect.value);
+  const fontSizeSel = document.getElementById('settings-font-size');
+  const fontFamSel = document.getElementById('settings-font-family');
+  const motionSel = document.getElementById('settings-motion');
+  if (fontSizeSel) localStorage.setItem(LS_FONT_SIZE, fontSizeSel.value);
+  if (fontFamSel)  localStorage.setItem(LS_FONT_FAMILY, fontFamSel.value);
+  if (motionSel)   localStorage.setItem(LS_MOTION, motionSel.value);
   setLang(langSelect.value);
   applyTheme();
+  applyReadingPrefs();
   settingsDialog.close();
   applyStaticTranslations();
 });
@@ -1325,6 +1410,14 @@ pendingRetry?.addEventListener('click', () => { retryPending(); });
 
 if (!navigator.share) hide(shareBtn);
 shareBtn?.addEventListener('click', shareCurrentScan);
+
+// Read-aloud wiring
+const readAloudBtn = document.getElementById('read-aloud-btn');
+if (!isSpeechSupported()) hide(readAloudBtn);
+readAloudBtn?.addEventListener('click', () => {
+  if (speaking) { stopReading(); return; }
+  if (lastData) readAloud(composeReadAloudText(lastData));
+});
 
 const aboutBtn = $('about-btn');
 const aboutDialog = $('about-dialog');
