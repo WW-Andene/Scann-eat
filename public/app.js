@@ -12,7 +12,7 @@ import { detectAllergens } from '/allergens.js';
 import {
   getProfile, setProfile, hasMinimalProfile,
   bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets,
-} from '/profile.js';
+} from '/data/profile.js';
 import { computePersonalScore, personalGrade } from '/personal-score.js';
 import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';

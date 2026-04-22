@@ -30,7 +30,7 @@ import { checkDiet, DIET_DEFS } from './diets.js';
 import {
   bmi, bmiCategory, hasMinimalProfile,
   dailyTargets, proteinPRI_g,
-} from './profile.js';
+} from './data/profile.js';
 
 /**
  * @returns {{
