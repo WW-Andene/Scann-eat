@@ -28,6 +28,30 @@ describe('PAIRINGS_SOURCE — attribution metadata', () => {
     assert.ok(Number.isFinite(PAIRINGS_SOURCE.corpus_size));
     assert.ok(PAIRINGS_SOURCE.corpus_size > 50000);
   });
+  it('pins the input file via SHA-256', () => {
+    // A mismatch here means the pipeline was re-run against a different
+    // Ahn-2011 mirror without bumping EXPECTED_SHA256 — either deliberate
+    // (update the test) or a silent data-integrity problem.
+    assert.match(PAIRINGS_SOURCE.input_sha256 ?? '', /^[0-9a-f]{64}$/);
+  });
+});
+
+describe('SYNONYMS — no dead-end targets', () => {
+  it('every SYNONYMS user-variant resolves into PAIRINGS', () => {
+    // A SYNONYMS entry pointing at an ingredient that isn't actually in
+    // PAIRINGS would silently produce "found a match, no pairings". This
+    // test makes dead-end aliases a build-time failure.
+    for (const [user, target] of Object.entries(SYNONYMS) as [string, string][]) {
+      assert.ok(PAIRINGS[target], `SYNONYMS['${user}'] → '${target}' is not in PAIRINGS`);
+    }
+  });
+  it('every SYNONYMS resolves via resolveIngredient end-to-end', () => {
+    for (const user of Object.keys(SYNONYMS)) {
+      const r = resolveIngredient(user);
+      assert.ok(r, `resolveIngredient('${user}') returned null`);
+      assert.ok(PAIRINGS[r], `resolveIngredient('${user}') → '${r}' is not in PAIRINGS`);
+    }
+  });
 });
 
 describe('PAIRINGS shape', () => {

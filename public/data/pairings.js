@@ -33,7 +33,8 @@ export const PAIRINGS_SOURCE = Object.freeze({
   citation: 'Ahn, Ahnert, Bagrow, Barabási — Sci. Rep. 1:196 (2011), doi:10.1038/srep00196',
   dataset: 'srep00196-s3.csv — 56 498 published recipes, 11 cuisines',
   scoring: 'PPMI(a,b) * sqrt(count(a,b)), min co-occurrence 5 recipes',
-  generated_at: "2026-04-22T18:09:56.560Z",
+  input_sha256: "34dfbe5c55eb1b227a161eb654d71012ce1c4cada7670903bd9f3fe1620ccba1",
+  generated_at: "2026-04-22T19:38:57.428Z",
   corpus_size: 56144,
 });
 

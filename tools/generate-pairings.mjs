@@ -28,10 +28,37 @@
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// ──────────────────────────────────────────────────────────────────────
+// Integrity pin. The Ahn 2011 supplementary CSV is a 2011 artefact —
+// it never changes. We verify the on-disk file matches the checksum of
+// the version this generator was written against, so a future run can't
+// silently pick up a modified mirror.
+//
+// Source verified: github.com/lingcheng99/Flavor-Network (mirror of the
+// Springer / Nature srep00196-s3 supplementary CSV). To re-anchor to
+// the official Springer URL, diff the hash below against the original.
+// ──────────────────────────────────────────────────────────────────────
+const EXPECTED_SHA256 = '34dfbe5c55eb1b227a161eb654d71012ce1c4cada7670903bd9f3fe1620ccba1';
+const INPUT_PATH = '/tmp/flavor-network/s3.csv';
+
+const inputBytes = readFileSync(INPUT_PATH);
+const actualSha = createHash('sha256').update(inputBytes).digest('hex');
+if (actualSha !== EXPECTED_SHA256) {
+  console.error(`[pairings] CHECKSUM MISMATCH on ${INPUT_PATH}`);
+  console.error(`[pairings]   expected: ${EXPECTED_SHA256}`);
+  console.error(`[pairings]   got:      ${actualSha}`);
+  console.error('[pairings] If you intend to regenerate from a newer release of the');
+  console.error('[pairings] Ahn 2011 supplementary file, update EXPECTED_SHA256 above');
+  console.error('[pairings] AFTER confirming the new file matches the peer-reviewed');
+  console.error('[pairings] release at https://www.nature.com/articles/srep00196');
+  process.exit(2);
+}
 
 // ──────────────────────────────────────────────────────────────────────
 // FR ↔ EN aliases. Only ingredients in this map appear in the output.
@@ -145,7 +172,7 @@ const SYNONYMS = {
 // Parse the Ahn recipe CSV (lines beginning with '#' are a header stanza).
 // Each data line: cuisine,ingredient1,ingredient2,...
 // ──────────────────────────────────────────────────────────────────────
-const raw = readFileSync('/tmp/flavor-network/s3.csv', 'utf8').split(/\r?\n/);
+const raw = inputBytes.toString('utf8').split(/\r?\n/);
 const recipes = [];
 for (const line of raw) {
   if (!line || line.startsWith('#')) continue;
@@ -261,6 +288,7 @@ lines.push("export const PAIRINGS_SOURCE = Object.freeze({");
 lines.push("  citation: 'Ahn, Ahnert, Bagrow, Barabási — Sci. Rep. 1:196 (2011), doi:10.1038/srep00196',");
 lines.push("  dataset: 'srep00196-s3.csv — 56 498 published recipes, 11 cuisines',");
 lines.push(`  scoring: 'PPMI(a,b) * sqrt(count(a,b)), min co-occurrence 5 recipes',`);
+lines.push(`  input_sha256: ${JSON.stringify(EXPECTED_SHA256)},`);
 lines.push(`  generated_at: ${JSON.stringify(new Date().toISOString())},`);
 lines.push(`  corpus_size: ${N},`);
 lines.push("});");
