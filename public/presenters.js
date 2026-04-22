@@ -358,6 +358,55 @@ export function buildLineChartPath(values, opts = {}) {
   return { path_d: d.trim(), min, max, points };
 }
 
+/**
+ * Quick sharpness heuristic. Given a flat luminance array (0–255) and its
+ * width, compute an approximation of the variance of a Laplacian filter —
+ * a classic "is this image sharp?" metric. High variance = sharp (edges
+ * present). Low variance = blurry / low-contrast (wall, finger on lens,
+ * out-of-focus).
+ *
+ * Pure — takes a pre-extracted luminance buffer rather than a Canvas /
+ * ImageData, so it runs in Node tests without a DOM.
+ *
+ * The caller will usually downsample the photo to ~64×64 before calling
+ * this. Heuristic thresholds we've observed empirically:
+ *
+ *   variance < 40   → very likely blurry / blank
+ *   40 ≤ v < 120    → borderline; warn but allow
+ *   v ≥ 120         → sharp enough for OCR
+ */
+export function laplacianVariance(luma, width) {
+  if (!luma || luma.length === 0 || !width) return 0;
+  const height = Math.floor(luma.length / width);
+  if (height < 3) return 0;
+
+  let sum = 0;
+  let sumSq = 0;
+  let count = 0;
+  // 3×3 discrete Laplacian: center * 4 − (top + bottom + left + right)
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const i = y * width + x;
+      const lap =
+        4 * luma[i] -
+        luma[i - width] - luma[i + width] - luma[i - 1] - luma[i + 1];
+      sum += lap;
+      sumSq += lap * lap;
+      count++;
+    }
+  }
+  if (count === 0) return 0;
+  const mean = sum / count;
+  const variance = sumSq / count - mean * mean;
+  return Math.max(0, variance);
+}
+
+export function sharpnessVerdict(variance) {
+  if (variance < 40) return 'blurry';
+  if (variance < 120) return 'borderline';
+  return 'sharp';
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));

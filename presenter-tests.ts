@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -556,5 +556,69 @@ describe('buildLineChartPath', () => {
     const r = buildLineChartPath([1, 'bad' as unknown as number, 3, NaN, 5]);
     // 3 numeric points (1, 3, 5)
     assert.equal(r.points.length, 3);
+  });
+});
+
+// ============================================================================
+// laplacianVariance + sharpnessVerdict — image sharpness heuristic
+// ============================================================================
+
+describe('laplacianVariance', () => {
+  // Tiny test fixtures, width × height flat Uint8-style arrays.
+  const flat = (w: number, h: number, v: number) => {
+    const a = new Array(w * h).fill(v);
+    return { a, w };
+  };
+
+  it('returns 0 for a uniform grey image (no edges)', () => {
+    const { a, w } = flat(8, 8, 128);
+    assert.equal(laplacianVariance(a, w), 0);
+  });
+
+  it('returns 0 for empty / missing input', () => {
+    assert.equal(laplacianVariance([], 8), 0);
+    assert.equal(laplacianVariance(null as unknown as number[], 8), 0);
+    assert.equal(laplacianVariance([1, 2, 3], 0), 0);
+  });
+
+  it('returns a high value for a checkerboard (lots of edges)', () => {
+    const w = 8;
+    const a: number[] = [];
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        a.push(((x + y) & 1) ? 255 : 0);
+      }
+    }
+    const v = laplacianVariance(a, w);
+    assert.ok(v > 1000, `checkerboard variance ${v} should be very high`);
+  });
+
+  it('returns a moderate value for a smooth gradient', () => {
+    const w = 8, h = 8;
+    const a: number[] = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) a.push((x + y) * 16);
+    const v = laplacianVariance(a, w);
+    // Gradient has no abrupt edges → low but >0
+    assert.ok(v < 100, `gradient variance ${v} should be low`);
+  });
+
+  it('handles height < 3 → 0 (too small for 3×3 filter)', () => {
+    assert.equal(laplacianVariance([1, 2, 3, 4], 2), 0);
+  });
+});
+
+describe('sharpnessVerdict', () => {
+  it('< 40 → blurry', () => {
+    assert.equal(sharpnessVerdict(0), 'blurry');
+    assert.equal(sharpnessVerdict(39.9), 'blurry');
+  });
+  it('40 ≤ v < 120 → borderline', () => {
+    assert.equal(sharpnessVerdict(40), 'borderline');
+    assert.equal(sharpnessVerdict(100), 'borderline');
+    assert.equal(sharpnessVerdict(119.9), 'borderline');
+  });
+  it('≥ 120 → sharp', () => {
+    assert.equal(sharpnessVerdict(120), 'sharp');
+    assert.equal(sharpnessVerdict(5000), 'sharp');
   });
 });
