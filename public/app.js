@@ -24,7 +24,8 @@ import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKc
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/recipes.js';
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap } from '/core/presenters.js';
+import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -3963,7 +3964,42 @@ async function renderDashboard() {
     show(dashboardLog);
   }
 
+  renderGapCloser(totals, targets);
+
   show(dashboardEl);
+}
+
+function renderGapCloser(totals, targets) {
+  const section = $('gap-closer');
+  const list = $('gap-closer-list');
+  if (!section || !list) return;
+  const all = [...FOOD_DB, ...listCustomFoods()];
+  const gaps = closeTheGap(totals, targets, all);
+  list.textContent = '';
+  if (gaps.length === 0 || (totals?.count ?? 0) === 0) {
+    hide(section);
+    return;
+  }
+  for (const g of gaps) {
+    const item = document.createElement('li');
+    item.className = 'gap-closer-item';
+    const head = document.createElement('p');
+    head.className = 'gap-closer-head';
+    head.textContent = t(`gapCloser_${g.nutrient}`, { deficit: g.deficit });
+    item.appendChild(head);
+    const chips = document.createElement('ul');
+    chips.className = 'gap-closer-chips';
+    for (const s of g.suggestions) {
+      const li = document.createElement('li');
+      li.className = 'gap-closer-chip';
+      li.textContent = `${s.name} · ${s.grams} g`;
+      li.title = t('gapCloserContribution', { value: s.contribution });
+      chips.appendChild(li);
+    }
+    item.appendChild(chips);
+    list.appendChild(item);
+  }
+  show(section);
 }
 
 function round1(x) { return Math.round(x * 10) / 10; }

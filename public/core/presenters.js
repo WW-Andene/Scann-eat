@@ -586,3 +586,77 @@ export function weightForecast(currentKg, goalKg, weeklySlopeKg, nowMs = Date.no
     kgPerWeek: s,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Close-the-gap nutrient suggestions
+// ─────────────────────────────────────────────────────────────────────────
+//
+// Given today's totals + the user's targets + the FOOD_DB, return up to
+// 3 suggestions per under-met "more is better" nutrient. Each suggestion
+// is { food_name, grams, contribution } where `grams` is the amount of
+// that food needed to close roughly half the day's gap.
+//
+// Why "half" not "full"? Two reasons:
+//   1. The user usually eats more before bed than what closes the gap
+//      exactly — leaving headroom is friendlier than implying you must
+//      eat exactly 280 g of lentils to hit fiber.
+//   2. The estimate becomes useless if it asks for 600 g of broccoli to
+//      close a 1000 mg calcium gap — capping by share keeps suggestions
+//      realistic.
+//
+// Only operates on nutrients where MORE is better (protein, fiber,
+// micros). Skips negative-nutrient targets (sugar/salt/sat-fat caps).
+// Pure — exported for tests; no DOM, no IDB.
+//
+const GAP_NUTRIENTS = [
+  // [totals key, target key, label key, target-share to close, max grams cap]
+  ['protein_g', 'protein_g_target', 'protein', 0.5, 300],
+  ['fiber_g',   'fiber_g_target',   'fiber',   0.5, 200],
+  ['iron_mg',   'iron_mg_target',   'iron',    0.5, 200],
+  ['calcium_mg','calcium_mg_target','calcium', 0.5, 300],
+  ['vit_d_ug',  'vit_d_ug_target',  'vit_d',   0.5, 200],
+  ['b12_ug',    'b12_ug_target',    'b12',     0.5, 200],
+];
+
+export function closeTheGap(totals, targets, foodDB) {
+  const out = [];
+  if (!totals || !targets || !Array.isArray(foodDB) || foodDB.length === 0) return out;
+  for (const [valKey, tgtKey, label, share, gramsCap] of GAP_NUTRIENTS) {
+    const got = Number(totals[valKey]) || 0;
+    const tgt = Number(targets[tgtKey]) || 0;
+    if (tgt <= 0) continue;
+    const deficit = tgt - got;
+    if (deficit <= 0) continue;
+    const need = deficit * share; // close roughly half the gap
+
+    // Score by per-100 g density of this nutrient. Skip foods that
+    // don't carry the nutrient at all so we don't suggest meaningless
+    // items. Sort by density desc — most-concentrated food first, so
+    // a 20 g handful of almonds outranks 220 g of lentils for the same
+    // contribution. The user wants the smallest reasonable portion.
+    const ranked = [];
+    for (const f of foodDB) {
+      const density = Number(f[valKey]) || 0;
+      if (density <= 0) continue;
+      const grams = Math.round((need / density) * 100);
+      if (grams <= 0 || grams > gramsCap) continue;
+      const contribution = Math.round(density * (grams / 100) * 10) / 10;
+      ranked.push({ food: f, grams, contribution, density });
+    }
+    ranked.sort((a, b) => b.density - a.density);
+
+    if (ranked.length === 0) continue;
+    out.push({
+      nutrient: label,
+      key: valKey,
+      target_key: tgtKey,
+      deficit: Math.round(deficit * 10) / 10,
+      suggestions: ranked.slice(0, 3).map((r) => ({
+        name: r.food.name,
+        grams: r.grams,
+        contribution: r.contribution,
+      })),
+    });
+  }
+  return out;
+}
