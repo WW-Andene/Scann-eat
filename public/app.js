@@ -12,6 +12,21 @@ import { logEntry, logQuickAdd, listByDate, deleteEntry, clearDate, dailyTotals,
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 
+// Safari private mode + some embedded WebViews disable localStorage writes
+// (getItem returns null silently, but setItem/removeItem throw). Shim the
+// writers so the whole app degrades gracefully instead of crashing on the
+// first preference change. Reads are already safe — they just return null.
+try {
+  const _set = Storage.prototype.setItem;
+  const _rem = Storage.prototype.removeItem;
+  Storage.prototype.setItem = function (k, v) {
+    try { return _set.call(this, k, v); } catch { /* quota / disabled */ }
+  };
+  Storage.prototype.removeItem = function (k) {
+    try { return _rem.call(this, k); } catch { /* disabled */ }
+  };
+} catch { /* Storage.prototype missing — nothing to protect */ }
+
 const $ = (id) => document.getElementById(id);
 
 const fileInput = $('file-input');
