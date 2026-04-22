@@ -114,8 +114,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       barcode: parsed.barcode ?? null,
     });
   } catch (err) {
+    // Log the real error server-side; return a generic one to the client so
+    // internal state (stack traces, auth tokens in messages, etc.) never
+    // reaches a hostile caller.
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/score]', message);
-    return sendJSON(res, 500, { error: message });
+    const publicMessage =
+      /body too large/i.test(message) ? 'Request body too large'
+      : /JSON/i.test(message) ? 'Invalid JSON body'
+      : 'Scoring failed';
+    return sendJSON(res, 500, { error: publicMessage });
   }
 }
