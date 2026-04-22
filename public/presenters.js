@@ -77,3 +77,39 @@ export function defaultMealForHour(hour) {
   if (hour >= 14 && hour < 18) return 'snack';
   return 'dinner';
 }
+
+/**
+ * Current logging streak in days, counting backwards from `todayIso`.
+ * A day counts as "logged" if at least one entry exists with that date.
+ *
+ * Returns 0 when:
+ *   - no entries exist
+ *   - today has no entries AND yesterday has no entries (streak broken)
+ * Returns n when the last n consecutive days (including today or yesterday)
+ * all have entries. "Yesterday counts" is intentional: if the user opens
+ * the app in the morning before logging breakfast, we don't want the
+ * streak to show 0 just because today is still empty — grace the last
+ * 24h so the user can see their current standing and keep it going.
+ *
+ * All date math uses ISO YYYY-MM-DD strings, so timezone jumps at midnight
+ * don't break the count.
+ */
+export function logStreakDays(entries, todayIso) {
+  if (!entries || entries.length === 0) return 0;
+  const days = new Set(entries.map((e) => e.date));
+  const ymd = (d) => d.toISOString().slice(0, 10);
+  const start = new Date(todayIso + 'T12:00:00Z'); // noon UTC, avoids DST edge
+  let cursor = new Date(start);
+  let streak = 0;
+  // Allow a 1-day grace: if today is empty but yesterday is logged, still
+  // start counting from yesterday.
+  if (!days.has(ymd(cursor))) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+    if (!days.has(ymd(cursor))) return 0;
+  }
+  while (days.has(ymd(cursor))) {
+    streak++;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
+}

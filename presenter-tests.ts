@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -209,5 +209,49 @@ describe('defaultMealForHour', () => {
     assert.equal(defaultMealForHour(23), 'dinner');
     assert.equal(defaultMealForHour(0), 'dinner');
     assert.equal(defaultMealForHour(4), 'dinner');
+  });
+});
+
+// ============================================================================
+// logStreakDays
+// ============================================================================
+
+describe('logStreakDays', () => {
+  const mk = (...dates: string[]) => dates.map((d) => ({ date: d }));
+
+  it('0 when no entries', () => {
+    assert.equal(logStreakDays([], '2026-04-22'), 0);
+  });
+
+  it('1 when only today is logged', () => {
+    const e = mk('2026-04-22');
+    assert.equal(logStreakDays(e, '2026-04-22'), 1);
+  });
+
+  it('counts consecutive days including today', () => {
+    const e = mk('2026-04-20', '2026-04-21', '2026-04-22');
+    assert.equal(logStreakDays(e, '2026-04-22'), 3);
+  });
+
+  it('breaks on a missing day', () => {
+    const e = mk('2026-04-19', '2026-04-21', '2026-04-22');
+    // today + yesterday are present, day before is skipped → streak = 2
+    assert.equal(logStreakDays(e, '2026-04-22'), 2);
+  });
+
+  it('1-day grace: today empty + yesterday logged still counts', () => {
+    const e = mk('2026-04-20', '2026-04-21');
+    // yesterday is logged → start there, count back
+    assert.equal(logStreakDays(e, '2026-04-22'), 2);
+  });
+
+  it('2-day gap → 0 (grace is only 1 day)', () => {
+    const e = mk('2026-04-18', '2026-04-19', '2026-04-20');
+    assert.equal(logStreakDays(e, '2026-04-22'), 0);
+  });
+
+  it('deduplicates multiple entries on the same day', () => {
+    const e = mk('2026-04-22', '2026-04-22', '2026-04-22', '2026-04-21');
+    assert.equal(logStreakDays(e, '2026-04-22'), 2);
   });
 });
