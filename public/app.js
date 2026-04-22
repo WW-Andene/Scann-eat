@@ -1696,13 +1696,52 @@ templatesBtn?.addEventListener('click', async () => {
   catch (err) { console.warn('[templates] render failed', err); }
 });
 tplClose?.addEventListener('click', (e) => { e.preventDefault(); templatesDialog.close(); });
+const tplNameDialog = $('tpl-name-dialog');
+const tplNameInput = $('tpl-name-input');
+const tplNameConfirm = $('tpl-name-confirm');
+const tplNameCancel = $('tpl-name-cancel');
+
+/** Promise-based name prompt that opens a styled dialog instead of the
+ *  blocking native prompt(). Resolves to the typed name or null on cancel. */
+function askTemplateName() {
+  if (!tplNameDialog || !tplNameInput) return Promise.resolve(null);
+  tplNameInput.value = '';
+  tplNameInput.placeholder = t('templateNamePlaceholder');
+  tplNameDialog.showModal();
+  tplNameInput.focus();
+  return new Promise((resolve) => {
+    const cleanup = () => {
+      tplNameConfirm?.removeEventListener('click', onConfirm);
+      tplNameCancel?.removeEventListener('click', onCancel);
+      tplNameDialog.removeEventListener('close', onClose);
+    };
+    const onConfirm = (e) => {
+      e.preventDefault();
+      const name = tplNameInput.value.trim();
+      tplNameDialog.close();
+      cleanup();
+      resolve(name || null);
+    };
+    const onCancel = (e) => {
+      e.preventDefault();
+      tplNameDialog.close();
+      cleanup();
+      resolve(null);
+    };
+    const onClose = () => { cleanup(); resolve(null); };
+    tplNameConfirm?.addEventListener('click', onConfirm);
+    tplNameCancel?.addEventListener('click', onCancel);
+    tplNameDialog.addEventListener('close', onClose);
+  });
+}
+
 tplSaveToday?.addEventListener('click', async () => {
   const entries = await listByDate().catch(() => []);
   if (entries.length === 0) {
     toast(t('nothingLoggedToSave'));
     return;
   }
-  const name = prompt(t('templateNamePlaceholder'));
+  const name = await askTemplateName();
   if (!name) return;
   const saved = await saveTemplate({ name, items: entries });
   await renderTemplatesList();

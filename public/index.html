@@ -391,6 +391,20 @@
         </form>
       </dialog>
 
+      <dialog id="tpl-name-dialog" class="settings-dialog" aria-labelledby="tpl-name-title">
+        <form method="dialog">
+          <h2 id="tpl-name-title" data-i18n="templateNameDialogTitle">Nommer ce repas</h2>
+          <label>
+            <span data-i18n="templateNameDialogLabel">Nom</span>
+            <input id="tpl-name-input" type="text" maxlength="60" autocomplete="off" />
+          </label>
+          <div class="dialog-actions">
+            <button id="tpl-name-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
+            <button id="tpl-name-confirm" type="submit" data-i18n="save">Sauvegarder</button>
+          </div>
+        </form>
+      </dialog>
+
       <dialog id="quick-add-dialog" class="settings-dialog" aria-labelledby="quick-add-dialog-title">
         <form method="dialog">
           <h2 id="quick-add-dialog-title" data-i18n="quickAddTitle">Quick Add</h2>
