@@ -13,7 +13,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -1709,6 +1709,26 @@ $('backup-export')?.addEventListener('click', async () => {
     setBackupStatus(err.message || String(err), 'error');
   }
 });
+$('csv-export')?.addEventListener('click', async () => {
+  try {
+    const all = await listAllEntries().catch(() => []);
+    const csv = entriesToDailyCSV(all);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `scanneat-totals-${date}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    const days = new Set(all.map((e) => e.date).filter(Boolean)).size;
+    setBackupStatus(t('csvExported', { days }));
+  } catch (err) {
+    console.error('[csv export]', err);
+    setBackupStatus(err.message || String(err), 'error');
+  }
+});
+
 $('backup-import-file')?.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   e.target.value = '';

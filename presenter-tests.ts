@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -620,5 +620,68 @@ describe('sharpnessVerdict', () => {
   it('≥ 120 → sharp', () => {
     assert.equal(sharpnessVerdict(120), 'sharp');
     assert.equal(sharpnessVerdict(5000), 'sharp');
+  });
+});
+
+// ============================================================================
+// entriesToDailyCSV
+// ============================================================================
+
+describe('entriesToDailyCSV', () => {
+  const mk = (date: string, macros: Record<string, number> = {}) => ({
+    date, kcal: 0, carbs_g: 0, protein_g: 0, fat_g: 0,
+    sat_fat_g: 0, sugars_g: 0, salt_g: 0, ...macros,
+  });
+
+  it('empty → header only', () => {
+    const csv = entriesToDailyCSV([]);
+    assert.ok(csv.startsWith('﻿"date","entries"'));
+    // header line + 0 data rows + trailing CRLF
+    assert.equal(csv.split('\r\n').length, 2);
+  });
+
+  it('one entry → one data row', () => {
+    const csv = entriesToDailyCSV([mk('2026-04-22', { kcal: 500, protein_g: 20 })]);
+    const lines = csv.split('\r\n').filter((l) => l);
+    assert.equal(lines.length, 2);
+    assert.match(lines[1], /"2026-04-22","1","500"/);
+  });
+
+  it('same date, multiple entries → one row with summed totals', () => {
+    const csv = entriesToDailyCSV([
+      mk('2026-04-22', { kcal: 300 }),
+      mk('2026-04-22', { kcal: 450 }),
+    ]);
+    const lines = csv.split('\r\n').filter((l) => l);
+    assert.equal(lines.length, 2);
+    assert.match(lines[1], /"2026-04-22","2","750"/);
+  });
+
+  it('sorts rows by date ascending', () => {
+    const csv = entriesToDailyCSV([
+      mk('2026-04-23', { kcal: 100 }),
+      mk('2026-04-21', { kcal: 200 }),
+      mk('2026-04-22', { kcal: 300 }),
+    ]);
+    const lines = csv.split('\r\n').filter((l) => l);
+    assert.match(lines[1], /2026-04-21/);
+    assert.match(lines[2], /2026-04-22/);
+    assert.match(lines[3], /2026-04-23/);
+  });
+
+  it('starts with UTF-8 BOM for Excel', () => {
+    const csv = entriesToDailyCSV([mk('2026-04-22')]);
+    assert.equal(csv.charCodeAt(0), 0xFEFF);
+  });
+
+  it('uses CRLF line terminators', () => {
+    const csv = entriesToDailyCSV([mk('2026-04-22')]);
+    assert.match(csv, /\r\n/);
+  });
+
+  it('ignores entries missing the date field', () => {
+    const csv = entriesToDailyCSV([{ kcal: 100 } as unknown as never, mk('2026-04-22')]);
+    const lines = csv.split('\r\n').filter((l) => l);
+    assert.equal(lines.length, 2); // header + 1
   });
 });

@@ -407,6 +407,56 @@ export function sharpnessVerdict(variance) {
   return 'sharp';
 }
 
+/**
+ * Build a CSV string of daily totals from a list of consumption entries.
+ * Pure — no file I/O. Caller downloads the returned string as a blob.
+ *
+ * One row per (date, meal) cell? No — one row per DATE with summed macros
+ * and entry count. Excel-friendly: UTF-8 BOM prefix, quoted fields,
+ * CRLF line terminators, comma separator. The BOM ensures Excel picks
+ * UTF-8 instead of guessing CP1252 and butchering accented text.
+ *
+ * Column order is fixed + documented in the header row, so a user can
+ * pivot / chart without further massaging.
+ */
+export function entriesToDailyCSV(entries) {
+  const byDate = new Map();
+  for (const e of entries ?? []) {
+    if (!e?.date) continue;
+    const key = e.date;
+    const row = byDate.get(key) ?? {
+      date: key, entries: 0, kcal: 0, carbs_g: 0, protein_g: 0,
+      fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0,
+    };
+    row.entries += 1;
+    row.kcal      += Number(e.kcal) || 0;
+    row.carbs_g   += Number(e.carbs_g) || 0;
+    row.protein_g += Number(e.protein_g) || 0;
+    row.fat_g     += Number(e.fat_g) || 0;
+    row.sat_fat_g += Number(e.sat_fat_g) || 0;
+    row.sugars_g  += Number(e.sugars_g) || 0;
+    row.salt_g    += Number(e.salt_g) || 0;
+    byDate.set(key, row);
+  }
+  const rows = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+  const header = [
+    'date', 'entries', 'kcal', 'carbs_g', 'protein_g',
+    'fat_g', 'sat_fat_g', 'sugars_g', 'salt_g',
+  ];
+  const round1 = (v) => Math.round(v * 10) / 10;
+  const round3 = (v) => Math.round(v * 1000) / 1000;
+  const fmt = (r) => [
+    r.date, r.entries, round1(r.kcal), round1(r.carbs_g), round1(r.protein_g),
+    round1(r.fat_g), round1(r.sat_fat_g), round1(r.sugars_g), round3(r.salt_g),
+  ];
+  // CSV quoting: fields don't contain commas or quotes given our data, but
+  // wrap in quotes anyway for Excel safety.
+  const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const body = rows.map((r) => fmt(r).map(q).join(','));
+  const bom = '﻿'; // UTF-8 BOM for Excel
+  return bom + [header.map(q).join(','), ...body].join('\r\n') + '\r\n';
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));
