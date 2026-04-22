@@ -1863,6 +1863,41 @@ body.reduce-motion .wbar-col { transition: none; }
   font-variant-numeric: tabular-nums;
 }
 
+/* ========== FASTING TILE (reuses hydration tile shell) ================= */
+.fasting-tile {
+  background: var(--panel-2);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.fasting-tile .hyd-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+}
+.fasting-tile .hyd-fill[data-state="done"] {
+  background: linear-gradient(90deg, var(--grade-a), var(--grade-aplus));
+}
+.fasting-start-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel-2);
+  border-radius: var(--r-md);
+  font-size: 0.9em;
+}
+.fasting-start-label { color: var(--muted); flex: 1; }
+.fasting-start-row select {
+  padding: 6px 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  font-weight: 700;
+}
+
 /* ========== HYDRATION TILE ==============================================
    ========================================================================== */
 .hydration-tile {

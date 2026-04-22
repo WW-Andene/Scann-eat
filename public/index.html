@@ -349,6 +349,28 @@
         </div>
         <p id="dashboard-remaining" class="dashboard-remaining" hidden></p>
         <div id="weight-summary" class="weight-summary" hidden></div>
+        <div id="fasting-tile" class="fasting-tile" role="group" aria-labelledby="fasting-label" hidden>
+          <div class="hyd-head">
+            <span id="fasting-label" class="hyd-label" data-i18n="fastingLabel">Jeûne</span>
+            <strong id="fasting-amount" class="hyd-amount">—</strong>
+          </div>
+          <div class="hyd-bar"><span id="fasting-fill" class="hyd-fill"></span></div>
+          <div class="hyd-actions">
+            <button id="fasting-stop" type="button" class="hyd-btn" data-i18n="fastingStop">Arrêter</button>
+            <span id="fasting-state" class="hyd-hint">—</span>
+          </div>
+        </div>
+        <div id="fasting-start-row" class="fasting-start-row">
+          <span class="fasting-start-label" data-i18n="fastingStartLabel">Démarrer un jeûne :</span>
+          <select id="fasting-target" aria-label="Durée">
+            <option value="12">12 h</option>
+            <option value="14">14 h</option>
+            <option value="16" selected>16 h</option>
+            <option value="18">18 h</option>
+            <option value="20">20 h</option>
+          </select>
+          <button id="fasting-start" type="button" class="chip-btn accent compact" data-i18n="fastingStart">Démarrer</button>
+        </div>
         <div id="hydration-tile" class="hydration-tile" role="group" aria-labelledby="hydration-label">
           <div class="hyd-head">
             <span id="hydration-label" class="hyd-label" data-i18n="hydrationLabel">Hydratation</span>

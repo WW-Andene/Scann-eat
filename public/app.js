@@ -12,7 +12,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -2369,6 +2369,88 @@ $('hydration-minus')?.addEventListener('click', () => {
 });
 
 // ============================================================================
+// Fasting timer — intermittent-fasting countdown.
+// State persists in localStorage so the clock survives reloads + app restarts.
+// ============================================================================
+
+const LS_FASTING_START = 'scanneat.fasting.start';
+const LS_FASTING_TARGET = 'scanneat.fasting.target';
+let fastingInterval = null;
+
+function getFastingState() {
+  const startRaw = localStorage.getItem(LS_FASTING_START);
+  const targetRaw = localStorage.getItem(LS_FASTING_TARGET);
+  const start = Number(startRaw);
+  const target = Number(targetRaw);
+  if (!Number.isFinite(start) || start <= 0) return null;
+  return {
+    start_ms: start,
+    target_hours: Number.isFinite(target) && target > 0 ? target : 16,
+  };
+}
+function startFasting(targetHours) {
+  localStorage.setItem(LS_FASTING_START, String(Date.now()));
+  localStorage.setItem(LS_FASTING_TARGET, String(targetHours));
+}
+function stopFasting() {
+  localStorage.removeItem(LS_FASTING_START);
+  localStorage.removeItem(LS_FASTING_TARGET);
+}
+
+function renderFasting() {
+  const tile = $('fasting-tile');
+  const startRow = $('fasting-start-row');
+  const amt = $('fasting-amount');
+  const fill = $('fasting-fill');
+  const stateEl = $('fasting-state');
+  if (!tile || !startRow) return;
+
+  const s = getFastingState();
+  if (!s) {
+    hide(tile);
+    show(startRow);
+    if (fastingInterval) { clearInterval(fastingInterval); fastingInterval = null; }
+    return;
+  }
+
+  const st = fastingStatus(s.start_ms, Date.now(), s.target_hours);
+  if (amt) amt.textContent = st.label;
+  if (fill) {
+    fill.style.width = `${st.pct}%`;
+    if (st.complete) fill.dataset.state = 'done';
+    else delete fill.dataset.state;
+  }
+  if (stateEl) {
+    if (st.complete) {
+      const overH = Math.floor(st.overrun_ms / 3_600_000);
+      const overM = Math.floor((st.overrun_ms % 3_600_000) / 60_000);
+      stateEl.textContent = overH > 0 || overM > 0
+        ? `${t('fastingComplete')} · ${t('fastingOverrun', { h: overH, m: String(overM).padStart(2, '0') })}`
+        : t('fastingComplete');
+    } else {
+      stateEl.textContent = t('fastingInProgress');
+    }
+  }
+  show(tile);
+  hide(startRow);
+  // Tick once a minute — fine for a countdown measured in hours. Skipped
+  // under reduce-motion for users who prefer no animated counters.
+  if (!fastingInterval && !document.body.classList.contains('reduce-motion')) {
+    fastingInterval = setInterval(renderFasting, 60_000);
+  }
+}
+
+$('fasting-start')?.addEventListener('click', () => {
+  const target = Number($('fasting-target')?.value) || 16;
+  startFasting(target);
+  renderFasting();
+});
+$('fasting-stop')?.addEventListener('click', () => {
+  stopFasting();
+  renderFasting();
+});
+
+// ============================================================================
 // Day / Week view toggle — flips between daily dashboard and weekly rollup.
 // Stored in-memory only (resets on reload).
 // ============================================================================
@@ -2469,6 +2551,7 @@ async function renderDashboard() {
 
   if (totals.count === 0 && !targets) { hide(dashboardEl); return; }
   renderHydration();
+  renderFasting();
 
   dashboardDateEl.textContent = new Date().toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
     weekday: 'short', day: 'numeric', month: 'short',
