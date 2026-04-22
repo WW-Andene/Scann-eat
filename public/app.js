@@ -5,7 +5,7 @@ import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '
 import { buildBackup, restoreBackup } from '/backup.js';
 import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile } from '/profiles.js';
 import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEvent as telemetryLog, clearEvents as telemetryClear, formatEvents as telemetryFormat } from '/core/telemetry.js';
-import { getSetting, setSetting } from '/app-settings.js';
+import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
 import { searchFoodDB } from '/data/food-db.js';
 import { detectAllergens } from '/allergens.js';

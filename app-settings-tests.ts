@@ -18,7 +18,7 @@ const store = new Map<string, string>();
 } as Storage;
 
 // @ts-expect-error — plain JS module
-import { getSetting, setSetting, snapshotSettings } from './public/app-settings.js';
+import { getSetting, setSetting, snapshotSettings } from './public/core/app-settings.js';
 
 describe('app-settings', () => {
   beforeEach(() => { store.clear(); });
