@@ -427,6 +427,7 @@
             <button id="quick-add-btn" class="compact chip-btn accent" type="button" data-i18n="quickAdd">Quick Add</button>
             <button id="templates-btn" class="compact chip-btn" type="button" data-i18n="mealTemplates">Repas</button>
             <button id="recipes-btn" class="compact chip-btn" type="button" data-i18n="recipesBtn">Recettes</button>
+            <button id="meal-plan-btn" class="compact chip-btn" type="button" data-i18n="mealPlanBtn">📅 Planning</button>
             <button id="custom-foods-btn" class="compact chip-btn" type="button" data-i18n="customFoodsBtn">Aliments</button>
             <button id="weight-btn" class="compact chip-btn" type="button" data-i18n="weightBtn">Poids</button>
             <button id="progress-btn" class="compact chip-btn" type="button" data-i18n="progressBtn">📈 Progrès</button>
@@ -623,6 +624,19 @@
           <div class="dialog-actions">
             <button id="tpl-name-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
             <button id="tpl-name-confirm" type="submit" data-i18n="save">Sauvegarder</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="meal-plan-dialog" class="settings-dialog meal-plan-dialog" aria-labelledby="meal-plan-title">
+        <form method="dialog">
+          <h2 id="meal-plan-title" data-i18n="mealPlanTitle">📅 Planning de la semaine</h2>
+          <p class="hint" data-i18n="mealPlanIntro">Note tes intentions pour les 7 prochains jours. Les recettes peuvent être appliquées au journal en un tap.</p>
+          <div id="meal-plan-grid" class="meal-plan-grid"></div>
+          <div class="dialog-actions">
+            <button id="meal-plan-grocery" type="button" class="chip-btn accent" data-i18n="mealPlanGrocery">🛒 Liste de courses du planning</button>
+            <button id="meal-plan-clear" type="button" class="secondary" data-i18n="mealPlanClear">Tout effacer</button>
+            <button id="meal-plan-close" type="button" class="secondary" data-i18n="close">Fermer</button>
           </div>
         </form>
       </dialog>

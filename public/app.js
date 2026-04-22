@@ -23,6 +23,7 @@ import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, week
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/data/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/recipes.js';
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
+import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
 import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
@@ -934,6 +935,173 @@ $('grocery-share')?.addEventListener('click', async (e) => {
   try {
     await navigator.share({ title: t('groceryTitle'), text });
   } catch { /* user cancelled or unsupported */ }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Meal plan dialog — 7-day grid, slot picker per cell.
+// Storage is /features/meal-plan.js (localStorage). Recipes attached
+// to a slot can be one-tap-applied to today's consumption log.
+// ─────────────────────────────────────────────────────────────────────
+const mealPlanDialog = $('meal-plan-dialog');
+
+async function renderMealPlan() {
+  const grid = $('meal-plan-grid');
+  if (!grid) return;
+  grid.textContent = '';
+  const dates = weekDates();
+  const recipes = await listRecipes().catch(() => []);
+  const templates = await listTemplates().catch(() => []);
+  const locale = currentLang === 'en' ? 'en-GB' : 'fr-FR';
+  const mealLabels = {
+    breakfast: t('mealBreakfast'),
+    lunch: t('mealLunch'),
+    dinner: t('mealDinner'),
+    snack: t('mealSnack'),
+  };
+
+  for (const date of dates) {
+    const day = getDayPlan(date);
+    const card = document.createElement('article');
+    card.className = 'meal-plan-day';
+    const head = document.createElement('header');
+    head.className = 'meal-plan-day-head';
+    const dt = new Date(`${date}T12:00:00`);
+    head.textContent = dt.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+    card.appendChild(head);
+
+    for (const meal of MEAL_PLAN_MEALS) {
+      const row = document.createElement('div');
+      row.className = 'meal-plan-row';
+      const label = document.createElement('span');
+      label.className = 'meal-plan-meal';
+      label.textContent = mealLabels[meal];
+      row.appendChild(label);
+
+      const select = document.createElement('select');
+      select.className = 'meal-plan-pick';
+      select.setAttribute('aria-label', `${mealLabels[meal]} ${date}`);
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = '—';
+      select.appendChild(noneOpt);
+      const recipeGroup = document.createElement('optgroup');
+      recipeGroup.label = t('mealPlanGroupRecipes');
+      for (const r of recipes) {
+        const o = document.createElement('option');
+        o.value = `recipe:${r.id}`;
+        o.textContent = r.name;
+        recipeGroup.appendChild(o);
+      }
+      if (recipes.length > 0) select.appendChild(recipeGroup);
+      const tplGroup = document.createElement('optgroup');
+      tplGroup.label = t('mealPlanGroupTemplates');
+      for (const tpl of templates) {
+        const o = document.createElement('option');
+        o.value = `template:${tpl.id}`;
+        o.textContent = tpl.name;
+        tplGroup.appendChild(o);
+      }
+      if (templates.length > 0) select.appendChild(tplGroup);
+
+      // Note option (free text) — selecting it opens a prompt.
+      const noteOpt = document.createElement('option');
+      noteOpt.value = 'note:new';
+      noteOpt.textContent = t('mealPlanNoteOption');
+      select.appendChild(noteOpt);
+
+      // Pre-select what's already in the plan.
+      const slot = day[meal];
+      if (slot?.kind === 'recipe') select.value = `recipe:${slot.id}`;
+      else if (slot?.kind === 'template') select.value = `template:${slot.id}`;
+      else if (slot?.kind === 'note') {
+        // Inject a synthetic option so the current note shows up.
+        const o = document.createElement('option');
+        o.value = `note:current`;
+        o.textContent = `📝 ${slot.text.slice(0, 40)}`;
+        select.appendChild(o);
+        select.value = 'note:current';
+      }
+
+      select.addEventListener('change', () => {
+        const v = select.value;
+        if (!v) { setSlot(date, meal, null); renderMealPlan(); return; }
+        if (v.startsWith('recipe:')) {
+          const id = v.slice('recipe:'.length);
+          const r = recipes.find((x) => x.id === id);
+          if (r) setSlot(date, meal, { kind: 'recipe', id, name: r.name });
+        } else if (v.startsWith('template:')) {
+          const id = v.slice('template:'.length);
+          const tpl = templates.find((x) => x.id === id);
+          if (tpl) setSlot(date, meal, { kind: 'template', id, name: tpl.name });
+        } else if (v === 'note:new') {
+          const text = window.prompt(t('mealPlanNotePrompt'));
+          if (text && text.trim()) setSlot(date, meal, { kind: 'note', text: text.trim() });
+        } else if (v === 'note:current') {
+          // Keep as-is — user can blank with — to clear.
+          return;
+        }
+        renderMealPlan();
+      });
+
+      row.appendChild(select);
+      card.appendChild(row);
+    }
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'secondary compact meal-plan-clear-day';
+    clearBtn.textContent = t('mealPlanClearDay');
+    clearBtn.addEventListener('click', () => { clearDay(date); renderMealPlan(); });
+    card.appendChild(clearBtn);
+
+    grid.appendChild(card);
+  }
+}
+
+$('meal-plan-btn')?.addEventListener('click', async () => {
+  await renderMealPlan();
+  mealPlanDialog?.showModal();
+});
+$('meal-plan-close')?.addEventListener('click', (e) => { e.preventDefault(); mealPlanDialog?.close(); });
+$('meal-plan-clear')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  if (!window.confirm(t('mealPlanClearConfirm'))) return;
+  clearMealPlan();
+  await renderMealPlan();
+});
+$('meal-plan-grocery')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const dates = weekDates();
+  const recipes = await listRecipes().catch(() => []);
+  const planned = planRecipes(dates, recipes);
+  if (planned.length === 0) { toast(t('mealPlanNoRecipes'), 'warn'); return; }
+  const items = aggregateGroceryList(planned);
+  const list = $('grocery-list');
+  const text = $('grocery-text');
+  const source = $('grocery-source');
+  if (source) source.textContent = t('grocerySource', { n: planned.length });
+  if (list) {
+    list.textContent = '';
+    for (const it of items) {
+      const li = document.createElement('li');
+      li.className = 'tpl-item';
+      const name = document.createElement('strong');
+      name.textContent = it.name;
+      const grams = document.createElement('span');
+      grams.className = 'tpl-kcal';
+      grams.textContent = it.grams > 0 ? `${it.grams} g` : '';
+      li.appendChild(name);
+      li.appendChild(grams);
+      list.appendChild(li);
+    }
+  }
+  if (text) text.value = formatGroceryList(items);
+  const shareBtn = $('grocery-share');
+  if (shareBtn) {
+    if (typeof navigator.share === 'function') show(shareBtn); else hide(shareBtn);
+  }
+  mealPlanDialog?.close();
+  groceryDialog?.showModal();
 });
 
 $('pantry-submit')?.addEventListener('click', async () => {
