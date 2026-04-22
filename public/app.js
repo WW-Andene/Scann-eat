@@ -1727,6 +1727,7 @@ async function renderWeightHistory() {
     del.type = 'button';
     del.className = 'dash-entry-del';
     del.textContent = '×';
+    del.setAttribute('aria-label', t('deleteWeightEntry'));
     del.addEventListener('click', async () => {
       await deleteWeight(w.id);
       await renderWeightHistory();
