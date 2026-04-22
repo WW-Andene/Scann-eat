@@ -1,12 +1,15 @@
 {
   "name": "Scann-eat",
   "short_name": "Scann-eat",
-  "description": "Photo-to-score food label analyzer",
+  "description": "Photographie une étiquette alimentaire et obtiens un score nutritionnel sur 100, avec des drapeaux pour les additifs, les graisses saturées et les sucres.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#F54B5E",
   "theme_color": "#F54B5E",
   "lang": "fr",
+  "dir": "ltr",
+  "categories": ["food", "health", "lifestyle", "utilities"],
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
