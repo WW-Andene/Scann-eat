@@ -11,7 +11,7 @@ const SHELL = [
   '/data/profile.js',
   '/diets.js',
   '/personal-score.js',
-  '/consumption.js',
+  '/data/consumption.js',
   '/data/weight-log.js',
   '/meal-templates.js',
   '/recipes.js',

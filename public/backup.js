@@ -15,7 +15,7 @@
 import { listScans, saveScan, clearScans } from '/data/scan-history.js';
 import {
   listAllEntries, putEntry, listByDate, deleteEntry, todayISO,
-} from '/consumption.js';
+} from '/data/consumption.js';
 import { listWeight, logWeight, deleteWeight } from '/data/weight-log.js';
 import { listTemplates, saveTemplate, deleteTemplate } from '/meal-templates.js';
 import { listRecipes, saveRecipe, deleteRecipe } from '/recipes.js';

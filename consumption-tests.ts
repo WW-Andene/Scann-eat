@@ -26,7 +26,7 @@ if (!('crypto' in globalThis) || !('randomUUID' in (globalThis as { crypto?: Cry
   } as Crypto;
 }
 
-const { buildEntry, buildQuickAdd, sumTotals, groupByMeal, todayISO, MEALS } = await import('./public/consumption.js');
+const { buildEntry, buildQuickAdd, sumTotals, groupByMeal, todayISO, MEALS } = await import('./public/data/consumption.js');
 
 type P = {
   name: string; category: string; nutrition: Record<string, number>; weight_g?: number;
