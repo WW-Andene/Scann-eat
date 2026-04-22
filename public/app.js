@@ -330,8 +330,8 @@ async function scanViaDirect() {
     if (off) return { product: off, audit: scoreProduct(off), warnings: [], source: 'openfoodfacts', barcode: bc };
   }
   const payload = queuePayload();
-  if (payload.length === 0) throw new Error('Aucune photo à analyser.');
-  if (!key) throw new Error(t('settingsKey') + ' manquante.');
+  if (payload.length === 0) throw new Error(t('errNoPhotos'));
+  if (!key) throw new Error(t('errMissingKey'));
   const parsed = await parseLabel(payload, { apiKey: key });
   return {
     product: parsed.product,
@@ -761,7 +761,7 @@ async function shareCurrentScan() {
     await navigator.share({
       title: 'Scann-eat',
       text: t('shareText', {
-        name: lastData.audit.product_name || 'Produit',
+        name: lastData.audit.product_name || t('productFallbackName'),
         score: lastData.audit.score,
         grade: lastData.audit.grade,
       }),
