@@ -11,7 +11,7 @@ import { computePersonalScore, personalGrade } from '/personal-score.js';
 import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -1802,10 +1802,19 @@ if (SpeechRecognitionImpl && qaVoiceBtn) {
           .join(' ')
           .trim();
         if (!transcript) return;
-        // For now, dump the raw transcript into the name field. Round 82
-        // will add a parser that extracts kcal / grams from it.
-        const nameEl = $('qa-name');
-        if (nameEl) nameEl.value = transcript;
+        // Parse the transcript into field candidates and only overwrite
+        // fields the parser actually recognized, so a partial utterance
+        // doesn't wipe values the user already typed.
+        const parsed = parseVoiceQuickAdd(transcript);
+        const setField = (id, v) => {
+          const el = $(id);
+          if (el && v != null) el.value = String(v);
+        };
+        setField('qa-name',    parsed.name);
+        setField('qa-kcal',    parsed.kcal);
+        setField('qa-protein', parsed.protein_g);
+        setField('qa-carbs',   parsed.carbs_g);
+        setField('qa-fat',     parsed.fat_g);
       };
       rec.onerror = () => { /* handled by onend */ };
       rec.onend = () => {

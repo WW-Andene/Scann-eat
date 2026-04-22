@@ -94,6 +94,75 @@ export function defaultMealForHour(hour) {
  * All date math uses ISO YYYY-MM-DD strings, so timezone jumps at midnight
  * don't break the count.
  */
+/**
+ * Parse a voice-dictated phrase into Quick-Add field candidates. Pure
+ * function — no SpeechRecognition or DOM involvement. Recognizes:
+ *
+ *   kcal      → "120 calories", "120 kcal", "120 cal"
+ *   grams     → "250 g", "250 grammes", "250 grams"
+ *   ml        → "250 ml" (treated same as g for a rough portion size)
+ *   protein   → "15 g de protéines", "15 g protein"
+ *   carbs     → "30 g de glucides", "30 g carbs"
+ *   fat       → "10 g de lipides", "10 g fat"
+ *
+ * Numbers accept both French comma decimals ("8,5") and point decimals.
+ * Anything left over (no recognised number-unit pair) becomes the name.
+ *
+ * Returns an object with only the keys it could extract — the caller
+ * spreads into the form so empty fields stay empty.
+ */
+export function parseVoiceQuickAdd(transcript) {
+  if (!transcript) return {};
+  const text = String(transcript).toLowerCase();
+  const out = {};
+
+  // Match "NUMBER (unit|label)". First match wins for each nutrient. French
+  // comma decimals and optional "de/of" before the nutrient label.
+  const num = '([0-9]+(?:[.,][0-9]+)?)';
+  const n = (s) => parseFloat(String(s).replace(',', '.'));
+  const grab = (re) => {
+    const m = text.match(re);
+    return m ? n(m[1]) : undefined;
+  };
+
+  const kcal = grab(new RegExp(`${num}\\s*(?:kcal|calories?|cal)\\b`, 'i'));
+  const protein = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:prot[eé]ines?|protein)\\b`, 'i'));
+  const carbs = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:glucides?|carbs?|carbohydrates?)\\b`, 'i'));
+  const fat = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:lipides?|fat|mati[eè]res? grasses?)\\b`, 'i'));
+
+  // Portion (grams OR ml). Only take if no macro claimed the same number —
+  // tested last and excluded when the nutrient labels are adjacent.
+  const portionRe = new RegExp(`${num}\\s*(g(?:rammes?)?|ml|millilitres?)(?![a-zà-ÿ])`, 'i');
+  let grams;
+  let m;
+  while ((m = portionRe.exec(text)) !== null) {
+    // Reject if this number was already consumed by a macro label.
+    const next20 = text.slice(m.index + m[0].length, m.index + m[0].length + 30);
+    if (/^\s*(?:de\s+)?(?:prot|gluc|carb|lipid|fat|mati[eè]re)/.test(next20)) continue;
+    grams = n(m[1]);
+    break;
+  }
+
+  if (Number.isFinite(kcal))    out.kcal = kcal;
+  if (Number.isFinite(protein)) out.protein_g = protein;
+  if (Number.isFinite(carbs))   out.carbs_g = carbs;
+  if (Number.isFinite(fat))     out.fat_g = fat;
+  if (Number.isFinite(grams))   out.grams = grams;
+
+  // Name: strip out the unit-number blocks we consumed. Whatever's left is
+  // the food name. Trim punctuation + whitespace.
+  let name = text
+    .replace(new RegExp(`${num}\\s*(?:kcal|calories?|cal|kilocalories?)\\b`, 'gi'), ' ')
+    .replace(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:prot[eé]ines?|protein|glucides?|carbs?|carbohydrates?|lipides?|fat|mati[eè]res? grasses?)\\b`, 'gi'), ' ')
+    .replace(new RegExp(`${num}\\s*(?:g(?:rammes?)?|ml|millilitres?)(?![a-zà-ÿ])`, 'gi'), ' ')
+    .replace(/[,;.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (name.length > 0) out.name = name;
+
+  return out;
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));

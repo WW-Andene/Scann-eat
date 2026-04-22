@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -253,5 +253,74 @@ describe('logStreakDays', () => {
   it('deduplicates multiple entries on the same day', () => {
     const e = mk('2026-04-22', '2026-04-22', '2026-04-22', '2026-04-21');
     assert.equal(logStreakDays(e, '2026-04-22'), 2);
+  });
+});
+
+// ============================================================================
+// parseVoiceQuickAdd
+// ============================================================================
+
+describe('parseVoiceQuickAdd', () => {
+  it('returns empty object for empty / missing input', () => {
+    assert.deepEqual(parseVoiceQuickAdd(''), {});
+    assert.deepEqual(parseVoiceQuickAdd(null), {});
+    assert.deepEqual(parseVoiceQuickAdd(undefined), {});
+  });
+
+  it('extracts kcal from "120 calories"', () => {
+    const r = parseVoiceQuickAdd('café au lait 120 calories');
+    assert.equal(r.kcal, 120);
+    assert.equal(r.name, 'café au lait');
+  });
+
+  it('extracts kcal from "kcal" and "cal" variants', () => {
+    assert.equal(parseVoiceQuickAdd('250 kcal').kcal, 250);
+    assert.equal(parseVoiceQuickAdd('90 cal').kcal, 90);
+  });
+
+  it('extracts portion (grams + ml)', () => {
+    assert.equal(parseVoiceQuickAdd('yaourt 125 g').grams, 125);
+    assert.equal(parseVoiceQuickAdd('boisson 250 ml').grams, 250);
+  });
+
+  it('handles French comma decimals', () => {
+    const r = parseVoiceQuickAdd('salade 8,5 g de protéines');
+    assert.equal(r.protein_g, 8.5);
+  });
+
+  it('distinguishes grams from grams-of-macro', () => {
+    // "15 g de protéines" should populate protein, NOT grams
+    const r = parseVoiceQuickAdd('barre 15 g de protéines');
+    assert.equal(r.protein_g, 15);
+    assert.equal(r.grams, undefined);
+  });
+
+  it('extracts all four macros from a full phrase', () => {
+    const r = parseVoiceQuickAdd(
+      'pizza 350 calories 40 g de glucides 15 g de protéines 12 g de lipides',
+    );
+    assert.equal(r.kcal, 350);
+    assert.equal(r.carbs_g, 40);
+    assert.equal(r.protein_g, 15);
+    assert.equal(r.fat_g, 12);
+  });
+
+  it('leaves the remaining text as the name', () => {
+    const r = parseVoiceQuickAdd('banane nature 110 kcal');
+    assert.equal(r.name, 'banane nature');
+  });
+
+  it('recognizes EN vocabulary too', () => {
+    const r = parseVoiceQuickAdd('oatmeal 150 kcal 30 g of carbs 5 g of protein');
+    assert.equal(r.kcal, 150);
+    assert.equal(r.carbs_g, 30);
+    assert.equal(r.protein_g, 5);
+  });
+
+  it('only overwrites parsed keys (caller spreads safely)', () => {
+    const r = parseVoiceQuickAdd('just a name no numbers');
+    assert.equal(r.kcal, undefined);
+    assert.equal(r.protein_g, undefined);
+    assert.equal(r.name, 'just a name no numbers');
   });
 });
