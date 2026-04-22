@@ -1483,7 +1483,12 @@ queueEl.addEventListener('click', (e) => {
 scanBtn.addEventListener('click', () => { scanImage(); });
 resetBtn.addEventListener('click', () => {
   queue.length = 0; fileInput.value = '';
-  renderQueue(); hide(resultEl); hide(errorEl);
+  // Clear lingering scan state so compare-next can't re-arm an old product.
+  lastData = null;
+  renderQueue();
+  hide(resultEl);
+  hide(errorEl);
+  hide(comparisonEl);
 });
 compareNextBtn?.addEventListener('click', () => { if (lastData) armComparison(lastData); });
 compareClear?.addEventListener('click', () => {
