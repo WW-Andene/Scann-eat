@@ -26,11 +26,11 @@
  * violation" cap is the defensible behaviour from a user-decision standpoint.
  */
 
-import { checkDiet, DIET_DEFS } from './core/diets.js';
+import { checkDiet, DIET_DEFS } from './diets.js';
 import {
   bmi, bmiCategory, hasMinimalProfile,
   dailyTargets, proteinPRI_g,
-} from './data/profile.js';
+} from '../data/profile.js';
 
 /**
  * @returns {{

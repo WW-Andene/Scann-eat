@@ -25,7 +25,7 @@ import { describe, it, before } from 'node:test';
 } as unknown as Storage;
 
 const { checkDiet } = await import('./public/core/diets.js');
-const { computePersonalScore } = await import('./public/personal-score.js');
+const { computePersonalScore } = await import('./public/core/personal-score.js');
 const { bmrMifflinStJeor, tdeeKcal, bmi, dailyTargets, proteinPRI_g } = await import('./public/data/profile.js');
 
 // ----- Authoritative formula sanity -----

@@ -13,7 +13,7 @@ import {
   getProfile, setProfile, hasMinimalProfile,
   bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets,
 } from '/data/profile.js';
-import { computePersonalScore, personalGrade } from '/personal-score.js';
+import { computePersonalScore, personalGrade } from '/core/personal-score.js';
 import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/data/consumption.js';
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/data/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/data/meal-templates.js';
