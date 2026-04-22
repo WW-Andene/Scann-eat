@@ -12,7 +12,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -2722,6 +2722,128 @@ async function renderDashboard() {
 
 function round1(x) { return Math.round(x * 10) / 10; }
 function round3(x) { return Math.round(x * 1000) / 1000; }
+
+// ============================================================================
+// Progress charts — 30-day trend for weight, kcal, hydration.
+// ============================================================================
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function renderLineChart(container, values, opts = {}) {
+  if (!container) return;
+  container.textContent = '';
+  const numeric = values.filter((v) => typeof v === 'number' && Number.isFinite(v));
+  if (numeric.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'pc-empty';
+    empty.textContent = t('progressNoData');
+    container.appendChild(empty);
+    return { min: null, max: null };
+  }
+  const width = 300;
+  const height = 120;
+  const { path_d, min, max, points } = buildLineChartPath(values, {
+    width, height, padding: 10,
+  });
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', opts.ariaLabel || 'chart');
+
+  if (path_d) {
+    const line = document.createElementNS(SVG_NS, 'path');
+    line.setAttribute('class', 'pc-line');
+    line.setAttribute('d', path_d);
+    svg.appendChild(line);
+    // Dot only on the last point — visual emphasis on "where you are now".
+    const last = points[points.length - 1];
+    if (last) {
+      const dot = document.createElementNS(SVG_NS, 'circle');
+      dot.setAttribute('class', 'pc-dot');
+      dot.setAttribute('cx', last.x.toFixed(1));
+      dot.setAttribute('cy', last.y.toFixed(1));
+      dot.setAttribute('r', '3.5');
+      svg.appendChild(dot);
+    }
+    // Axis labels: min at bottom-left, max at top-left.
+    const minLabel = document.createElementNS(SVG_NS, 'text');
+    minLabel.setAttribute('class', 'pc-axis');
+    minLabel.setAttribute('x', '2');
+    minLabel.setAttribute('y', (height - 2).toString());
+    minLabel.textContent = String(Math.round(min));
+    const maxLabel = document.createElementNS(SVG_NS, 'text');
+    maxLabel.setAttribute('class', 'pc-axis');
+    maxLabel.setAttribute('x', '2');
+    maxLabel.setAttribute('y', '12');
+    maxLabel.textContent = String(Math.round(max));
+    svg.appendChild(minLabel);
+    svg.appendChild(maxLabel);
+  }
+  container.appendChild(svg);
+  return { min, max };
+}
+
+async function renderProgressCharts() {
+  // Build an ISO-dated series of the last 30 days. Null = no data that day.
+  const days = [];
+  const today = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+
+  // Weight series — pick the most recent entry per date if multiple.
+  const weights = await listWeight().catch(() => []);
+  const weightByDate = new Map();
+  for (const w of weights) {
+    if (!weightByDate.has(w.date) || (w.timestamp ?? 0) > (weightByDate.get(w.date).timestamp ?? 0)) {
+      weightByDate.set(w.date, w);
+    }
+  }
+  const weightSeries = days.map((d) => weightByDate.get(d)?.weight_kg ?? null);
+
+  // Kcal series — sum per date from all consumption entries.
+  const allEntries = await listAllEntries().catch(() => []);
+  const kcalByDate = new Map();
+  for (const e of allEntries) {
+    kcalByDate.set(e.date, (kcalByDate.get(e.date) ?? 0) + (Number(e.kcal) || 0));
+  }
+  const kcalSeries = days.map((d) => (kcalByDate.has(d) ? kcalByDate.get(d) : null));
+
+  // Water series — localStorage-backed per date.
+  const waterSeries = days.map((d) => {
+    const raw = localStorage.getItem(`scanneat.hydration.${d}`);
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  });
+
+  const w = renderLineChart($('progress-weight-chart'), weightSeries, { ariaLabel: t('progressWeight') });
+  const k = renderLineChart($('progress-kcal-chart'), kcalSeries, { ariaLabel: t('progressKcal') });
+  const wt = renderLineChart($('progress-water-chart'), waterSeries, { ariaLabel: t('progressWater') });
+
+  const fmtSummary = (el, res) => {
+    if (!el) return;
+    if (!res || res.min == null) { el.textContent = ''; return; }
+    el.textContent = t('progressMinMax', { min: Math.round(res.min), max: Math.round(res.max) });
+  };
+  fmtSummary($('progress-weight-summary'), w);
+  fmtSummary($('progress-kcal-summary'), k);
+  fmtSummary($('progress-water-summary'), wt);
+}
+
+$('progress-btn')?.addEventListener('click', async () => {
+  const dlg = $('progress-dialog');
+  if (!dlg) return;
+  dlg.showModal();
+  try { await renderProgressCharts(); }
+  catch (err) { console.warn('[progress]', err); }
+});
+$('progress-close')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  $('progress-dialog')?.close();
+});
 
 async function renderWeightSummary(profile) {
   const el = $('weight-summary');
