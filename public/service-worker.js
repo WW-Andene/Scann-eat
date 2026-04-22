@@ -13,7 +13,7 @@ const SHELL = [
   '/personal-score.js',
   '/data/consumption.js',
   '/data/weight-log.js',
-  '/meal-templates.js',
+  '/data/meal-templates.js',
   '/recipes.js',
   '/backup.js',
   '/profiles.js',

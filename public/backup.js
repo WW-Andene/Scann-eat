@@ -17,7 +17,7 @@ import {
   listAllEntries, putEntry, listByDate, deleteEntry, todayISO,
 } from '/data/consumption.js';
 import { listWeight, logWeight, deleteWeight } from '/data/weight-log.js';
-import { listTemplates, saveTemplate, deleteTemplate } from '/meal-templates.js';
+import { listTemplates, saveTemplate, deleteTemplate } from '/data/meal-templates.js';
 import { listRecipes, saveRecipe, deleteRecipe } from '/recipes.js';
 
 const BACKUP_VERSION = 1;
