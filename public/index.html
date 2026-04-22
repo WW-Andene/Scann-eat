@@ -615,6 +615,18 @@
         </form>
       </dialog>
 
+      <dialog id="recipe-ideas-dialog" class="settings-dialog" aria-labelledby="recipe-ideas-title">
+        <form method="dialog">
+          <h2 id="recipe-ideas-title" data-i18n="recipeIdeasTitle">Idées de recettes</h2>
+          <p id="recipe-ideas-intro" class="hint"></p>
+          <p id="recipe-ideas-status" class="hint" aria-live="polite"></p>
+          <div id="recipe-ideas-list" class="recipe-ideas-list"></div>
+          <div class="dialog-actions">
+            <button id="recipe-ideas-close" type="button" class="secondary" data-i18n="close">Fermer</button>
+          </div>
+        </form>
+      </dialog>
+
       <dialog id="custom-foods-dialog" class="settings-dialog" aria-labelledby="custom-foods-title">
         <form method="dialog">
           <h2 id="custom-foods-title" data-i18n="customFoodsTitle">Mes aliments</h2>
@@ -837,6 +849,7 @@
           <section id="pairings" class="pairings" hidden aria-labelledby="pairings-title">
             <h3 id="pairings-title" class="pairings-title"></h3>
             <ul id="pairings-list" class="pairings-list"></ul>
+            <button id="recipe-ideas-btn" type="button" class="secondary compact recipe-ideas-btn" data-i18n="recipeIdeasBtn">💡 Idées de recettes</button>
           </section>
         </div>
 

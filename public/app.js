@@ -677,6 +677,11 @@ function renderSparseHint(data) {
  * ingredient when the name is a brand) against the curated PAIRINGS
  * table. Hidden when nothing matches.
  */
+// Stashes the canonical ingredient name from the last successful
+// renderPairings() call so the recipe-ideas button has something to send
+// to the LLM without having to re-derive it on click.
+let pairedIngredientName = null;
+
 function renderPairings(data) {
   const section = $('pairings');
   const title = $('pairings-title');
@@ -693,7 +698,12 @@ function renderPairings(data) {
     hit = matchPairings(firstIng);
   }
   list.textContent = '';
-  if (!hit) { hide(section); return; }
+  if (!hit) {
+    pairedIngredientName = null;
+    hide(section);
+    return;
+  }
+  pairedIngredientName = hit.name;
   title.textContent = t('pairingsTitle', { name: hit.name });
   for (const p of hit.pairs.slice(0, 6)) {
     const li = document.createElement('li');
@@ -703,6 +713,104 @@ function renderPairings(data) {
   }
   show(section);
 }
+
+// ============================================================================
+// Recipe ideas dialog — LLM-backed, powered by /api/suggest-recipes.
+// Opens from the "💡 Idées de recettes" button inside the pairings panel.
+// ============================================================================
+
+const recipeIdeasDialog = $('recipe-ideas-dialog');
+
+async function openRecipeIdeas(ingredient) {
+  if (!recipeIdeasDialog || !ingredient) return;
+  $('recipe-ideas-intro').textContent = t('recipeIdeasIntro', { name: ingredient });
+  $('recipe-ideas-list').textContent = '';
+  $('recipe-ideas-status').textContent = t('recipeIdeasLoading');
+  recipeIdeasDialog.showModal();
+
+  let result;
+  try {
+    const mode = getMode();
+    if (mode === 'direct') {
+      const { suggestRecipes } = await loadEngine();
+      const key = getKey();
+      if (!key) throw new Error(t('errMissingKey'));
+      result = await suggestRecipes(ingredient, { apiKey: key });
+    } else {
+      const res = await fetch('/api/suggest-recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ingredient }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      result = await res.json();
+    }
+  } catch (err) {
+    console.warn('[suggestRecipes]', err);
+    $('recipe-ideas-status').textContent = t('recipeIdeasFailed');
+    return;
+  }
+
+  const recipes = Array.isArray(result?.recipes) ? result.recipes : [];
+  const list = $('recipe-ideas-list');
+  if (recipes.length === 0) {
+    $('recipe-ideas-status').textContent = t('recipeIdeasEmpty');
+    return;
+  }
+  $('recipe-ideas-status').textContent = '';
+  for (const r of recipes) {
+    const card = document.createElement('article');
+    card.className = 'recipe-idea-card';
+    const h = document.createElement('h3');
+    h.textContent = r.name;
+    card.appendChild(h);
+    const meta = document.createElement('p');
+    meta.className = 'recipe-idea-meta';
+    meta.textContent = t('recipeIdeasMeta', {
+      time: Math.round(r.time_min || 0),
+      kcal: Math.round(r.kcal_estimate || 0),
+    });
+    card.appendChild(meta);
+    if (Array.isArray(r.ingredients) && r.ingredients.length) {
+      const label = document.createElement('p');
+      label.className = 'recipe-idea-sublabel';
+      label.textContent = t('recipeIdeasIngredients');
+      card.appendChild(label);
+      const ul = document.createElement('ul');
+      ul.className = 'recipe-idea-ings';
+      for (const ing of r.ingredients) {
+        const li = document.createElement('li');
+        li.textContent = ing;
+        ul.appendChild(li);
+      }
+      card.appendChild(ul);
+    }
+    if (Array.isArray(r.steps) && r.steps.length) {
+      const label = document.createElement('p');
+      label.className = 'recipe-idea-sublabel';
+      label.textContent = t('recipeIdeasSteps');
+      card.appendChild(label);
+      const ol = document.createElement('ol');
+      ol.className = 'recipe-idea-steps';
+      for (const step of r.steps) {
+        const li = document.createElement('li');
+        li.textContent = step;
+        ol.appendChild(li);
+      }
+      card.appendChild(ol);
+    }
+    list.appendChild(card);
+  }
+}
+
+$('recipe-ideas-btn')?.addEventListener('click', () => {
+  if (!pairedIngredientName) return;
+  openRecipeIdeas(pairedIngredientName);
+});
+$('recipe-ideas-close')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  recipeIdeasDialog?.close();
+});
 
 async function maybeRenderAlternatives(data) {
   const section = $('alternatives');
