@@ -482,6 +482,44 @@ export function nextOccurrenceMs(hhmm, nowMs) {
   return target.getTime();
 }
 
+/**
+ * Export consumption entries in a health-app-friendly JSON shape. One
+ * record per MEAL (not per day, because Apple Health + Google Fit both
+ * expect per-intake timestamps). Field names align with Apple Health's
+ * Dietary Energy + macro type identifiers.
+ *
+ * Consumable directly by:
+ *   - iOS Shortcuts with the "Log Health Sample" action
+ *   - "Health Auto Export" and similar bridge apps on iOS / Android
+ *
+ * Can NOT be imported directly by Apple Health / Google Fit without a
+ * middleware app — a PWA has no access to those native stores.
+ */
+export function entriesToHealthJSON(entries) {
+  const out = (entries ?? []).map((e) => ({
+    timestamp: e.timestamp
+      ? new Date(Number(e.timestamp)).toISOString()
+      : `${e.date}T12:00:00.000Z`,
+    name: e.product_name || '(—)',
+    meal: e.meal || 'snack',
+    grams: Number(e.grams) || 0,
+    // Apple Health identifiers
+    dietaryEnergy_kcal: Number(e.kcal) || 0,
+    dietaryCarbohydrates_g: Number(e.carbs_g) || 0,
+    dietaryProtein_g: Number(e.protein_g) || 0,
+    dietaryFatTotal_g: Number(e.fat_g) || 0,
+    dietaryFatSaturated_g: Number(e.sat_fat_g) || 0,
+    dietarySugar_g: Number(e.sugars_g) || 0,
+    dietarySodium_mg: Math.round((Number(e.salt_g) || 0) * 400), // salt → sodium ≈ × 0.4
+  }));
+  return {
+    source: 'scann-eat',
+    exported_at: new Date().toISOString(),
+    schema: 'apple-health-dietary-v1',
+    entries: out,
+  };
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));

@@ -151,7 +151,9 @@
               <input id="backup-import-file" type="file" accept="application/json" hidden />
             </label>
             <button id="csv-export" type="button" class="chip-btn" data-i18n="csvExport">📊 CSV</button>
+            <button id="health-export" type="button" class="chip-btn" data-i18n="healthExport">💊 Health JSON</button>
           </div>
+          <p class="hint" data-i18n="healthExportHint">Le JSON "Health" s'importe dans Apple Health / Google Fit via une app passerelle (Shortcuts iOS, Health Auto Export). Scann-eat ne s'intègre pas directement — une PWA n'a pas accès aux bases de santé natives.</p>
           <p id="backup-status" class="qa-ai-status" hidden></p>
         </fieldset>
 

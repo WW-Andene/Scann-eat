@@ -15,7 +15,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -1764,6 +1764,25 @@ $('backup-export')?.addEventListener('click', async () => {
     setBackupStatus(err.message || String(err), 'error');
   }
 });
+$('health-export')?.addEventListener('click', async () => {
+  try {
+    const all = await listAllEntries().catch(() => []);
+    const payload = entriesToHealthJSON(all);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `scanneat-health-${date}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setBackupStatus(t('healthExported', { n: payload.entries.length }));
+  } catch (err) {
+    console.error('[health export]', err);
+    setBackupStatus(err.message || String(err), 'error');
+  }
+});
+
 $('csv-export')?.addEventListener('click', async () => {
   try {
     const all = await listAllEntries().catch(() => []);
