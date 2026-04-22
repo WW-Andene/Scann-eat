@@ -54,7 +54,17 @@ self.addEventListener('fetch', (event) => {
             }
             return res;
           })
-          .catch(() => cached);
+          .catch(() => {
+            // Network failed. If we have a cached copy, hand it back; else
+            // return a synthetic 504 so the promise resolves to a Response
+            // instead of undefined (which would crash the fetch handler).
+            if (cached) return cached;
+            return new Response('Offline and not cached', {
+              status: 504,
+              statusText: 'Gateway Timeout',
+              headers: { 'Content-Type': 'text/plain' },
+            });
+          });
         return cached || fetchPromise;
       }),
     );
