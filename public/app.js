@@ -2323,9 +2323,11 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
     }
     const meal = $('qa-meal')?.value || defaultMealForHour(new Date().getHours());
     let dbHits = 0;
+    const reconciled = [];
     for (const it of items) {
       const r = reconcileWithFoodDB(it, listCustomFoods());
       if (r.source === 'db') dbHits += 1;
+      reconciled.push(r);
       await logQuickAdd({
         name: r.name,
         meal,
@@ -2338,6 +2340,14 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
         salt_g: 0,
       });
     }
+    // Stash the plate so the Recipes dialog can offer a "from last plate
+    // scan" shortcut — one tap to save the same components as a reusable
+    // recipe going forward.
+    lastIdentifiedPlate = {
+      items: reconciled,
+      stashed_at: Date.now(),
+    };
+    refreshRecipeFromPlateBtn();
     quickAddDialog?.close();
     await renderDashboard();
     toast(t('identifyMultiToast', { n: items.length, db: dbHits }));
@@ -2790,11 +2800,43 @@ async function renderRecipesList() {
 
 recipesBtn?.addEventListener('click', async () => {
   recipesDialog?.showModal();
+  refreshRecipeFromPlateBtn();
   try { await renderRecipesList(); }
   catch (err) { console.warn('[recipes] render failed', err); }
 });
 recipesCloseBtn?.addEventListener('click', (e) => { e.preventDefault(); recipesDialog?.close(); });
 recipeNewBtn?.addEventListener('click', () => openRecipeEditor(null));
+
+// Shortcut: spin up a recipe from the most recent multi-item photo scan.
+// Populated from the plate scan flow above and cleared on page reload.
+let lastIdentifiedPlate = null;
+
+function refreshRecipeFromPlateBtn() {
+  const btn = $('recipe-from-plate-btn');
+  if (!btn) return;
+  const has = !!lastIdentifiedPlate && Array.isArray(lastIdentifiedPlate.items) && lastIdentifiedPlate.items.length > 0;
+  btn.disabled = !has;
+  btn.hidden = !has;
+}
+refreshRecipeFromPlateBtn();
+
+$('recipe-from-plate-btn')?.addEventListener('click', () => {
+  if (!lastIdentifiedPlate?.items?.length) return;
+  const components = lastIdentifiedPlate.items.map((it) => ({
+    product_name: String(it.name ?? ''),
+    grams: Math.round(Number(it.estimated_grams) || 0),
+    kcal: Math.round(Number(it.kcal) || 0),
+    protein_g: Math.round(Number(it.protein_g) || 0),
+    carbs_g: Math.round(Number(it.carbs_g) || 0),
+    fat_g: Math.round(Number(it.fat_g) || 0),
+  }));
+  openRecipeEditor({
+    id: undefined,
+    name: '',
+    servings: 1,
+    components,
+  });
+});
 
 qaSave?.addEventListener('click', async (e) => {
   e.preventDefault();
