@@ -9,7 +9,7 @@
 
 import { build } from 'esbuild';
 import { execSync } from 'node:child_process';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 let commit = process.env.APP_COMMIT;
 if (!commit) {
@@ -25,6 +25,21 @@ await writeFile(
   'public/version.json',
   JSON.stringify({ commit, built_at: builtAt }, null, 2) + '\n',
 );
+
+// Auto-bump the service-worker cache key to the current commit so browsers
+// pick up fresh shell assets without us remembering to edit the SW manually.
+// Any placeholder-style `const CACHE = '...';` on the first line works.
+try {
+  const swPath = 'public/service-worker.js';
+  const src = await readFile(swPath, 'utf8');
+  const next = src.replace(
+    /const CACHE = '[^']+';/,
+    `const CACHE = 'scann-eat-shell-${commit}';`,
+  );
+  if (next !== src) await writeFile(swPath, next);
+} catch (err) {
+  console.warn('[build] could not bump SW cache:', err?.message || err);
+}
 
 await build({
   stdin: {
