@@ -60,3 +60,20 @@ export function timeAgoBucket(msAgo) {
   const d = Math.round(h / 24);
   return { kind: 'days', n: d };
 }
+
+/**
+ * Default meal bucket for a given hour-of-day. Pure function (takes hour,
+ * returns a MEALS key) so it can be used anywhere a Meal picker needs a
+ * reasonable default without a fresh Date() call.
+ *
+ *   5-10 → breakfast  (early morning)
+ *  10-14 → lunch      (midday)
+ *  14-18 → snack      (afternoon)
+ *  18-24, 0-5 → dinner (evening + late night)
+ */
+export function defaultMealForHour(hour) {
+  if (hour >= 5  && hour < 10) return 'breakfast';
+  if (hour >= 10 && hour < 14) return 'lunch';
+  if (hour >= 14 && hour < 18) return 'snack';
+  return 'dinner';
+}

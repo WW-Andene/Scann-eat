@@ -11,7 +11,7 @@ import { computePersonalScore, personalGrade } from '/personal-score.js';
 import { logEntry, logQuickAdd, listByDate, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour } from '/presenters.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
 // (getItem returns null silently, but setItem/removeItem throw). Shim the
@@ -1643,6 +1643,11 @@ function setupPortionPanel(product) {
   const weight = product?.weight_g;
   const defaultG = weight && weight > 0 && weight < 2000 ? weight : 100;
   portionInput.value = String(defaultG);
+  // Default meal matches time-of-day (same logic as Quick Add) so a user
+  // scanning a product at 8am sees "breakfast" pre-selected, not "snack".
+  if (portionMealSelect) {
+    portionMealSelect.value = defaultMealForHour(new Date().getHours());
+  }
   if (weight && weight > 0 && weight < 2000) {
     portionPresetPack.textContent = `${weight} g (paquet)`;
     portionPresetPack.dataset.portion = String(weight);
@@ -1695,9 +1700,7 @@ quickAddBtn?.addEventListener('click', () => {
     if (el) el.value = '';
   }
   // pick a default meal by time-of-day
-  const hour = new Date().getHours();
-  const defaultMeal = hour < 10 ? 'breakfast' : hour < 14 ? 'lunch' : hour < 18 ? 'snack' : 'dinner';
-  if ($('qa-meal')) $('qa-meal').value = defaultMeal;
+  if ($('qa-meal')) $('qa-meal').value = defaultMealForHour(new Date().getHours());
   quickAddDialog.showModal();
 });
 qaCancel?.addEventListener('click', (e) => { e.preventDefault(); quickAddDialog.close(); });

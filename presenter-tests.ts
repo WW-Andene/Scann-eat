@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -178,5 +178,36 @@ describe('timeAgoBucket', () => {
     assert.deepEqual(timeAgoBucket(29_500), { kind: 'justNow' });
     // 30 seconds rounds to 1 minute → minutes
     assert.deepEqual(timeAgoBucket(30_000), { kind: 'minutes', n: 1 });
+  });
+});
+
+// ============================================================================
+// defaultMealForHour
+// ============================================================================
+
+describe('defaultMealForHour', () => {
+  it('early morning (5-9) → breakfast', () => {
+    assert.equal(defaultMealForHour(5), 'breakfast');
+    assert.equal(defaultMealForHour(8), 'breakfast');
+    assert.equal(defaultMealForHour(9), 'breakfast');
+  });
+
+  it('midday (10-13) → lunch', () => {
+    assert.equal(defaultMealForHour(10), 'lunch');
+    assert.equal(defaultMealForHour(12), 'lunch');
+    assert.equal(defaultMealForHour(13), 'lunch');
+  });
+
+  it('afternoon (14-17) → snack', () => {
+    assert.equal(defaultMealForHour(14), 'snack');
+    assert.equal(defaultMealForHour(17), 'snack');
+  });
+
+  it('evening + late night (18+, 0-4) → dinner', () => {
+    assert.equal(defaultMealForHour(18), 'dinner');
+    assert.equal(defaultMealForHour(21), 'dinner');
+    assert.equal(defaultMealForHour(23), 'dinner');
+    assert.equal(defaultMealForHour(0), 'dinner');
+    assert.equal(defaultMealForHour(4), 'dinner');
   });
 });
