@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -494,5 +494,67 @@ describe('fastingStatus', () => {
     const s = fastingStatus(0, hour(16), 18);
     assert.equal(s.complete, false);
     assert.equal(s.remaining_ms, hour(2));
+  });
+});
+
+// ============================================================================
+// buildLineChartPath — SVG path builder for progress charts
+// ============================================================================
+
+describe('buildLineChartPath', () => {
+  it('empty input → no path, zero min/max, empty points', () => {
+    const r = buildLineChartPath([]);
+    assert.equal(r.path_d, '');
+    assert.equal(r.min, 0);
+    assert.equal(r.max, 0);
+    assert.deepEqual(r.points, []);
+  });
+
+  it('single value → one M command, min == max', () => {
+    const r = buildLineChartPath([80]);
+    assert.match(r.path_d, /^M /);
+    assert.equal(r.min, 80);
+    assert.equal(r.max, 80);
+    assert.equal(r.points.length, 1);
+  });
+
+  it('ascending series → ascending x, descending y (SVG coord)', () => {
+    const r = buildLineChartPath([70, 72, 75, 78], { width: 300, height: 100, padding: 0 });
+    // x monotonically increasing
+    for (let i = 1; i < r.points.length; i++) {
+      assert.ok(r.points[i].x > r.points[i - 1].x);
+    }
+    // higher data value → lower y coordinate (chart top = low y)
+    for (let i = 1; i < r.points.length; i++) {
+      assert.ok(r.points[i].y < r.points[i - 1].y, `y should decrease as value grows: ${JSON.stringify(r.points)}`);
+    }
+  });
+
+  it('null values split the path with a new M command', () => {
+    const r = buildLineChartPath([70, null, 75, 78]);
+    // Expect two M commands (one before 70, one before 75)
+    const mCount = (r.path_d.match(/M /g) || []).length;
+    assert.equal(mCount, 2);
+    assert.equal(r.points.length, 3);
+  });
+
+  it('all-equal values → flat line at mid-height (range=1 guard)', () => {
+    const r = buildLineChartPath([72, 72, 72], { width: 300, height: 100, padding: 0 });
+    // All y the same, positioned at the top (because (v - min)/range = 0)
+    const ys = new Set(r.points.map((p) => p.y));
+    assert.equal(ys.size, 1);
+  });
+
+  it('respects width / height / padding options', () => {
+    const r = buildLineChartPath([1, 2, 3], { width: 100, height: 50, padding: 5 });
+    assert.ok(r.points[0].x >= 5 && r.points[0].x <= 95);
+    assert.ok(r.points[0].y >= 5 && r.points[0].y <= 45);
+    assert.ok(r.points[2].x >= 5 && r.points[2].x <= 95);
+  });
+
+  it('non-numeric entries are treated as gaps', () => {
+    const r = buildLineChartPath([1, 'bad' as unknown as number, 3, NaN, 5]);
+    // 3 numeric points (1, 3, 5)
+    assert.equal(r.points.length, 3);
   });
 });

@@ -307,6 +307,57 @@ export function fastingStatus(startMs, nowMs, targetHours = 16) {
   };
 }
 
+/**
+ * Build the SVG path `d` attribute for a line chart of the given values,
+ * plus the Y-axis min/max used for scaling. Pure — no DOM touched.
+ *
+ * Coordinates are normalized to a `[0, width] × [0, height]` viewBox so the
+ * caller can size the chart with CSS.
+ *
+ *   values:  array of numbers (may include null/undefined for gaps)
+ *   width:   logical chart width (default 300)
+ *   height:  logical chart height (default 100)
+ *   padding: inner padding so points don't clip the edges
+ *
+ * Returns:
+ *   path_d:  M/L commands building a polyline; `M` restarts after null gaps
+ *   min/max: the y-range used, handy for rendering axis labels
+ *   points:  array of {x, y, value} for plotted points (null values skipped)
+ */
+export function buildLineChartPath(values, opts = {}) {
+  const width = opts.width ?? 300;
+  const height = opts.height ?? 100;
+  const padding = opts.padding ?? 6;
+  const cleaned = (values ?? []).map((v) =>
+    typeof v === 'number' && Number.isFinite(v) ? v : null,
+  );
+  const numeric = cleaned.filter((v) => v !== null);
+  if (numeric.length === 0) {
+    return { path_d: '', min: 0, max: 0, points: [] };
+  }
+  const min = Math.min(...numeric);
+  const max = Math.max(...numeric);
+  const range = max - min || 1; // avoid div-by-zero when all values equal
+  const innerW = width - padding * 2;
+  const innerH = height - padding * 2;
+  const stepX = cleaned.length > 1 ? innerW / (cleaned.length - 1) : 0;
+
+  const points = [];
+  let d = '';
+  let started = false;
+  for (let i = 0; i < cleaned.length; i++) {
+    const v = cleaned[i];
+    if (v === null) { started = false; continue; }
+    const x = padding + stepX * i;
+    // SVG y grows downward; invert so higher values sit higher.
+    const y = padding + innerH - ((v - min) / range) * innerH;
+    points.push({ x, y, value: v });
+    d += (started ? ' L ' : ' M ') + x.toFixed(1) + ' ' + y.toFixed(1);
+    started = true;
+  }
+  return { path_d: d.trim(), min, max, points };
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));
