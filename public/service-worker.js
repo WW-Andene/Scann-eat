@@ -21,7 +21,7 @@ const SHELL = [
   '/core/telemetry.js',
   '/core/app-settings.js',
   '/features/hydration.js',
-  '/presenters.js',
+  '/core/presenters.js',
   '/engine.bundle.js',
   '/styles.css',
   '/manifest.webmanifest',

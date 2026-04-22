@@ -18,7 +18,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/data/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/data/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON } from '/core/presenters.js';
 import { checkDiet } from '/core/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
