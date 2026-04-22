@@ -35,6 +35,10 @@
   --success:       #6BE584;
   --warning:       #F5A64B;
 
+  /* form controls — true surface for typing contrast */
+  --input-bg:      #2A2A30;    /* panel-2 level, distinguishable from card */
+  --on-muted:      #1B1B1F;    /* text drawn on .muted chips */
+
   /* grade colors */
   --grade-aplus: #6BE584;
   --grade-a:     #A3E067;
@@ -78,6 +82,8 @@
   --accent-ink:    #FFFFFF;
   --border:        rgba(27, 27, 31, 0.08);
   --border-strong: rgba(27, 27, 31, 0.20);
+  --input-bg:      #FFFFFF;
+  --on-muted:      #1B1B1F;
   color-scheme: light;
 }
 
@@ -387,7 +393,7 @@ button:focus-visible {
 .pending-text { flex: 1; color: var(--warning); font-weight: 600; }
 .pending-retry {
   background: var(--warning);
-  color: #1B1B1F;
+  color: var(--on-muted);
   padding: 8px 16px;
   border-radius: var(--r-pill);
   font-size: 0.88em;
@@ -459,9 +465,6 @@ button:focus-visible {
   box-sizing: border-box;
   transition: border-color 120ms ease;
 }
-[data-theme="light"] .settings-dialog input,
-[data-theme="light"] .settings-dialog select,
-[data-theme="light"] .settings-dialog textarea { background: #fff; }
 .settings-dialog input:focus-visible,
 .settings-dialog select:focus-visible,
 .settings-dialog textarea:focus-visible {
@@ -695,7 +698,7 @@ main {
   display: grid; place-items: center;
   border-radius: var(--r-pill);
   background: var(--muted);
-  color: #1B1B1F;
+  color: var(--on-muted);
   line-height: 1;
 }
 .compare-grade[data-grade="A+"] { background: var(--grade-aplus); }
@@ -897,8 +900,6 @@ main {
   min-height: 48px;
   box-sizing: border-box;
 }
-[data-theme="light"] .recent-filter input,
-[data-theme="light"] .recent-filter select { background: #fff; }
 .recent-list {
   list-style: none;
   padding: 0;
@@ -945,7 +946,7 @@ main {
   display: grid; place-items: center;
   border-radius: var(--r-pill);
   background: var(--muted);
-  color: #1B1B1F;
+  color: var(--on-muted);
   font-size: 1em;
 }
 .recent-grade[data-grade="A+"] { background: var(--grade-aplus); }
@@ -1156,13 +1157,13 @@ main {
   width: 3.2rem;
   height: 3.2rem;
   border-radius: 14px;
-  background: #1b2a25;
+  background: var(--panel-2);
   animation: pulse 1.2s ease-in-out infinite;
 }
 .skeleton-lines { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
 .skeleton-line {
   height: 0.75rem;
-  background: #1b2a25;
+  background: var(--panel-2);
   border-radius: 6px;
   animation: pulse 1.2s ease-in-out infinite;
 }
@@ -1197,14 +1198,12 @@ main {
 .recent-filter input,
 .recent-filter select {
   padding: 0.5rem 0.7rem;
-  background: #0f1a14;
+  background: var(--input-bg);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 0.9rem;
 }
-[data-theme="light"] .recent-filter input,
-[data-theme="light"] .recent-filter select { background: #fff; }
 .recent-empty {
   text-align: center;
   color: var(--muted);
@@ -1370,10 +1369,6 @@ main {
   font-family: inherit;
   box-sizing: border-box;
 }
-[data-theme="light"] .profile-grid input,
-[data-theme="light"] .profile-grid select,
-[data-theme="light"] .profile-grid textarea { background: #fff; }
-
 .custom-diet-wrap {
   display: flex;
   flex-direction: column;
@@ -1701,15 +1696,13 @@ main {
 }
 .portion-input select {
   padding: 0.4rem 0.55rem;
-  background: #0f1a14;
+  background: var(--input-bg);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 0.9rem;
   width: 100%;
 }
-[data-theme="light"] .portion-input select { background: #fff; }
-
 /* Quick Add dialog */
 #quick-add-dialog label { display: block; margin-bottom: 0.5rem; font-size: 0.82rem; color: var(--muted); }
 #quick-add-dialog label span { display: block; margin-bottom: 0.2rem; }
@@ -1717,15 +1710,13 @@ main {
 #quick-add-dialog select {
   width: 100%;
   padding: 0.45rem 0.6rem;
-  background: #0f1a14;
+  background: var(--input-bg);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 0.95rem;
   box-sizing: border-box;
 }
-[data-theme="light"] #quick-add-dialog input,
-[data-theme="light"] #quick-add-dialog select { background: #fff; }
 .qa-macros {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -1847,7 +1838,7 @@ main {
 .portion-panel input[type="number"] {
   width: 6.5rem;
   padding: 12px 14px;
-  background: var(--panel-2);
+  background: var(--input-bg);
   color: var(--text);
   border: 2px solid var(--border-strong);
   border-radius: var(--r-md);
@@ -1862,8 +1853,6 @@ main {
   outline-offset: 1px;
   border-color: var(--accent);
 }
-[data-theme="light"] .portion-panel input[type="number"] { background: #fff; }
-
 .portion-row-flex {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1871,7 +1860,7 @@ main {
 }
 .portion-input select {
   padding: 12px 14px;
-  background: var(--panel-2);
+  background: var(--input-bg);
   color: var(--text);
   border: 2px solid var(--border-strong);
   border-radius: var(--r-md);
@@ -1881,7 +1870,6 @@ main {
   width: 100%;
   box-sizing: border-box;
 }
-[data-theme="light"] .portion-input select { background: #fff; }
 
 .portion-presets {
   display: flex;
@@ -1938,14 +1926,14 @@ main {
   width: 100%;
 }
 .capture #scan-btn:disabled {
-  background: #2a3d37;
+  background: var(--panel-3);
   color: var(--muted);
   cursor: not-allowed;
 }
 
 button {
   background: var(--accent);
-  color: #0f1a14;
+  color: var(--accent-ink);
   border: none;
   padding: 0.85rem 1.4rem;
   border-radius: 999px;
@@ -2062,7 +2050,7 @@ button:active { transform: scale(0.98); }
   font-weight: 700;
   line-height: 1;
   background: var(--muted);
-  color: #1B1B1F;
+  color: var(--on-muted);
   width: 4rem;
   height: 4rem;
   display: grid;
