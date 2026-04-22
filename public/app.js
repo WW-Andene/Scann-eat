@@ -518,7 +518,7 @@ function renderAudit(data) {
     li.appendChild(labelSpan);
     li.appendChild(bar);
     li.appendChild(value);
-    li.addEventListener('click', () => openPillarDialog(label, pillar));
+    makeActivatable(li, () => openPillarDialog(label, pillar));
     pillarList.appendChild(li);
   }
   if (warnings?.length) {
@@ -612,7 +612,7 @@ function buildIngredientRow(ing) {
   if (ing.category === 'additive') li.classList.add('additive');
   if (info) {
     li.classList.add('explainable');
-    li.addEventListener('click', () => {
+    makeActivatable(li, () => {
       explainTitle.textContent = `${ing.name}${e}`;
       const parts = [info.concern];
       if (info.source) parts.push(`\n\nSource : ${info.source}`);
@@ -674,6 +674,20 @@ function renderNutrition(product) {
   }
 }
 
+/** Make a clickable <li> also keyboard-activatable.
+ *  Enter and Space open the same callback the click handler fires. */
+function makeActivatable(el, onActivate) {
+  el.setAttribute('role', 'button');
+  el.setAttribute('tabindex', '0');
+  el.addEventListener('click', onActivate);
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onActivate();
+    }
+  });
+}
+
 function renderList(id, items, emptyLabel) {
   const ul = $(id); ul.innerHTML = '';
   if (!items || items.length === 0) {
@@ -684,7 +698,7 @@ function renderList(id, items, emptyLabel) {
     const li = document.createElement('li');
     li.textContent = item;
     li.classList.add('explainable');
-    li.addEventListener('click', () => openExplanation(item));
+    makeActivatable(li, () => openExplanation(item));
     ul.appendChild(li);
   }
 }
