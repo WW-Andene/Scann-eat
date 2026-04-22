@@ -262,6 +262,7 @@ function renderQueue() {
       const remove = document.createElement('button');
       remove.type = 'button'; remove.className = 'queue-remove';
       remove.dataset.id = item.id; remove.textContent = '×';
+      remove.setAttribute('aria-label', t('removePhoto'));
       wrap.appendChild(img); wrap.appendChild(remove);
       if (item.barcode) {
         const tag = document.createElement('span');
