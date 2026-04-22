@@ -963,32 +963,114 @@ This app is decision support, not nutrition or medical advice. For critical deci
   },
 };
 
+// Skeleton translations for additional locales. We only ship a small
+// hand-translated set of UI-shell keys (language label, common buttons,
+// dialog titles) — every other key falls through to the English block
+// via the fallback chain in t() below. Marked "(beta)" in the language
+// select for honesty: a user who switches will see most of the app in
+// English with a few core strings in their language.
+//
+// Adding more strings here is straightforward, but we deliberately
+// avoid claiming full translation coverage we can't verify.
+STRINGS.es = {
+  settingsLanguage: 'Idioma',
+  theme: 'Tema',
+  themeDark: 'Oscuro',
+  themeLight: 'Claro',
+  themeAuto: 'Sistema',
+  settings: 'Ajustes',
+  close: 'Cerrar',
+  cancel: 'Cancelar',
+  save: 'Guardar',
+  quickAdd: 'Añadir',
+  recipesBtn: 'Recetas',
+  customFoodsBtn: 'Alimentos',
+  weightBtn: 'Peso',
+  progressBtn: '📈 Progreso',
+  mealPlanBtn: '📅 Plan',
+  installBannerTitle: '📱 ¿Instalar Scann-eat?',
+  installBannerHint: 'Añade la app a tu pantalla de inicio — funciona sin conexión.',
+  installBannerAccept: 'Instalar',
+  installBannerDismiss: 'Más tarde',
+};
+
+STRINGS.it = {
+  settingsLanguage: 'Lingua',
+  theme: 'Tema',
+  themeDark: 'Scuro',
+  themeLight: 'Chiaro',
+  themeAuto: 'Sistema',
+  settings: 'Impostazioni',
+  close: 'Chiudi',
+  cancel: 'Annulla',
+  save: 'Salva',
+  quickAdd: 'Aggiungi',
+  recipesBtn: 'Ricette',
+  customFoodsBtn: 'Alimenti',
+  weightBtn: 'Peso',
+  progressBtn: '📈 Progressi',
+  mealPlanBtn: '📅 Piano',
+  installBannerTitle: '📱 Installare Scann-eat?',
+  installBannerHint: 'Aggiungi l\'app alla schermata home — funziona offline.',
+  installBannerAccept: 'Installa',
+  installBannerDismiss: 'Più tardi',
+};
+
+STRINGS.de = {
+  settingsLanguage: 'Sprache',
+  theme: 'Theme',
+  themeDark: 'Dunkel',
+  themeLight: 'Hell',
+  themeAuto: 'System',
+  settings: 'Einstellungen',
+  close: 'Schließen',
+  cancel: 'Abbrechen',
+  save: 'Speichern',
+  quickAdd: 'Hinzufügen',
+  recipesBtn: 'Rezepte',
+  customFoodsBtn: 'Lebensmittel',
+  weightBtn: 'Gewicht',
+  progressBtn: '📈 Fortschritt',
+  mealPlanBtn: '📅 Plan',
+  installBannerTitle: '📱 Scann-eat installieren?',
+  installBannerHint: 'App zum Startbildschirm hinzufügen — funktioniert offline.',
+  installBannerAccept: 'Installieren',
+  installBannerDismiss: 'Später',
+};
+
+const SUPPORTED_LANGS = ['fr', 'en', 'es', 'it', 'de'];
 const LS_LANG = 'scanneat.lang';
 
 function detectDefaultLang() {
   const saved = localStorage.getItem(LS_LANG);
-  if (saved === 'fr' || saved === 'en') return saved;
-  const nav = (navigator.language || 'fr').toLowerCase();
-  return nav.startsWith('fr') ? 'fr' : 'en';
+  if (SUPPORTED_LANGS.includes(saved)) return saved;
+  const nav = (navigator.language || 'fr').toLowerCase().slice(0, 2);
+  return SUPPORTED_LANGS.includes(nav) ? nav : 'en';
 }
 
 export let currentLang = detectDefaultLang();
 
 export function setLang(lang) {
-  if (lang !== 'fr' && lang !== 'en') return;
+  if (!SUPPORTED_LANGS.includes(lang)) return;
   currentLang = lang;
   localStorage.setItem(LS_LANG, lang);
   applyStaticTranslations();
 }
 
+/**
+ * Lookup with fallback chain:
+ *   currentLang → English → French → key itself
+ *
+ * English is the primary fallback (not French) because non-Romance
+ * speakers are more likely to understand "Save" than "Sauvegarder".
+ * French stays as a tertiary fallback because some original keys are
+ * only defined there during early development.
+ */
 export function t(key, vars) {
-  const table = STRINGS[currentLang] ?? STRINGS.fr;
-  const fallback = STRINGS.fr;
-  let out = table[key] ?? fallback[key] ?? key;
+  const table = STRINGS[currentLang] ?? STRINGS.en;
+  let out = table[key] ?? STRINGS.en[key] ?? STRINGS.fr[key] ?? key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
-      // replaceAll so a translation like "{name} ... {name}" interpolates
-      // every occurrence, not just the first.
       out = out.replaceAll(`{${k}}`, String(v));
     }
   }
