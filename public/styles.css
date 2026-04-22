@@ -1765,6 +1765,18 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 }
 
 /* ---- Progress rows ---- */
+/* ========== BACKUP / RESTORE ROW ========================================
+   ========================================================================== */
+.backup-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-2);
+}
+.backup-actions .chip-btn {
+  cursor: pointer;
+}
+
 /* ========== PROGRESS CHARTS DIALOG ======================================
    ========================================================================== */
 .progress-section-title {

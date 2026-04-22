@@ -2,6 +2,7 @@ import { t, setLang, currentLang, applyStaticTranslations } from '/i18n.js';
 import { explainFlag } from '/explanations.js';
 import { enqueue, listPending, remove as removePending, countPending } from '/queue-store.js';
 import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '/scan-history.js';
+import { buildBackup, restoreBackup } from '/backup.js';
 import { detectAllergens } from '/allergens.js';
 import {
   getProfile, setProfile, hasMinimalProfile,
@@ -1680,6 +1681,58 @@ settingsSave?.addEventListener('click', (e) => {
   applyStaticTranslations();
 });
 settingsCancel?.addEventListener('click', (e) => { e.preventDefault(); settingsDialog.close(); });
+
+// ----- Backup / restore -----
+function setBackupStatus(text, state) {
+  const el = $('backup-status');
+  if (!el) return;
+  if (!text) { hide(el); return; }
+  el.textContent = text;
+  if (state) el.dataset.state = state;
+  else delete el.dataset.state;
+  show(el);
+}
+$('backup-export')?.addEventListener('click', async () => {
+  try {
+    const payload = await buildBackup();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `scanneat-backup-${date}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setBackupStatus(t('backupExported'));
+  } catch (err) {
+    console.error('[backup export]', err);
+    setBackupStatus(err.message || String(err), 'error');
+  }
+});
+$('backup-import-file')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    await restoreBackup(data);
+    const counts =
+      (data.history?.length || 0) + (data.consumption?.length || 0) +
+      (data.weight?.length || 0) + (data.templates?.length || 0) +
+      (data.recipes?.length || 0);
+    setBackupStatus(t('backupImported', { items: counts }));
+    await renderRecentScans();
+    await renderDashboard();
+  } catch (err) {
+    console.error('[backup import]', err);
+    const msg =
+      /Scann-eat backup/i.test(err.message) ? t('backupInvalid')
+      : /newer than this version/i.test(err.message) ? t('backupTooNew')
+      : err.message || String(err);
+    setBackupStatus(msg, 'error');
+  }
+});
 
 updateDismissBtn?.addEventListener('click', () => {
   const tag = updateVersionEl.textContent || '';

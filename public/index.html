@@ -101,6 +101,20 @@
         </fieldset>
 
         <p class="hint settings-profile-hint" data-i18n="settingsProfileHint">Les préférences alimentaires (régime, faible sucre, bio, etc.) sont maintenant dans le Profil 👤.</p>
+
+        <fieldset class="prefs">
+          <legend data-i18n="backupSection">Sauvegarde</legend>
+          <p class="hint" data-i18n="backupHint">Exporte toutes tes données (historique, journal, poids, recettes, préférences) dans un seul fichier JSON. Importe pour restaurer.</p>
+          <div class="backup-actions">
+            <button id="backup-export" type="button" class="chip-btn" data-i18n="backupExport">Exporter</button>
+            <label class="chip-btn" for="backup-import-file">
+              <span data-i18n="backupImport">Importer…</span>
+              <input id="backup-import-file" type="file" accept="application/json" hidden />
+            </label>
+          </div>
+          <p id="backup-status" class="qa-ai-status" hidden></p>
+        </fieldset>
+
         <div class="dialog-actions">
           <button id="about-btn" type="button" class="secondary" data-i18n="about">À propos</button>
           <button id="settings-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
