@@ -112,6 +112,29 @@ export async function listScans() {
   });
 }
 
+/**
+ * Find the most recent history entry whose snapshot barcode matches.
+ * Used by the "barcode cache" path to avoid re-hitting Open Food Facts
+ * when the user scans a product they've seen before.
+ *
+ * Returns the stored record (with the snapshot) or null.
+ *
+ * Implementation note: with the default MAX_ITEMS of 30, a linear scan
+ * is faster than maintaining a barcode index + key path change — no
+ * migration cost.
+ */
+export async function findScanByBarcode(barcode) {
+  if (!barcode || typeof barcode !== 'string') return null;
+  const normalised = barcode.replace(/\D/g, '');
+  if (!normalised) return null;
+  const all = await listScans();
+  for (const rec of all) {
+    const b = rec?.snapshot?.barcode || rec?.snapshot?.product?.barcode;
+    if (b && String(b).replace(/\D/g, '') === normalised) return rec;
+  }
+  return null;
+}
+
 export async function deleteScan(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {

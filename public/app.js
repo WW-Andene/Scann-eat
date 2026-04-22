@@ -1,7 +1,7 @@
 import { t, setLang, currentLang, applyStaticTranslations } from '/i18n.js';
 import { explainFlag } from '/explanations.js';
 import { enqueue, listPending, remove as removePending, countPending } from '/queue-store.js';
-import { saveScan, listScans, deleteScan, clearScans } from '/scan-history.js';
+import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '/scan-history.js';
 import { detectAllergens } from '/allergens.js';
 import {
   getProfile, setProfile, hasMinimalProfile,
@@ -410,13 +410,26 @@ async function scanImage() {
   const mode = getMode();
   try {
     let data;
-    if (mode === 'direct') data = await scanViaDirect();
-    else if (mode === 'server') data = await scanViaServer();
-    else {
-      try { data = await scanViaServer(); }
-      catch (err) {
-        if (getKey()) { statusText.textContent = t('serverUnavailable'); data = await scanViaDirect(); }
-        else throw err;
+    // Barcode cache: if the user has scanned this exact EAN/UPC before, hand
+    // back the stored snapshot instead of round-tripping OFF + LLM. Makes
+    // re-scans sub-100ms and saves API quota / OFF bandwidth.
+    if (bc) {
+      try {
+        const cached = await findScanByBarcode(bc);
+        if (cached?.snapshot) {
+          data = { ...cached.snapshot, source: cached.snapshot.source || 'cache' };
+        }
+      } catch { /* cache is an optimization — never block scan on it */ }
+    }
+    if (!data) {
+      if (mode === 'direct') data = await scanViaDirect();
+      else if (mode === 'server') data = await scanViaServer();
+      else {
+        try { data = await scanViaServer(); }
+        catch (err) {
+          if (getKey()) { statusText.textContent = t('serverUnavailable'); data = await scanViaDirect(); }
+          else throw err;
+        }
       }
     }
     if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null; }
