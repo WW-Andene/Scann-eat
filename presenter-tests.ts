@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -683,5 +683,50 @@ describe('entriesToDailyCSV', () => {
     const csv = entriesToDailyCSV([{ kcal: 100 } as unknown as never, mk('2026-04-22')]);
     const lines = csv.split('\r\n').filter((l) => l);
     assert.equal(lines.length, 2); // header + 1
+  });
+});
+
+// ============================================================================
+// nextOccurrenceMs — meal-reminder scheduler helper
+// ============================================================================
+
+describe('nextOccurrenceMs', () => {
+  // Use a fixed "now" at 2026-04-22 10:00 local time for determinism.
+  const now = new Date(2026, 3, 22, 10, 0, 0).getTime();
+
+  it('returns today when target is later today', () => {
+    const target = nextOccurrenceMs('19:30', now);
+    const d = new Date(target!);
+    assert.equal(d.getDate(), 22);
+    assert.equal(d.getHours(), 19);
+    assert.equal(d.getMinutes(), 30);
+  });
+
+  it('rolls to tomorrow when target has already passed', () => {
+    const target = nextOccurrenceMs('07:30', now); // 10:00 now, 07:30 is past
+    const d = new Date(target!);
+    assert.equal(d.getDate(), 23);
+    assert.equal(d.getHours(), 7);
+    assert.equal(d.getMinutes(), 30);
+  });
+
+  it('returns null for malformed input', () => {
+    assert.equal(nextOccurrenceMs('bad' as unknown as string, now), null);
+    assert.equal(nextOccurrenceMs('25:00', now), null); // regex doesn't match 3 digits
+    assert.equal(nextOccurrenceMs('', now), null);
+    assert.equal(nextOccurrenceMs(null as unknown as string, now), null);
+  });
+
+  it('clamps out-of-range hh/mm silently', () => {
+    // '23:75' parses; minutes clamp to 59
+    const t = nextOccurrenceMs('23:75', now);
+    const d = new Date(t!);
+    assert.equal(d.getMinutes(), 59);
+  });
+
+  it('target exactly at now rolls to tomorrow', () => {
+    const t = nextOccurrenceMs('10:00', now);
+    const d = new Date(t!);
+    assert.equal(d.getDate(), 23);
   });
 });

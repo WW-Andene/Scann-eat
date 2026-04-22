@@ -457,6 +457,31 @@ export function entriesToDailyCSV(entries) {
   return bom + [header.map(q).join(','), ...body].join('\r\n') + '\r\n';
 }
 
+/**
+ * Compute the next future-Date timestamp for a given HH:MM local string,
+ * relative to `now`. If today's time already passed, jumps to tomorrow.
+ * Pure — takes numeric `now` so tests don't fight Date.now().
+ *
+ *   nextOccurrenceMs('07:30', 0)           → 07:30 of the epoch day
+ *   nextOccurrenceMs('07:30', hour(10))    → 07:30 of the next day
+ *
+ * Returns a ms timestamp or null if the input is malformed.
+ */
+export function nextOccurrenceMs(hhmm, nowMs) {
+  if (typeof hhmm !== 'string') return null;
+  const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const hh = Math.max(0, Math.min(23, Number(m[1])));
+  const mm = Math.max(0, Math.min(59, Number(m[2])));
+  const now = new Date(nowMs);
+  const target = new Date(now);
+  target.setHours(hh, mm, 0, 0);
+  if (target.getTime() <= now.getTime()) {
+    target.setDate(target.getDate() + 1);
+  }
+  return target.getTime();
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));
