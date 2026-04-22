@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -371,5 +371,68 @@ describe('waterGoalMl', () => {
       const g = waterGoalMl({ weight_kg: w });
       assert.equal(g % 100, 0, `goal ${g} for ${w}kg should be divisible by 100`);
     }
+  });
+});
+
+// ============================================================================
+// weeklyRollup — 7-day window aggregation
+// ============================================================================
+
+describe('weeklyRollup', () => {
+  const mk = (date: string, kcal: number, extras: Record<string, number> = {}) => ({
+    date, kcal, carbs_g: 0, protein_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, ...extras,
+  });
+
+  it('returns exactly 7 days, oldest first', () => {
+    const r = weeklyRollup([], '2026-04-22');
+    assert.equal(r.days.length, 7);
+    assert.equal(r.days[0].date, '2026-04-16');
+    assert.equal(r.days[6].date, '2026-04-22');
+  });
+
+  it('zero-fills days with no entries', () => {
+    const r = weeklyRollup([mk('2026-04-22', 500)], '2026-04-22');
+    assert.equal(r.days[0].kcal, 0);
+    assert.equal(r.days[6].kcal, 500);
+  });
+
+  it('sums kcal across same-day entries', () => {
+    const r = weeklyRollup([
+      mk('2026-04-22', 500), mk('2026-04-22', 200), mk('2026-04-22', 100),
+    ], '2026-04-22');
+    assert.equal(r.days[6].kcal, 800);
+    assert.equal(r.days[6].count, 3);
+  });
+
+  it('ignores entries outside the 7-day window', () => {
+    const r = weeklyRollup([mk('2026-04-15', 999), mk('2026-04-23', 999)], '2026-04-22');
+    // Both out-of-window → totals stay zero
+    assert.equal(r.total.kcal, 0);
+  });
+
+  it('averages only over days with entries, not the 7-day denominator', () => {
+    // Logged 2 days (500 + 1500). Average should be 1000, not 2000/7.
+    const r = weeklyRollup([
+      mk('2026-04-21', 500),
+      mk('2026-04-22', 1500),
+    ], '2026-04-22');
+    assert.equal(r.days_logged, 2);
+    assert.equal(r.avg.kcal, 1000);
+    assert.equal(r.total.kcal, 2000);
+  });
+
+  it('days_logged = 0 when no entries → avg denom clamps to 1', () => {
+    const r = weeklyRollup([], '2026-04-22');
+    assert.equal(r.days_logged, 0);
+    assert.equal(r.avg.kcal, 0);
+  });
+
+  it('sums every macro field independently', () => {
+    const e = mk('2026-04-22', 100, { protein_g: 10, carbs_g: 20, fat_g: 5, salt_g: 0.5 });
+    const r = weeklyRollup([e, e], '2026-04-22');
+    assert.equal(r.total.protein_g, 20);
+    assert.equal(r.total.carbs_g, 40);
+    assert.equal(r.total.fat_g, 10);
+    assert.equal(r.total.salt_g, 1);
   });
 });

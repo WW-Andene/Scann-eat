@@ -200,6 +200,73 @@ export function waterGoalMl(profile) {
   return Math.round(base / 100) * 100;
 }
 
+/**
+ * Group consumption entries into a rolling 7-day window ending on `endIso`
+ * (inclusive). Pure — no IDB, no Date fancy-footwork past ISO strings.
+ *
+ * Returns:
+ *   days:  array of 7 { date, kcal, carbs_g, protein_g, fat_g, sat_fat_g,
+ *          sugars_g, salt_g, count } — oldest first, always length 7 (empty
+ *          days are zero-filled so the chart has stable columns)
+ *   total: summed totals across the 7 days
+ *   avg:   day averages rounded to 1 decimal
+ *   days_logged: count of days with at least one entry (for "6/7 days")
+ */
+export function weeklyRollup(entries, endIso) {
+  const end = new Date(endIso + 'T12:00:00Z');
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(end);
+    d.setUTCDate(d.getUTCDate() - i);
+    const date = d.toISOString().slice(0, 10);
+    days.push({
+      date, kcal: 0, carbs_g: 0, protein_g: 0, fat_g: 0,
+      sat_fat_g: 0, sugars_g: 0, salt_g: 0, count: 0,
+    });
+  }
+  const byDate = new Map(days.map((d) => [d.date, d]));
+  for (const e of entries ?? []) {
+    const bucket = byDate.get(e.date);
+    if (!bucket) continue;
+    bucket.kcal      += Number(e.kcal) || 0;
+    bucket.carbs_g   += Number(e.carbs_g) || 0;
+    bucket.protein_g += Number(e.protein_g) || 0;
+    bucket.fat_g     += Number(e.fat_g) || 0;
+    bucket.sat_fat_g += Number(e.sat_fat_g) || 0;
+    bucket.sugars_g  += Number(e.sugars_g) || 0;
+    bucket.salt_g    += Number(e.salt_g) || 0;
+    bucket.count += 1;
+  }
+  const total = days.reduce(
+    (acc, d) => ({
+      kcal:      acc.kcal + d.kcal,
+      carbs_g:   acc.carbs_g + d.carbs_g,
+      protein_g: acc.protein_g + d.protein_g,
+      fat_g:     acc.fat_g + d.fat_g,
+      sat_fat_g: acc.sat_fat_g + d.sat_fat_g,
+      sugars_g:  acc.sugars_g + d.sugars_g,
+      salt_g:    acc.salt_g + d.salt_g,
+    }),
+    { kcal: 0, carbs_g: 0, protein_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0 },
+  );
+  const round1 = (v) => Math.round(v * 10) / 10;
+  const round3 = (v) => Math.round(v * 1000) / 1000;
+  const daysLogged = days.filter((d) => d.count > 0).length;
+  // Average over days WITH entries — if the user hasn't logged some days,
+  // averaging over 7 understates their typical intake.
+  const denom = Math.max(1, daysLogged);
+  const avg = {
+    kcal:      round1(total.kcal / denom),
+    carbs_g:   round1(total.carbs_g / denom),
+    protein_g: round1(total.protein_g / denom),
+    fat_g:     round1(total.fat_g / denom),
+    sat_fat_g: round1(total.sat_fat_g / denom),
+    sugars_g:  round1(total.sugars_g / denom),
+    salt_g:    round3(total.salt_g / denom),
+  };
+  return { days, total, avg, days_logged: daysLogged };
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));
