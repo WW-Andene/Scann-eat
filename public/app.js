@@ -521,15 +521,6 @@ function renderSparseHint(data) {
   } else hide(el);
 }
 
-async function getAdditiveInfo(eNumber) {
-  try {
-    const mod = await loadEngine();
-    // The engine bundle re-exports ADDITIVES_DB indirectly via scoreProduct;
-    // but not directly. Fetch via a client-side lookup table instead:
-    return window.__additivesIndex?.[eNumber] ?? null;
-  } catch { return null; }
-}
-
 // Lightweight additives index populated lazily from the bundle.
 async function ensureAdditivesIndex() {
   if (window.__additivesIndex) return;
