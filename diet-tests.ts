@@ -142,3 +142,84 @@ describe('checkDiet: vegan', () => {
     assert.equal(r.certified, true);
   });
 });
+
+// ============================================================================
+// Halal — pork + alcohol + unverified animal additives
+// ============================================================================
+
+describe('checkDiet: halal', () => {
+  it('compliant for a plant / halal-labeled product', () => {
+    const p = product('Couscous', ['semoule', 'pois chiche', 'carotte']);
+    const r = checkDiet(p, 'halal');
+    assert.equal(r.compliant, true);
+  });
+
+  it('REJECTS pork', () => {
+    const p = product('', ['porc', 'sel']);
+    const r = checkDiet(p, 'halal');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS alcohol / wine', () => {
+    const p = product('Sauce', ['vin blanc', 'tomate']);
+    const r = checkDiet(p, 'halal');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS plain "gélatine" (no halal qualifier)', () => {
+    // Note: gélatine ends in 'e' (ASCII), so \b worked before the fix
+    // too — this test pins the positive-case behavior, not the bug.
+    const p = product('Bonbon', ['sucre', 'gélatine']);
+    const r = checkDiet(p, 'halal');
+    assert.equal(r.compliant, false);
+  });
+
+  it('Certification override: "Certifié halal" flips to compliant', () => {
+    // Even with a trigger, halal certification in the product name means
+    // we trust the label's verification.
+    const p = product('Viande hachée Certifié halal', ['viande de boeuf']);
+    const r = checkDiet(p, 'halal');
+    // viande is not on halal forbidden (it's vegetarian's list), but this
+    // exercises the certification path regardless.
+    assert.equal(r.certified, true);
+  });
+});
+
+// ============================================================================
+// Gluten-free — EU Reg 41/2009 grain list
+// ============================================================================
+
+describe('checkDiet: gluten_free', () => {
+  it('compliant for a rice-based product', () => {
+    const p = product('Riz basmati', ['riz']);
+    const r = checkDiet(p, 'gluten_free');
+    assert.equal(r.compliant, true);
+  });
+
+  it('REJECTS "blé" (shipped-bug regression: accented trigger)', () => {
+    const p = product('Pain', ['farine de blé', 'sel', 'levure']);
+    const r = checkDiet(p, 'gluten_free');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS "épeautre" (accented leading char)', () => {
+    const p = product('Pain', ['épeautre', 'sel']);
+    const r = checkDiet(p, 'gluten_free');
+    assert.equal(r.compliant, false);
+  });
+
+  it('does NOT match "maltodextrine" (false-positive trap)', () => {
+    // "malt" is on the forbidden list. "maltodextrine" must NOT match
+    // because the fix's lookahead rejects when the next char is a letter.
+    const p = product('', ['maltodextrine']);
+    const r = checkDiet(p, 'gluten_free');
+    assert.equal(r.compliant, true);
+  });
+
+  it('allows oats only when spelled "avoine sans gluten"', () => {
+    const a = product('', ['avoine', 'sucre']);
+    const b2 = product('', ['avoine sans gluten', 'sucre']);
+    assert.equal(checkDiet(a, 'gluten_free').compliant, false);
+    assert.equal(checkDiet(b2, 'gluten_free').compliant, true);
+  });
+});

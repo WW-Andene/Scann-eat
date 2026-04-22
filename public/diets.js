@@ -54,7 +54,7 @@ export const DIET_DEFS = {
     label_fr: 'Végétarien',
     label_en: 'Vegetarian',
     forbidden: [
-      b(`viande|porc|b[oœ]euf|poulet|dinde|canard|agneau|veau|lard|lardon|jambon|saucisse|chorizo|merguez|bacon|boudin|confit|rillette|pat[eé]|foie gras|cro[uû]te de viande|gelati?ne(?! halal)|pr[eé]sure animale|collag[eè]ne|pepsine`),
+      b(`viande|porc|b[oœ]euf|poulet|dinde|canard|agneau|veau|lard|lardon|jambon|saucisse|chorizo|merguez|bacon|boudin|confit|rillette|pat[eé]|foie gras|cro[uû]te de viande|g[eé]lati?ne(?! halal)|pr[eé]sure animale|collag[eè]ne|pepsine`),
       b(`poisson|saumon|thon|cabillaud|sardine|maquereau|anchois|hareng|crustac[eé]|crevette|homard|crabe|hu[iî]tre|moule|calmar|poulpe`),
     ],
     note_fr: 'Exclut viande, poisson, crustacés, mollusques, gélatine et présure animale.',
@@ -66,7 +66,7 @@ export const DIET_DEFS = {
     label_en: 'Vegan',
     forbidden: [
       // Meat / fish / shellfish
-      b(`viande|porc|b[oœ]euf|poulet|dinde|canard|agneau|veau|lard|lardon|jambon|saucisse|chorizo|merguez|bacon|boudin|confit|rillette|pat[eé]|foie gras|gelati?ne(?! v[eé]g[eé]tale)|pr[eé]sure animale|collag[eè]ne|pepsine|isinglass|colle de poisson`),
+      b(`viande|porc|b[oœ]euf|poulet|dinde|canard|agneau|veau|lard|lardon|jambon|saucisse|chorizo|merguez|bacon|boudin|confit|rillette|pat[eé]|foie gras|g[eé]lati?ne(?! v[eé]g[eé]tale)|pr[eé]sure animale|collag[eè]ne|pepsine|isinglass|colle de poisson`),
       b(`poisson|saumon|thon|cabillaud|sardine|maquereau|anchois|hareng|crustac[eé]|crevette|homard|crabe|hu[iî]tre|moule|calmar|poulpe`),
       // Dairy
       b(`lait(?! de (coco|soja|amande|avoine|riz))|lactos[eé]rum|petit[- ]lait|cr[eè]me(?! v[eé]g[eé]tale)|beurre(?! de cacahu[eè]te| d'arachide| de coco)|fromage|yaourt|yoghourt|skyr|k[eé]fir|cas[eé]ine|lactalbumine|whey|mati[eè]re grasse laiti[eè]re|poudre de lait|beurre clarifi[eé]|ghee|mascarpone|ricotta|mozzarella|parmesan|emmental`),
@@ -120,7 +120,7 @@ export const DIET_DEFS = {
       // Alcohol & derivatives (wine/spirit/beer lineage)
       b(`alcool|[eé]thanol|ethyl alcohol|vin(?! blanc de cuisson sans alcool)|bi[eè]re|biere|liqueur|rhum|whisky|whiskey|gin|vodka|spiritueux|kirsch|marc|cognac|armagnac|calvados|porto|champagne|x[eé]r[eé]s|amaretto|eau[- ]de[- ]vie|saki?|sake|grappa|tequila|mezcal|absinthe|chartreuse|b[eé]n[eé]dictine`),
       // Gelatin / rennet / pepsin — allowed only when explicitly halal or vegetal
-      b(`gelati?ne(?!\\s+(halal|v[eé]g[eé]tale|v[eé]g|de poisson))`),
+      b(`g[eé]lati?ne(?!\\s+(halal|v[eé]g[eé]tale|v[eé]g|de poisson))`),
       b(`pr[eé]sure animale(?! halal)|pepsine(?! halal)`),
       // Animal-derived emulsifiers / mono-diglycerides when source not declared
       // (E471 / E472 can be animal or vegetal — require explicit plant source)
