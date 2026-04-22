@@ -318,6 +318,65 @@ export function mergeOFFWithLLM(off: ProductInput, llm: ProductInput): ProductIn
 }
 
 /**
+ * Search OFF for products matching any of the given category tags (e.g.
+ * `en:yogurts`, `en:fresh-cheeses`). Returns an array of ProductInput ready
+ * to feed scoreProduct + checkDiet — this is the data plumbing behind the
+ * "similar but compliant" suggestion feature.
+ *
+ * Uses the OFF search-v1 endpoint; v2 search exists but its parameter shape
+ * is unstable. page_size is capped low (default 20) because we don't need a
+ * full catalog — we only surface a handful of alternatives.
+ */
+const OFF_SEARCH_ENDPOINT = 'https://world.openfoodfacts.org/cgi/search.pl';
+
+export async function searchOFFByCategory(
+  tags: string[],
+  opts: OFFLookupOptions & { pageSize?: number } = {},
+): Promise<ProductInput[]> {
+  if (!Array.isArray(tags) || tags.length === 0) return [];
+
+  // Pick the first tag as the primary filter — more tags via tagtype_N is
+  // possible but the OFF search API treats them as AND, which is too strict
+  // for "similar products" matching.
+  const primaryTag = tags[0];
+  const params = new URLSearchParams({
+    action: 'process',
+    tagtype_0: 'categories',
+    tag_contains_0: 'contains',
+    tag_0: primaryTag,
+    sort_by: 'popularity_key', // most common first
+    page_size: String(opts.pageSize ?? 20),
+    fields: FIELDS.join(','),
+    json: '1',
+  });
+  const url = `${OFF_SEARCH_ENDPOINT}?${params.toString()}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 5000);
+  const signal = opts.signal ? anySignal([opts.signal, controller.signal]) : controller.signal;
+
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      signal,
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { products?: Array<Record<string, unknown>> };
+    const products = Array.isArray(json.products) ? json.products : [];
+    const mapped: ProductInput[] = [];
+    for (const raw of products) {
+      const p = mapOFFProduct(raw);
+      if (p) mapped.push(p);
+    }
+    return mapped;
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
  * Compare OFF vs LLM numbers and return human-readable warnings when they
  * disagree materially (>20 % relative difference on a non-trivial value).
  * Lets the user notice a potentially reformulated product.
