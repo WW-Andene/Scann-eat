@@ -16,7 +16,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { checkDiet } from './public/diets.js';
+import { checkDiet } from './public/core/diets.js';
 
 type Ing = { name: string; category?: string };
 function product(name: string, ings: string[]): { name: string; ingredients: Ing[] } {
