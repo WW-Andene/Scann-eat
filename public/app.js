@@ -538,9 +538,13 @@ function renderAllergens(product) {
 
 function renderSparseHint(data) {
   const el = $('sparse-hint');
+  // Defensive against older saved snapshots where ingredients / nutrition
+  // might be missing from the persisted shape.
+  const ings = data.product?.ingredients ?? [];
+  const n = data.product?.nutrition ?? {};
   const sparse =
-    data.product.ingredients.length === 0 ||
-    (data.product.nutrition.energy_kcal === 0 && data.product.nutrition.protein_g === 0);
+    ings.length === 0 ||
+    ((n.energy_kcal ?? 0) === 0 && (n.protein_g ?? 0) === 0);
   if (sparse && data.source !== 'openfoodfacts') {
     el.textContent = t('sparseData');
     show(el);
