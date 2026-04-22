@@ -31,9 +31,9 @@
       <p class="tagline" data-i18n="tagline">Photographie une étiquette → note de 0 à 100</p>
     </header>
 
-    <dialog id="settings-dialog" class="settings-dialog">
+    <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-dialog-title">
       <form method="dialog">
-        <h2 data-i18n="settings">Réglages</h2>
+        <h2 id="settings-dialog-title" data-i18n="settings">Réglages</h2>
         <label>
           <span data-i18n="settingsKey">Clé API Groq</span>
           <input id="settings-key" type="password" placeholder="gsk_…" autocomplete="off" />
@@ -99,7 +99,7 @@
       </form>
     </dialog>
 
-    <dialog id="explain-dialog" class="settings-dialog">
+    <dialog id="explain-dialog" class="settings-dialog" aria-labelledby="explain-title">
       <form method="dialog">
         <h2 id="explain-title" data-i18n="whyThisFlag">Pourquoi ce drapeau ?</h2>
         <p id="explain-body">—</p>
@@ -109,10 +109,10 @@
       </form>
     </dialog>
 
-    <dialog id="onboarding-dialog" class="onboarding-dialog">
+    <dialog id="onboarding-dialog" class="onboarding-dialog" aria-labelledby="onboarding-title-1">
       <div class="ob-slide" data-slide="1">
-        <span class="ob-icon">📷</span>
-        <h2 data-i18n="onboarding1Title">Photographie une étiquette</h2>
+        <span class="ob-icon" aria-hidden="true">📷</span>
+        <h2 id="onboarding-title-1" data-i18n="onboarding1Title">Photographie une étiquette</h2>
         <p data-i18n="onboarding1Body">Prends jusqu'à 4 photos…</p>
       </div>
       <div class="ob-slide" data-slide="2" hidden>
@@ -139,9 +139,9 @@
       </div>
     </dialog>
 
-    <dialog id="profile-dialog" class="settings-dialog">
+    <dialog id="profile-dialog" class="settings-dialog" aria-labelledby="profile-dialog-title">
       <form method="dialog">
-        <h2 data-i18n="profileTitle">Profil personnel</h2>
+        <h2 id="profile-dialog-title" data-i18n="profileTitle">Profil personnel</h2>
         <p class="hint" data-i18n="profileIntro">Utilisé uniquement sur ton appareil.</p>
         <div class="profile-grid">
           <label>
@@ -248,7 +248,7 @@
       </form>
     </dialog>
 
-    <dialog id="about-dialog" class="settings-dialog">
+    <dialog id="about-dialog" class="settings-dialog" aria-labelledby="about-title">
       <form method="dialog">
         <h2 id="about-title" data-i18n="disclaimerTitle">Information, pas conseil médical</h2>
         <pre class="disclaimer-body" id="about-body" data-i18n="disclaimerBody">—</pre>
@@ -258,7 +258,7 @@
       </form>
     </dialog>
 
-    <dialog id="pillar-dialog" class="settings-dialog">
+    <dialog id="pillar-dialog" class="settings-dialog" aria-labelledby="pillar-dialog-title">
       <form method="dialog">
         <h2 id="pillar-dialog-title" data-i18n="pillarDetails">Détail du pilier</h2>
         <ul id="pillar-dialog-list" class="pillar-dialog-list"></ul>
@@ -340,9 +340,9 @@
         </details>
       </section>
 
-      <dialog id="weight-dialog" class="settings-dialog">
+      <dialog id="weight-dialog" class="settings-dialog" aria-labelledby="weight-dialog-title">
         <form method="dialog">
-          <h2 data-i18n="weightTitle">Poids</h2>
+          <h2 id="weight-dialog-title" data-i18n="weightTitle">Poids</h2>
           <p class="hint" data-i18n="weightIntro">Log un poids par jour. La tendance sur 30 j est calculée par régression linéaire.</p>
           <div class="weight-row">
             <label>
@@ -369,9 +369,9 @@
         </form>
       </dialog>
 
-      <dialog id="templates-dialog" class="settings-dialog">
+      <dialog id="templates-dialog" class="settings-dialog" aria-labelledby="templates-dialog-title">
         <form method="dialog">
-          <h2 data-i18n="templatesTitle">Repas sauvegardés</h2>
+          <h2 id="templates-dialog-title" data-i18n="templatesTitle">Repas sauvegardés</h2>
           <p class="hint" data-i18n="templatesIntro">Sauvegarde les repas que tu manges souvent, applique-les en un tap.</p>
           <button id="tpl-save-today" type="button" class="log-btn" data-i18n="saveTodayAsTemplate">Sauvegarder aujourd'hui</button>
           <ul id="tpl-list" class="tpl-list"></ul>
@@ -381,9 +381,9 @@
         </form>
       </dialog>
 
-      <dialog id="quick-add-dialog" class="settings-dialog">
+      <dialog id="quick-add-dialog" class="settings-dialog" aria-labelledby="quick-add-dialog-title">
         <form method="dialog">
-          <h2 data-i18n="quickAddTitle">Quick Add</h2>
+          <h2 id="quick-add-dialog-title" data-i18n="quickAddTitle">Quick Add</h2>
           <p class="hint" data-i18n="quickAddHint">Logger des calories sans scanner un produit (repas au restaurant, plat maison…).</p>
           <label>
             <span data-i18n="qaName">Nom (optionnel)</span>

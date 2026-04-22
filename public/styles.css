@@ -281,8 +281,17 @@ button:disabled {
   background: var(--panel-3);
   color: var(--muted);
 }
-button:focus-visible {
-  outline: 3px solid var(--text);
+/* Keyboard focus ring — applied to every interactive control so users
+   who navigate by Tab always see where they are. More specific rules
+   below (settings dialog, portion input) override the color. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
