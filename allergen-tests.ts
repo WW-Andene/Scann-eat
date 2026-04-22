@@ -14,11 +14,45 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { detectAllergens } from './public/core/allergens.js';
+import { detectAllergens, ANNEX_II_KEYS } from './public/core/allergens.js';
 
 function product(names: string[]) {
   return { ingredients: names.map((name) => ({ name, category: 'food' })) };
 }
+
+describe('ANNEX_II_KEYS — coverage of EU 1169/2011 Annex II', () => {
+  it('exposes exactly the 14 mandatory allergens', () => {
+    assert.equal(ANNEX_II_KEYS.length, 14);
+    const expected = ['gluten', 'crustaceans', 'eggs', 'fish', 'peanuts', 'soy',
+                      'lactose', 'nuts', 'celery', 'mustard', 'sesame', 'sulfites',
+                      'lupin', 'molluscs'];
+    assert.deepEqual([...ANNEX_II_KEYS].sort(), expected.sort());
+  });
+  it('every Annex II key has a working positive detection', () => {
+    const positives: Record<string, string> = {
+      gluten: 'farine de blé',
+      crustaceans: 'crevettes',
+      eggs: 'oeufs',
+      fish: 'poisson',
+      peanuts: 'arachide',
+      soy: 'soja',
+      lactose: 'lait',
+      nuts: 'amandes',
+      celery: 'céleri',
+      mustard: 'moutarde',
+      sesame: 'sésame',
+      sulfites: 'sulfites',
+      lupin: 'lupin',
+      molluscs: 'moules',
+    };
+    for (const key of ANNEX_II_KEYS) {
+      const ex = positives[key];
+      assert.ok(ex, `no positive example mapped for key '${key}' — extend the test`);
+      const found = detectAllergens(product([ex]));
+      assert.ok(found.find((h: { key: string }) => h.key === key), `'${ex}' should trigger '${key}'`);
+    }
+  });
+});
 
 // ============================================================================
 // Positive detection — each rule must fire on a typical French label word

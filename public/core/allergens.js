@@ -1,6 +1,18 @@
 /**
- * Regulatory French allergen detection from ingredient names.
- * The 14 EU-mandatory allergens (Annex II, Regulation 1169/2011).
+ * French allergen detection from ingredient names.
+ *
+ * SCOPE / PROVENANCE:
+ *   The list of 14 allergens covered here is the EU-mandatory set
+ *   defined in Annex II of Regulation (EU) No 1169/2011 ("Provision of
+ *   food information to consumers"). That list is normative.
+ *   See: https://eur-lex.europa.eu/eli/reg/2011/1169/oj
+ *
+ *   The DETECTION PATTERNS (the regexes below) are editorial: they
+ *   match the most common French + English ingredient-list spellings of
+ *   each allergen. They are NOT from a regulator and may miss obscure
+ *   trade names, regional spellings, or hidden derivatives. Treat them
+ *   as a defence-in-depth heuristic on top of the manufacturer's own
+ *   declaration, never as a substitute for it.
  *
  * ============================================================================
  * Word-boundary note:
@@ -70,13 +82,13 @@ const RULES = [
     key: 'crustaceans',
     label_fr: 'Crustacés',
     label_en: 'Crustaceans',
-    re: new RegExp(`(?<!${W})(crevette|crabe|homard|langouste|langoustine|écrevisse|crustac[eé])(?!${W})`, 'i'),
+    re: new RegExp(`(?<!${W})(crevettes?|crabes?|homards?|langoustes?|langoustines?|[ée]crevisses?|crustac[ée]s?|shrimps?|prawns?|lobsters?|crayfish)(?!${W})`, 'i'),
   },
   {
     key: 'molluscs',
     label_fr: 'Mollusques',
     label_en: 'Molluscs',
-    re: new RegExp(`(?<!${W})(hu[iî]tre|moule|coquille|calmar|encornet|poulpe|pétoncle|palourde|bigorneau|bulot|mollusque)(?!${W})`, 'i'),
+    re: new RegExp(`(?<!${W})(hu[iî]tres?|moules?|coquilles?|calmars?|encornets?|poulpes?|p[ée]toncles?|palourdes?|bigorneaux?|bulots?|mollusques?|oysters?|mussels?|squids?|octopus(?:es)?|clams?|scallops?)(?!${W})`, 'i'),
   },
   {
     key: 'sesame',
@@ -109,6 +121,17 @@ const RULES = [
     re: new RegExp(`(?<!${W})(lupin|farine de lupin)(?!${W})`, 'i'),
   },
 ];
+
+/**
+ * Authoritative key list — the 14 entries in Annex II of EU 1169/2011.
+ * Pinned as an exported constant so a structural test can fail loudly
+ * if a future edit accidentally drops or renames one.
+ */
+export const ANNEX_II_KEYS = Object.freeze([
+  'gluten', 'crustaceans', 'eggs', 'fish', 'peanuts', 'soy',
+  'lactose', 'nuts', 'celery', 'mustard', 'sesame', 'sulfites',
+  'lupin', 'molluscs',
+]);
 
 /**
  * Inspect every ingredient name. Returns unique allergen keys found.
