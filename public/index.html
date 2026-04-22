@@ -291,7 +291,11 @@
       <section class="capture">
         <div id="queue" class="queue" hidden></div>
         <div class="capture-actions">
-          <label class="capture-btn" for="file-input">
+          <button id="barcode-live-btn" type="button" class="capture-btn" hidden>
+            <span class="icon" aria-hidden="true">📦</span>
+            <span class="label" data-i18n="scanBarcode">Scanner un code-barres</span>
+          </button>
+          <label class="capture-btn capture-btn-secondary" for="file-input">
             <span class="icon" aria-hidden="true">&#128247;</span>
             <span class="label" id="capture-label" data-i18n="addPhoto">Prendre / choisir une photo</span>
             <input
@@ -303,10 +307,6 @@
               hidden
             />
           </label>
-          <button id="barcode-live-btn" type="button" class="capture-btn capture-btn-secondary" hidden>
-            <span class="icon" aria-hidden="true">📦</span>
-            <span class="label" data-i18n="scanBarcode">Scanner un code-barres</span>
-          </button>
         </div>
         <button id="scan-btn" type="button" disabled data-i18n="analyse">Analyser</button>
         <p class="hint" data-i18n="hintCapture">Jusqu'à 4 photos (face + ingrédients + nutrition).</p>
