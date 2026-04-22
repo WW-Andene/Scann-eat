@@ -4,8 +4,8 @@
   "description": "Photo-to-score food label analyzer",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f1a14",
-  "theme_color": "#0f1a14",
+  "background_color": "#F54B5E",
+  "theme_color": "#F54B5E",
   "lang": "fr",
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
