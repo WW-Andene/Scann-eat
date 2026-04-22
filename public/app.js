@@ -1459,12 +1459,18 @@ async function latestRelease() {
 }
 async function checkForUpdate() {
   if (!isCapacitor) return;
-  const [cur, latest] = await Promise.all([currentCommit(), latestRelease()]);
-  if (!cur || !latest || latest.commit === cur) return;
-  if (localStorage.getItem(LS_DISMISSED_VERSION) === latest.tag) return;
-  updateVersionEl.textContent = latest.tag;
-  updateInstallBtn.setAttribute('href', latest.apkUrl);
-  show(updateBanner);
+  try {
+    const [cur, latest] = await Promise.all([currentCommit(), latestRelease()]);
+    if (!cur || !latest || latest.commit === cur) return;
+    if (localStorage.getItem(LS_DISMISSED_VERSION) === latest.tag) return;
+    updateVersionEl.textContent = latest.tag;
+    updateInstallBtn.setAttribute('href', latest.apkUrl);
+    show(updateBanner);
+  } catch {
+    // Network unavailable / GitHub rate limit / CDN issue — silently skip.
+    // Called from setInterval + visibilitychange without await, so a reject
+    // here would otherwise surface as an unhandled promise rejection.
+  }
 }
 
 // ============================================================================
