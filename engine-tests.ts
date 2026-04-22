@@ -528,3 +528,46 @@ describe('engine fixtures — real French supermarket products', () => {
     assert.ok(bonus, 'olive oil ingredient should earn healthy-fat-source bump');
   });
 });
+
+// ============================================================================
+// Veto conditions — trans-fat is the strictest: WHO REPLACE program
+// considers no level safe, so we cap score ≤ 40 regardless of other pillars.
+// ============================================================================
+
+describe('veto conditions', () => {
+  it('trans-fat > 0.1 g/100 g caps score at 40', () => {
+    const audit = scoreProduct({
+      name: 'Margarine industrielle',
+      category: 'oil_fat',
+      nova_class: 4,
+      ingredients: [
+        { name: 'huiles partiellement hydrogénées', category: 'food', is_whole_food: false },
+        { name: 'sel', category: 'food', is_whole_food: false },
+      ],
+      nutrition: {
+        energy_kcal: 700, fat_g: 80, saturated_fat_g: 30,
+        carbs_g: 0, sugars_g: 0, fiber_g: 0, protein_g: 0, salt_g: 1.2,
+        trans_fat_g: 2.5, // well above the 0.1 g/100g threshold
+      },
+    });
+    assert.ok(audit.score <= 40, `expected score ≤40 (trans-fat veto), got ${audit.score}`);
+    assert.equal(audit.veto.triggered, true);
+    assert.ok(/trans fat/i.test(audit.veto.reason));
+  });
+
+  it('trans-fat exactly at 0.1 g/100 g does NOT trigger (boundary check)', () => {
+    const audit = scoreProduct({
+      name: 'Margarine',
+      category: 'oil_fat',
+      nova_class: 3,
+      ingredients: [{ name: 'huile de tournesol', category: 'food', is_whole_food: false }],
+      nutrition: {
+        energy_kcal: 700, fat_g: 80, saturated_fat_g: 8,
+        carbs_g: 0, sugars_g: 0, fiber_g: 0, protein_g: 0, salt_g: 0.5,
+        trans_fat_g: 0.1, // exactly the threshold
+      },
+    });
+    // threshold is `> 0.1` strictly, so 0.1 should not trigger
+    assert.equal(audit.veto.triggered, false, `expected no veto at exactly 0.1g, got ${audit.veto.reason}`);
+  });
+});
