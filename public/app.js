@@ -12,7 +12,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -226,7 +226,27 @@ async function compressImage(file) {
     );
     const dataUrl = await blobToDataUrl(blob);
     const comma = dataUrl.indexOf(',');
-    return { dataUrl, base64: dataUrl.slice(comma + 1), mime: 'image/jpeg' };
+
+    // Sharpness probe on a 64×64 luma thumbnail. Lets the caller warn the
+    // user before burning an LLM call on a blurry frame.
+    let sharpness = null;
+    try {
+      const S = 64;
+      const probe = document.createElement('canvas');
+      probe.width = S; probe.height = S;
+      const pctx = probe.getContext('2d');
+      pctx.drawImage(img, 0, 0, S, S);
+      const { data } = pctx.getImageData(0, 0, S, S);
+      const luma = new Array(S * S);
+      for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+        // Rec. 601 luma
+        luma[j] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      }
+      const v = laplacianVariance(luma, S);
+      sharpness = { variance: v, verdict: sharpnessVerdict(v) };
+    } catch { /* best-effort — never block compression on the probe */ }
+
+    return { dataUrl, base64: dataUrl.slice(comma + 1), mime: 'image/jpeg', sharpness };
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -274,15 +294,24 @@ async function addFiles(fileList) {
   if (!fileList || fileList.length === 0) return;
   hide(errorEl);
   const files = Array.from(fileList).slice(0, MAX_IMAGES - queue.length);
+  let blurryCount = 0;
   for (const file of files) {
     try {
       const barcode = await detectBarcodeFromFile(file);
       const compressed = await compressImage(file);
+      if (compressed.sharpness?.verdict === 'blurry' && !barcode) blurryCount++;
       queue.push({ id: crypto.randomUUID(), ...compressed, barcode });
       renderQueue();
     } catch (err) {
       errorEl.textContent = err.message; show(errorEl);
     }
+  }
+  // Soft warning — don't block the scan (user might know better), just
+  // hint that re-shooting might help. Only fires when none of the added
+  // frames have a barcode (barcode scans don't need pixel-sharp ingredient
+  // text).
+  if (blurryCount > 0) {
+    toast(t('blurryPhotoWarning'));
   }
 }
 
