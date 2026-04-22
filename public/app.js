@@ -12,7 +12,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -2324,6 +2324,50 @@ function pctClass(pct) {
   return 'ok';
 }
 
+// ============================================================================
+// Hydration — daily glass counter, stored in localStorage keyed by ISO date.
+// Each glass is 250 ml (EFSA reference glass). Counter resets naturally at
+// midnight because the key changes with the date.
+// ============================================================================
+
+const HYD_GLASS_ML = 250;
+const hydKey = (date) => `scanneat.hydration.${date}`;
+
+function getHydrationMl(date = todayISO()) {
+  const raw = localStorage.getItem(hydKey(date));
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+function setHydrationMl(ml, date = todayISO()) {
+  const clamped = Math.max(0, Math.round(ml));
+  localStorage.setItem(hydKey(date), String(clamped));
+}
+
+function renderHydration() {
+  const tile = $('hydration-tile');
+  const amt = $('hydration-amount');
+  const fill = $('hydration-fill');
+  if (!tile || !amt || !fill) return;
+  const profile = getProfile();
+  const goal = waterGoalMl(profile);
+  const ml = getHydrationMl();
+  amt.textContent = t('hydrationAmount', { ml, goal });
+  const pct = goal > 0 ? Math.min(120, (ml / goal) * 100) : 0;
+  fill.style.width = `${Math.min(100, pct)}%`;
+  if (pct >= 100 && pct < 110) fill.dataset.state = 'done';
+  else if (pct >= 110) fill.dataset.state = 'over';
+  else delete fill.dataset.state;
+}
+
+$('hydration-plus')?.addEventListener('click', () => {
+  setHydrationMl(getHydrationMl() + HYD_GLASS_ML);
+  renderHydration();
+});
+$('hydration-minus')?.addEventListener('click', () => {
+  setHydrationMl(Math.max(0, getHydrationMl() - HYD_GLASS_ML));
+  renderHydration();
+});
+
 async function renderDashboard() {
   const profile = getProfile();
   const targets = dailyTargets(profile);
@@ -2332,6 +2376,7 @@ async function renderDashboard() {
   if (!totals) { hide(dashboardEl); return; }
 
   if (totals.count === 0 && !targets) { hide(dashboardEl); return; }
+  renderHydration();
 
   dashboardDateEl.textContent = new Date().toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
     weekday: 'short', day: 'numeric', month: 'short',

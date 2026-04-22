@@ -345,6 +345,18 @@
         </div>
         <p id="dashboard-remaining" class="dashboard-remaining" hidden></p>
         <div id="weight-summary" class="weight-summary" hidden></div>
+        <div id="hydration-tile" class="hydration-tile" role="group" aria-labelledby="hydration-label">
+          <div class="hyd-head">
+            <span id="hydration-label" class="hyd-label" data-i18n="hydrationLabel">Hydratation</span>
+            <strong id="hydration-amount" class="hyd-amount">—</strong>
+          </div>
+          <div class="hyd-bar"><span id="hydration-fill" class="hyd-fill"></span></div>
+          <div class="hyd-actions">
+            <button id="hydration-minus" type="button" class="hyd-btn" data-i18n-aria-label="hydrationMinus" aria-label="Retirer un verre">−</button>
+            <button id="hydration-plus" type="button" class="hyd-btn hyd-plus" data-i18n-aria-label="hydrationPlus" aria-label="Ajouter un verre">+</button>
+            <span class="hyd-hint" data-i18n="hydrationGlassHint">1 verre = 250 ml</span>
+          </div>
+        </div>
         <ul id="dashboard-rows" class="dashboard-rows"></ul>
         <details class="dashboard-log" id="dashboard-log" hidden>
           <summary data-i18n="todayEntries">Aliments loggés</summary>

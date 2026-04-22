@@ -1765,6 +1765,79 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 }
 
 /* ---- Progress rows ---- */
+/* ========== HYDRATION TILE ==============================================
+   ========================================================================== */
+.hydration-tile {
+  background: var(--panel-2);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.hyd-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+.hyd-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.82em;
+  font-weight: 700;
+}
+.hyd-amount {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: 1.05em;
+  color: var(--text);
+}
+.hyd-bar {
+  height: 8px;
+  background: var(--panel-3);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.hyd-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4FC3F7, #29B6F6);
+  border-radius: var(--r-pill);
+  transition: width 240ms ease;
+}
+body.reduce-motion .hyd-fill { transition: none; }
+.hyd-fill[data-state="done"] { background: linear-gradient(90deg, var(--grade-a), var(--grade-aplus)); }
+.hyd-fill[data-state="over"] { background: linear-gradient(90deg, var(--grade-c), var(--warning)); }
+.hyd-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.hyd-btn {
+  width: 44px;
+  height: 44px;
+  min-height: auto;
+  padding: 0;
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+  font-size: 1.4em;
+  font-weight: 700;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.hyd-btn.hyd-plus { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.hyd-btn:active { transform: scale(0.96); }
+.hyd-hint {
+  font-size: 0.82em;
+  color: var(--muted);
+  margin-left: auto;
+}
+
 .dashboard-rows {
   list-style: none;
   padding: 0;
