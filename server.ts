@@ -133,7 +133,11 @@ async function handleScore(req: IncomingMessage, res: ServerResponse) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/score]', message);
-    return sendJSON(res, 500, { error: message });
+    const publicMessage =
+      /body too large/i.test(message) ? 'Request body too large'
+      : /JSON/i.test(message) ? 'Invalid JSON body'
+      : 'Scoring failed';
+    return sendJSON(res, 500, { error: publicMessage });
   }
 }
 
@@ -148,8 +152,13 @@ async function handleStatic(req: IncomingMessage, res: ServerResponse) {
   try {
     const info = await stat(full);
     if (!info.isFile()) throw new Error('not a file');
-    const data = await readFile(full);
     const mime = MIME[extname(full)] ?? 'application/octet-stream';
+    if (req.method === 'HEAD') {
+      res.writeHead(200, { 'Content-Type': mime, 'Content-Length': info.size });
+      res.end();
+      return;
+    }
+    const data = await readFile(full);
     res.writeHead(200, { 'Content-Type': mime, 'Content-Length': data.length });
     res.end(data);
   } catch {
@@ -161,7 +170,9 @@ const server = createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/api/score') {
     return handleScore(req, res);
   }
-  if (req.method === 'GET') {
+  // GET + HEAD both map to static. HEAD lets service workers and curl probe
+  // file availability without downloading the full payload.
+  if (req.method === 'GET' || req.method === 'HEAD') {
     return handleStatic(req, res);
   }
   res.writeHead(405).end('Method not allowed');
