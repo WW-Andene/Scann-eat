@@ -7,6 +7,7 @@ import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile 
 import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEvent as telemetryLog, clearEvents as telemetryClear, formatEvents as telemetryFormat } from '/core/telemetry.js';
 import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
+import { initActivity, renderActivity } from '/features/activity.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -3511,6 +3512,12 @@ function pctClass(pct) {
 // Inject its runtime dependencies (i18n lookup, profile getter, goal calc,
 // date helper) at boot so the module stays isolated from app.js internals.
 initHydration({ t, getProfile, waterGoalMl, todayISO });
+initActivity({
+  t, getProfile, toast,
+  listActivityByDate, deleteActivity, logActivity,
+  buildActivityEntry, estimateKcalBurned, sumBurned,
+  renderDashboard,
+});
 
 // ============================================================================
 // PWA install prompt — we catch `beforeinstallprompt` and reveal a small
@@ -3721,123 +3728,9 @@ $('fasting-history-clear')?.addEventListener('click', () => {
   renderFastStreak();
 });
 
-// ============================================================================
-// Activity (exercise) — tile + dialog.
-// Read/write via /data/activity.js. Persisted IDB entries are summed to
-// display today's total burn; the number feeds into the dashboard
-// "Remaining" kcal line (Remaining = target − consumed + burned).
-// ============================================================================
-
-const activityDialog = $('activity-dialog');
-
-// Map IDB-stored snake_case activity keys to the i18n key suffix. Kept
-// explicit so we don't rely on string-munging to stay in sync with i18n.
-const ACTIVITY_LABEL_KEY = {
-  walking_brisk: 'activityTypeWalking',
-  running:       'activityTypeRunning',
-  cycling:       'activityTypeCycling',
-  swimming:      'activityTypeSwimming',
-  strength:      'activityTypeStrength',
-  yoga:          'activityTypeYoga',
-  hiit:          'activityTypeHiit',
-  other:         'activityTypeOther',
-};
-const activityTypeLabel = (type) => t(ACTIVITY_LABEL_KEY[type] || 'activityTypeOther');
-
-async function renderActivity() {
-  const tile = $('activity-tile');
-  const summary = $('activity-summary');
-  const list = $('activity-entries');
-  if (!tile || !summary) return null;
-  const entries = await listActivityByDate().catch(() => []);
-  const b = sumBurned(entries);
-  if (b.count === 0) {
-    summary.textContent = t('activitySummaryEmpty');
-  } else {
-    summary.textContent = t('activitySummary', { min: b.minutes, kcal: b.kcal });
-  }
-  if (list) {
-    list.innerHTML = '';
-    if (entries.length === 0) {
-      hide(list);
-    } else {
-      for (const e of entries.slice().sort((a, b) => b.timestamp - a.timestamp)) {
-        const li = document.createElement('li');
-        li.className = 'act-entry';
-        const span = document.createElement('span');
-        span.textContent = t('activityEntryRow', {
-          type: activityTypeLabel(e.type),
-          min: e.minutes,
-          kcal: e.kcal_burned,
-        });
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'act-entry-del';
-        del.setAttribute('aria-label', t('activityDelete'));
-        del.textContent = '×';
-        del.addEventListener('click', async () => {
-          await deleteActivity(e.id);
-          await renderDashboard();
-        });
-        li.appendChild(span);
-        li.appendChild(del);
-        list.appendChild(li);
-      }
-      show(list);
-    }
-  }
-  return b;
-}
-
-function updateActivityEstimate() {
-  const out = $('a-estimate');
-  if (!out) return;
-  const type = $('a-type')?.value || 'walking_brisk';
-  const minutes = Number($('a-minutes')?.value) || 0;
-  const override = Number($('a-kcal')?.value) || 0;
-  const profile = getProfile();
-  const weightKg = Number(profile.weight_kg) || 0;
-  if (override > 0) { out.textContent = t('activityEstimate', { kcal: Math.round(override) }); return; }
-  if (weightKg <= 0) { out.textContent = t('activityEstimateNeedWeight'); return; }
-  if (minutes <= 0) { out.textContent = ''; return; }
-  const kcal = estimateKcalBurned(type, minutes, weightKg);
-  out.textContent = t('activityEstimate', { kcal });
-}
-
-$('activity-add')?.addEventListener('click', () => {
-  if (!activityDialog) return;
-  // Reset form then open
-  $('a-minutes').value = '';
-  $('a-kcal').value = '';
-  $('a-note').value = '';
-  updateActivityEstimate();
-  activityDialog.showModal();
-});
-$('a-type')?.addEventListener('change', updateActivityEstimate);
-$('a-minutes')?.addEventListener('input', updateActivityEstimate);
-$('a-kcal')?.addEventListener('input', updateActivityEstimate);
-$('a-close')?.addEventListener('click', () => activityDialog?.close());
-$('a-save')?.addEventListener('click', async (e) => {
-  // The dialog's method="dialog" closes it on submit; intercept to persist.
-  e.preventDefault();
-  const type = $('a-type')?.value || 'walking_brisk';
-  const minutes = Number($('a-minutes')?.value) || 0;
-  if (minutes <= 0) return;
-  const kcalOverride = Number($('a-kcal')?.value) || 0;
-  const note = $('a-note')?.value || '';
-  const profile = getProfile();
-  const entry = buildActivityEntry({
-    type, minutes, weightKg: profile.weight_kg, kcalOverride, note,
-  });
-  await logActivity(entry);
-  activityDialog?.close();
-  toast(t('activityToast', {
-    type: activityTypeLabel(type),
-    min: minutes,
-    kcal: entry.kcal_burned,
-  }));
-  await renderDashboard();
-});
+// Activity (exercise) UI is extracted to /features/activity.js.
+// renderActivity() is imported below; initialisation lives next to
+// initHydration / initFasting at boot.
 
 // ============================================================================
 // Day / Week view toggle — flips between daily dashboard and weekly rollup.
