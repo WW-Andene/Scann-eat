@@ -163,7 +163,15 @@ function toImageUrl(img: LabelImage): string {
   return `data:${mime};base64,${img.base64}`;
 }
 
-async function callVisionLLM(
+/**
+ * Low-level Groq vision caller. Accepts any system + user prompt pair so the
+ * label-parsing and food-identification pipelines can share one transport
+ * path with one place to handle auth, errors, and the "no JSON mode on
+ * vision" quirk.
+ */
+async function callGroqVision(
+  systemPrompt: string,
+  userText: string,
   images: LabelImage[],
   opts: ParseOptions,
 ): Promise<string> {
@@ -171,10 +179,7 @@ async function callVisionLLM(
   if (!apiKey) throw new Error('GROQ_API_KEY missing — pass opts.apiKey or set env var.');
 
   const userContent: Array<Record<string, unknown>> = [
-    {
-      type: 'text',
-      text: `Extrais la fiche produit. Renvoie uniquement ce JSON:\n${JSON_SCHEMA_HINT}`,
-    },
+    { type: 'text', text: userText },
     ...images.map((img) => ({
       type: 'image_url',
       image_url: { url: toImageUrl(img) },
@@ -190,7 +195,7 @@ async function callVisionLLM(
     temperature: opts.temperature ?? 0.1,
     max_tokens: opts.maxTokens ?? 2048,
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemPrompt },
       { role: 'user', content: userContent },
     ],
   };
@@ -216,6 +221,103 @@ async function callVisionLLM(
   const content = json.choices?.[0]?.message?.content;
   if (!content) throw new Error('Groq API returned no content.');
   return content;
+}
+
+async function callVisionLLM(
+  images: LabelImage[],
+  opts: ParseOptions,
+): Promise<string> {
+  return callGroqVision(
+    SYSTEM_PROMPT,
+    `Extrais la fiche produit. Renvoie uniquement ce JSON:\n${JSON_SCHEMA_HINT}`,
+    images,
+    opts,
+  );
+}
+
+// ============================================================================
+// SECTION 3b: FOOD IDENTIFICATION (photos of prepared / fresh food, no label)
+// ============================================================================
+
+const IDENTIFY_FOOD_PROMPT = `Tu es un expert en nutrition qui identifie des aliments prêts à manger depuis une photo : plats préparés, fruits / légumes frais, pâtisseries, plats de restaurant. Il n'y a PAS d'étiquette ni de code-barres à lire.
+
+Ta tâche :
+1. Identifie l'aliment principal visible.
+2. Estime la quantité totale visible en grammes (ou ml si liquide). Utilise des repères visuels : assiette standard (~26 cm), fourchette, main, bol. Si plusieurs items, estime le total.
+3. Estime les macronutriments pour la portion VISIBLE (pas pour 100 g).
+
+Règles :
+- Réponds UNIQUEMENT en JSON valide, sans markdown.
+- Décimales avec point.
+- Si tu n'es pas sûr à au moins 60 %, renvoie confidence: "low".
+- Nom en français, tel qu'on le dirait normalement.`;
+
+const IDENTIFY_FOOD_SCHEMA = `{
+  "name": "string (français, ex: 'salade césar au poulet')",
+  "estimated_grams": number,
+  "kcal": number,
+  "protein_g": number,
+  "carbs_g": number,
+  "fat_g": number,
+  "confidence": "low" | "medium" | "high"
+}`;
+
+export interface IdentifiedFood {
+  name: string;
+  estimated_grams: number;
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  confidence: 'low' | 'medium' | 'high';
+}
+
+/**
+ * Identify a food from one or more photos of the dish itself (no label).
+ * Complements parseLabel for the ~40% of real meals that have no barcode
+ * or ingredient list — fruit, restaurant plates, bakery items.
+ *
+ * Returns an IdentifiedFood ready to feed directly into Quick Add.
+ */
+export async function identifyFood(
+  images: LabelImage | LabelImage[],
+  opts: ParseOptions = {},
+): Promise<IdentifiedFood> {
+  const imgs = Array.isArray(images) ? images : [images];
+  if (imgs.length === 0) throw new Error('identifyFood: no images provided.');
+  if (imgs.length > 4) throw new Error('identifyFood: max 4 images per call.');
+
+  const raw = await callGroqVision(
+    IDENTIFY_FOOD_PROMPT,
+    `Identifie l'aliment. Renvoie uniquement ce JSON :\n${IDENTIFY_FOOD_SCHEMA}`,
+    imgs,
+    opts,
+  );
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(extractJSON(raw));
+  } catch {
+    // eslint-disable-next-line no-console
+    console.warn('[identifyFood] malformed JSON, first 300 chars:', raw.slice(0, 300));
+    throw new Error('identifyFood: LLM returned malformed JSON.');
+  }
+
+  const name = typeof parsed.name === 'string' && parsed.name.trim()
+    ? parsed.name.trim()
+    : '(aliment inconnu)';
+  const confidence: IdentifiedFood['confidence'] =
+    parsed.confidence === 'high' || parsed.confidence === 'low' ? parsed.confidence : 'medium';
+
+  return {
+    name,
+    estimated_grams: Math.max(0, coerceNumber(parsed.estimated_grams)),
+    kcal: Math.max(0, coerceNumber(parsed.kcal)),
+    protein_g: Math.max(0, coerceNumber(parsed.protein_g)),
+    carbs_g: Math.max(0, coerceNumber(parsed.carbs_g)),
+    fat_g: Math.max(0, coerceNumber(parsed.fat_g)),
+    confidence,
+  };
 }
 
 // ============================================================================
