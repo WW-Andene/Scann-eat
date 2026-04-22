@@ -13,7 +13,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { isOFFSparse, mergeOFFWithLLM, detectSourceConflicts } from './off.ts';
+import { isOFFSparse, mergeOFFWithLLM, detectSourceConflicts, rankAlternatives } from './off.ts';
 import type { ProductInput } from './scoring-engine.ts';
 
 function p(overrides: Partial<ProductInput>): ProductInput {
@@ -150,5 +150,74 @@ describe('detectSourceConflicts', () => {
       nutrition: { ...p({}).nutrition, salt_g: 2 },
     });
     assert.deepEqual(detectSourceConflicts(off, llm), []);
+  });
+});
+
+// ============================================================================
+// rankAlternatives — "similar but better" ranker
+// ============================================================================
+
+describe('rankAlternatives', () => {
+  // Reference: mid-tier sweetened yogurt (should score ~C range)
+  const reference = p({
+    name: 'Yaourt sucré',
+    nutrition: {
+      energy_kcal: 110, fat_g: 3, saturated_fat_g: 2, carbs_g: 16,
+      sugars_g: 14, added_sugars_g: 10, fiber_g: 0, protein_g: 4, salt_g: 0.1,
+      trans_fat_g: null,
+    },
+  });
+
+  const better = p({
+    name: 'Yaourt nature',
+    nutrition: {
+      energy_kcal: 60, fat_g: 3, saturated_fat_g: 2, carbs_g: 5,
+      sugars_g: 4, added_sugars_g: null, fiber_g: 0, protein_g: 4, salt_g: 0.1,
+      trans_fat_g: null,
+    },
+    ingredients: [{ name: 'lait entier', is_whole_food: true, category: 'food' }],
+    nova_class: 2,
+  });
+
+  const worse = p({
+    name: 'Yaourt très sucré chocolat',
+    nutrition: {
+      energy_kcal: 180, fat_g: 6, saturated_fat_g: 4, carbs_g: 28,
+      sugars_g: 25, added_sugars_g: 20, fiber_g: 0, protein_g: 3, salt_g: 0.15,
+      trans_fat_g: null,
+    },
+    nova_class: 4,
+  });
+
+  it('drops candidates scoring ≤ the reference', () => {
+    const out = rankAlternatives(reference, [worse]);
+    assert.equal(out.length, 0);
+  });
+
+  it('keeps candidates scoring strictly better, sorted high to low', () => {
+    const out = rankAlternatives(reference, [worse, better]);
+    assert.equal(out.length, 1);
+    assert.equal(out[0].product.name, 'Yaourt nature');
+  });
+
+  it('respects the max cap', () => {
+    const a = p({ name: 'A', nova_class: 2, nutrition: { ...better.nutrition } });
+    const b = p({ name: 'B', nova_class: 2, nutrition: { ...better.nutrition } });
+    const c = p({ name: 'C', nova_class: 2, nutrition: { ...better.nutrition } });
+    const out = rankAlternatives(reference, [a, b, c], { max: 2 });
+    assert.equal(out.length, 2);
+  });
+
+  it('skips candidates with the same name as the reference', () => {
+    const same = p({ name: reference.name, nova_class: 2, nutrition: { ...better.nutrition } });
+    const out = rankAlternatives(reference, [same]);
+    assert.equal(out.length, 0);
+  });
+
+  it('applies dietFilter predicate (e.g. drops non-vegan)', () => {
+    const out = rankAlternatives(reference, [better, worse], {
+      dietFilter: (c) => c.name !== 'Yaourt nature', // reject better
+    });
+    assert.equal(out.length, 0);
   });
 });

@@ -46,7 +46,7 @@ await build({
     contents: `
       export { parseLabel, parseIngredientsText } from './ocr-parser.ts';
       export { scoreProduct, ADDITIVES_DB } from './scoring-engine.ts';
-      export { fetchFromOFF } from './off.ts';
+      export { fetchFromOFF, searchOFFByCategory, rankAlternatives } from './off.ts';
     `,
     resolveDir: '.',
     loader: 'ts',

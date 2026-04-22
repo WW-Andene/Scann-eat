@@ -13,6 +13,7 @@
  */
 
 import { parseIngredientsText } from './ocr-parser.ts';
+import { scoreProduct, type ScoreAudit } from './scoring-engine.ts';
 import type {
   Ingredient,
   NovaClass,
@@ -374,6 +375,43 @@ export async function searchOFFByCategory(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/**
+ * "Similar but better" — take a list of OFF candidates, score each one,
+ * filter to only those strictly beating the reference product, and return
+ * the top N by score. Pure: caller passes the candidates so this is
+ * trivially testable without an OFF round-trip.
+ *
+ * `dietFilter(candidate)` is an optional predicate; the caller plugs in
+ * checkDiet() bound to the user's active diet. Candidates where the
+ * filter returns false are dropped.
+ */
+export interface Alternative {
+  product: ProductInput;
+  audit: ScoreAudit;
+}
+
+export function rankAlternatives(
+  reference: ProductInput,
+  candidates: ProductInput[],
+  opts: {
+    max?: number;
+    dietFilter?: (p: ProductInput) => boolean;
+  } = {},
+): Alternative[] {
+  const max = opts.max ?? 3;
+  const filter = opts.dietFilter ?? (() => true);
+  const refAudit = scoreProduct(reference);
+
+  const ranked = candidates
+    .filter((c) => c.name && c.name !== reference.name) // don't suggest the same item
+    .filter(filter)
+    .map((product) => ({ product, audit: scoreProduct(product) }))
+    .filter((a) => a.audit.score > refAudit.score)
+    .sort((a, b) => b.audit.score - a.audit.score);
+
+  return ranked.slice(0, max);
 }
 
 /**
