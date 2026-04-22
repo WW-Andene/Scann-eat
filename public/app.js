@@ -1189,9 +1189,41 @@ const recentScansEl = $('recent-scans');
 const recentListEl = $('recent-list');
 const clearHistoryBtn = $('clear-history');
 
+/**
+ * Downscale a data-URL to a square JPEG thumbnail. Keeps IDB records tiny
+ * so even 30 scans × 30 dashboard renders feel instant and stay well clear
+ * of the browser quota. Returns the original if anything fails — safer to
+ * waste a few KB than to lose the reference image.
+ */
+async function makeThumbnail(dataUrl, size = 96) {
+  if (!dataUrl || !dataUrl.startsWith('data:image')) return '';
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error('thumbnail decode failed'));
+      i.src = dataUrl;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    // Cover-crop: fill the square, crop overflow so the result is a uniform
+    // tile regardless of the source aspect ratio.
+    const scale = Math.max(size / img.width, size / img.height);
+    const w = img.width * scale;
+    const h = img.height * scale;
+    ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch {
+    return dataUrl; // fall back — original is still valid
+  }
+}
+
 async function persistToHistory(data) {
-  const thumb = queue.find((q) => q.dataUrl && q.dataUrl.startsWith('data:image'))?.dataUrl
+  const raw = queue.find((q) => q.dataUrl && q.dataUrl.startsWith('data:image'))?.dataUrl
     ?? '';
+  const thumb = raw ? await makeThumbnail(raw, 96) : '';
   await saveScan({
     id: crypto.randomUUID(),
     createdAt: Date.now(),
@@ -1244,7 +1276,12 @@ async function renderRecentScans() {
     thumb.className = 'recent-thumb';
     if (item.thumbnail) {
       const img = document.createElement('img');
-      img.src = item.thumbnail; img.alt = '';
+      img.src = item.thumbnail;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.width = 48;
+      img.height = 48;
       thumb.appendChild(img);
     } else {
       thumb.textContent = '📦';
