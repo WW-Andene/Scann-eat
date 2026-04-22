@@ -525,7 +525,9 @@ export function t(key, vars) {
   let out = table[key] ?? fallback[key] ?? key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
-      out = out.replace(`{${k}}`, String(v));
+      // replaceAll so a translation like "{name} ... {name}" interpolates
+      // every occurrence, not just the first.
+      out = out.replaceAll(`{${k}}`, String(v));
     }
   }
   return out;
