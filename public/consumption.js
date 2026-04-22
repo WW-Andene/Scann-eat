@@ -155,6 +155,18 @@ export async function listByDate(date = todayISO()) {
   });
 }
 
+/** Every consumption entry in the store. Used for streak + weekly rollup
+ *  computations that span more than a single date. */
+export async function listAllEntries() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => { db.close(); resolve(req.result || []); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  });
+}
+
 export async function deleteEntry(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {

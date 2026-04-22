@@ -8,10 +8,10 @@ import {
   bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets,
 } from '/profile.js';
 import { computePersonalScore, personalGrade } from '/personal-score.js';
-import { logEntry, logQuickAdd, listByDate, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
+import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays } from '/presenters.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
 // (getItem returns null silently, but setItem/removeItem throw). Shim the
@@ -1935,6 +1935,22 @@ async function renderDashboard() {
   dashboardDateEl.textContent = new Date().toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
     weekday: 'short', day: 'numeric', month: 'short',
   });
+
+  // Streak: small positive-reinforcement line. Only shown at 2+ consecutive
+  // days so a single-day user isn't greeted with "1 day streak" nag.
+  try {
+    const streakEl = $('dashboard-streak');
+    if (streakEl) {
+      const allEntries = await listAllEntries().catch(() => []);
+      const streak = logStreakDays(allEntries, todayISO());
+      if (streak >= 2) {
+        streakEl.textContent = t('streakDays', { n: streak });
+        show(streakEl);
+      } else {
+        hide(streakEl);
+      }
+    }
+  } catch { /* streak is decorative; never fail the dashboard render */ }
 
   // "Remaining" line (MFP-style Remaining = Goal − Food).
   if (targets) {
