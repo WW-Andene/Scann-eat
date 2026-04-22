@@ -1481,6 +1481,10 @@ compareClear?.addEventListener('click', () => {
 if (getBarcodeDetector()) show(barcodeLiveBtn);
 barcodeLiveBtn?.addEventListener('click', () => openCameraScanner());
 cameraClose?.addEventListener('click', () => closeCameraScanner());
+// Tear down the MediaStream + detection loop regardless of how the dialog
+// closes — Escape key, backdrop click, or programmatic close from a
+// successful barcode scan all fire the 'close' event.
+cameraDialog?.addEventListener('close', () => closeCameraScanner());
 
 settingsBtn?.addEventListener('click', () => {
   keyInput.value = getKey();
