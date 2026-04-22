@@ -387,10 +387,12 @@ summary:focus-visible,
   border: none;
   font-size: 1.2em;
   padding: 0;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   min-height: auto;
   border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
 }
 .update-dismiss:hover { background: var(--panel-2); }
 
@@ -984,8 +986,8 @@ main {
   color: var(--muted);
   font-size: 1.3em;
   padding: 0;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   min-height: auto;
   border-radius: var(--r-pill);
   display: grid;
@@ -1657,10 +1659,12 @@ main {
   color: var(--muted);
   font-size: 1.3em;
   padding: 0;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   min-height: auto;
   border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
 }
 .dash-entry-del:hover { background: var(--panel-3); color: var(--danger); }
 .dash-entry-empty {
