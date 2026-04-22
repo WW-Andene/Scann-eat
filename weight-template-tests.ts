@@ -16,7 +16,7 @@ import { describe, it } from 'node:test';
   get length() { return 0; },
 } as unknown as Storage;
 
-const { weeklyTrend, summarize } = await import('./public/weight-log.js');
+const { weeklyTrend, summarize } = await import('./public/data/weight-log.js');
 const { expandTemplate, templateKcal } = await import('./public/meal-templates.js');
 const { resolveMacroSplit, MACRO_PRESETS, dailyTargets } = await import('./public/data/profile.js');
 

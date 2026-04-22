@@ -15,7 +15,7 @@ import {
 } from '/data/profile.js';
 import { computePersonalScore, personalGrade } from '/personal-score.js';
 import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
-import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
+import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/data/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
 import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON } from '/presenters.js';
