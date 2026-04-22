@@ -383,19 +383,25 @@ async function updatePendingBanner() {
 }
 
 async function retryPending() {
-  const items = await listPending();
-  for (const item of items) {
-    try {
-      const res = await fetch('/api/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: item.images, barcode: item.barcode }),
-      });
-      if (res.ok) await removePending(item.id);
-      else break; // stop the loop on first failure
-    } catch { break; }
+  try {
+    const items = await listPending();
+    for (const item of items) {
+      try {
+        const res = await fetch('/api/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ images: item.images, barcode: item.barcode }),
+        });
+        if (res.ok) await removePending(item.id);
+        else break; // stop the loop on first failure
+      } catch { break; }
+    }
+  } catch (err) {
+    // IDB read failed (quota / versionchange / browser shutdown). The banner
+    // will repaint empty next tick and the user can still add new scans.
+    console.warn('[retryPending] aborted', err);
   }
-  await updatePendingBanner();
+  await updatePendingBanner().catch(() => { /* banner is non-critical */ });
 }
 
 window.addEventListener('online', retryPending);
@@ -1223,19 +1229,25 @@ async function makeThumbnail(dataUrl, size = 96) {
 async function persistToHistory(data) {
   const raw = queue.find((q) => q.dataUrl && q.dataUrl.startsWith('data:image'))?.dataUrl
     ?? '';
-  const thumb = raw ? await makeThumbnail(raw, 96) : '';
-  await saveScan({
-    id: crypto.randomUUID(),
-    createdAt: Date.now(),
-    thumbnail: thumb,
-    name: data.audit.product_name || data.product.name,
-    grade: data.audit.grade,
-    score: data.audit.score,
-    category: data.audit.category,
-    source: data.source,
-    snapshot: data,
-  });
-  renderRecentScans();
+  try {
+    const thumb = raw ? await makeThumbnail(raw, 96) : '';
+    await saveScan({
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      thumbnail: thumb,
+      name: data.audit.product_name || data.product.name,
+      grade: data.audit.grade,
+      score: data.audit.score,
+      category: data.audit.category,
+      source: data.source,
+      snapshot: data,
+    });
+    renderRecentScans();
+  } catch (err) {
+    // History is a convenience surface — never fail the scan flow because
+    // we couldn't persist the snapshot. Quota-recovery already tried once.
+    console.warn('[history] persist failed', err);
+  }
 }
 
 function timeAgo(ts) {
@@ -1662,8 +1674,11 @@ const tplClose = $('tpl-close');
 const tplSaveToday = $('tpl-save-today');
 
 templatesBtn?.addEventListener('click', async () => {
-  await renderTemplatesList();
+  // Open the dialog first, then render. If the IDB read fails, the user
+  // still sees the dialog with an empty list instead of a dead button.
   templatesDialog.showModal();
+  try { await renderTemplatesList(); }
+  catch (err) { console.warn('[templates] render failed', err); }
 });
 tplClose?.addEventListener('click', (e) => { e.preventDefault(); templatesDialog.close(); });
 tplSaveToday?.addEventListener('click', async () => {
