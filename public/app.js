@@ -1775,14 +1775,17 @@ function askTemplateName() {
     const onConfirm = (e) => {
       e.preventDefault();
       const name = tplNameInput.value.trim();
-      tplNameDialog.close();
+      // Cleanup BEFORE close — dialog.close() fires the 'close' event
+      // synchronously, so onClose would otherwise run first and resolve
+      // the promise with null before we get to resolve with the name.
       cleanup();
+      tplNameDialog.close();
       resolve(name || null);
     };
     const onCancel = (e) => {
       e.preventDefault();
-      tplNameDialog.close();
       cleanup();
+      tplNameDialog.close();
       resolve(null);
     };
     const onClose = () => { cleanup(); resolve(null); };
