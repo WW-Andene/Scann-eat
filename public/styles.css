@@ -2454,6 +2454,27 @@ body.reduce-motion .hyd-fill { transition: none; }
   font-size: 0.85em;
   font-variant-numeric: tabular-nums;
 }
+/* Life-stage chip — sits under the kcal row when EFSA pregnancy /
+   lactation uplift is active. Same typographic rhythm as .dash-net but
+   a warmer accent (using the existing --accent-warm fallback to --muted
+   for themes that don't define it). */
+.dash-lifestage-chip {
+  margin: 0;
+  padding: 4px var(--sp-2);
+  color: var(--accent-warm, var(--muted));
+  font-size: 0.85em;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+/* Bottom action row inside #dashboard-log (Share today button). Right-
+   aligned so it reads as a trailing action, not inline with the entries
+   list. */
+.dashboard-log-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--sp-2);
+}
 
 /* ---- Meals log ---- */
 .dashboard-log {
