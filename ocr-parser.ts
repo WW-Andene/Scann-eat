@@ -321,6 +321,93 @@ export async function identifyFood(
 }
 
 // ============================================================================
+// SECTION 3c: MULTI-ITEM FOOD IDENTIFICATION (multiple foods on one plate)
+// ============================================================================
+
+const IDENTIFY_MULTI_PROMPT = `Tu identifies plusieurs aliments distincts visibles sur une même photo (ex. une assiette avec plusieurs composants, un plateau-repas, un buffet). PAS d'étiquette ni de code-barres.
+
+Ta tâche pour chaque aliment :
+1. Nomme l'aliment principal.
+2. Estime sa quantité visible en grammes (ou ml).
+3. Estime ses macros pour la portion visible (pas pour 100 g).
+
+Règles :
+- Réponds UNIQUEMENT en JSON valide.
+- Décimales avec point.
+- Jusqu'à 8 aliments maximum. Ignore les condiments / accompagnements négligeables.
+- Si un aliment n'est pas clairement identifiable, laisse-le de côté.
+- Noms en français.`;
+
+const IDENTIFY_MULTI_SCHEMA = `{
+  "items": [
+    {
+      "name": "string",
+      "estimated_grams": number,
+      "kcal": number,
+      "protein_g": number,
+      "carbs_g": number,
+      "fat_g": number
+    }
+  ],
+  "confidence": "low" | "medium" | "high"
+}`;
+
+export interface IdentifiedMultiFood {
+  items: Omit<IdentifiedFood, 'confidence'>[];
+  confidence: 'low' | 'medium' | 'high';
+}
+
+/**
+ * Identify MULTIPLE foods visible in a single photo — e.g., a plate with
+ * steak + fries + salad, or a buffet tray. Returns a list, each item ready
+ * to be logged as its own Quick Add entry.
+ *
+ * Caps at 8 items server-side (LLM) and mirrored client-side.
+ */
+export async function identifyMultiFood(
+  images: LabelImage | LabelImage[],
+  opts: ParseOptions = {},
+): Promise<IdentifiedMultiFood> {
+  const imgs = Array.isArray(images) ? images : [images];
+  if (imgs.length === 0) throw new Error('identifyMultiFood: no images provided.');
+  if (imgs.length > 4) throw new Error('identifyMultiFood: max 4 images per call.');
+
+  const raw = await callGroqVision(
+    IDENTIFY_MULTI_PROMPT,
+    `Identifie tous les aliments distincts. Renvoie uniquement ce JSON :\n${IDENTIFY_MULTI_SCHEMA}`,
+    imgs,
+    opts,
+  );
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(extractJSON(raw));
+  } catch {
+    // eslint-disable-next-line no-console
+    console.warn('[identifyMultiFood] malformed JSON, first 300 chars:', raw.slice(0, 300));
+    throw new Error('identifyMultiFood: LLM returned malformed JSON.');
+  }
+
+  const rawItems = Array.isArray(parsed.items) ? parsed.items : [];
+  const items = rawItems.slice(0, 8)
+    .filter((it): it is Record<string, unknown> => !!it && typeof it === 'object')
+    .map((it) => ({
+      name: typeof it.name === 'string' && it.name.trim() ? it.name.trim() : '(inconnu)',
+      estimated_grams: Math.max(0, coerceNumber(it.estimated_grams)),
+      kcal: Math.max(0, coerceNumber(it.kcal)),
+      protein_g: Math.max(0, coerceNumber(it.protein_g)),
+      carbs_g: Math.max(0, coerceNumber(it.carbs_g)),
+      fat_g: Math.max(0, coerceNumber(it.fat_g)),
+    }))
+    .filter((it) => it.name !== '(inconnu)' && (it.kcal > 0 || it.estimated_grams > 0));
+
+  const confidence: IdentifiedMultiFood['confidence'] =
+    parsed.confidence === 'high' || parsed.confidence === 'low' ? parsed.confidence : 'medium';
+
+  return { items, confidence };
+}
+
+// ============================================================================
 // SECTION 4: DETERMINISTIC FRENCH POST-PROCESSOR
 // ============================================================================
 //

@@ -2110,6 +2110,62 @@ qaPhotoInput?.addEventListener('change', async (e) => {
   }
 });
 
+// Multi-item plate: identify all foods in one shot, write each as a
+// separate Quick Add entry. Closes the Quick Add dialog on success.
+$('qa-photo-multi-input')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  setQaStatus(t('identifyingFood'));
+  try {
+    const compressed = await compressImage(file);
+    const mode = getMode();
+    let result;
+    if (mode === 'direct') {
+      const { identifyMultiFood } = await loadEngine();
+      const key = getKey();
+      if (!key) throw new Error(t('errMissingKey'));
+      result = await identifyMultiFood(
+        [{ base64: compressed.base64, mime: compressed.mime }],
+        { apiKey: key },
+      );
+    } else {
+      const res = await fetch('/api/identify-multi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: [{ base64: compressed.base64, mime: compressed.mime }] }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      result = await res.json();
+    }
+    const items = Array.isArray(result?.items) ? result.items : [];
+    if (items.length === 0) {
+      setQaStatus(t('identifyMultiEmpty'), 'warn');
+      return;
+    }
+    const meal = $('qa-meal')?.value || defaultMealForHour(new Date().getHours());
+    for (const it of items) {
+      await logQuickAdd({
+        name: it.name,
+        meal,
+        kcal: Math.round(it.kcal) || 0,
+        protein_g: Math.round(it.protein_g) || 0,
+        carbs_g: Math.round(it.carbs_g) || 0,
+        fat_g: Math.round(it.fat_g) || 0,
+        sat_fat_g: 0,
+        sugars_g: 0,
+        salt_g: 0,
+      });
+    }
+    quickAddDialog?.close();
+    await renderDashboard();
+    toast(t('identifyMultiToast', { n: items.length }));
+  } catch (err) {
+    console.warn('[identifyMultiFood]', err);
+    setQaStatus(t('identifyFailed'), 'error');
+  }
+});
+
 // Reset AI status when the dialog opens (via the quick-add button).
 quickAddBtn?.addEventListener('click', () => hide(qaAiStatus));
 
