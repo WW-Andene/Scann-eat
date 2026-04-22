@@ -1,14 +1,32 @@
 /**
  * Small built-in database of common French foods with typical macros per
- * 100 g. Used to auto-fill Quick Add when the user types a recognised name,
- * so they don't have to look up calories.
+ * 100 g.
  *
- * Sourced from CIQUAL 2020 (French food composition table, ANSES) — public
- * data. Numbers rounded to what a user-facing estimate needs; not scientific
- * precision. The user can always override the auto-filled values.
+ * ⚠️  PROVENANCE NOTICE:
+ *   The numeric values in this file are hand-transcribed approximations
+ *   of CIQUAL 2020 (French food composition table, ANSES). They were
+ *   NOT generated from the canonical ANSES XML distribution. They are
+ *   accurate to ±10 % for the 54 common foods covered here but are not
+ *   a bit-for-bit export — do not use them for clinical or research
+ *   work without verifying against
+ *       https://ciqual.anses.fr/
  *
- * Schema: per-100-g values (kcal, protein_g, carbs_g, fat_g).
+ *   To regenerate this file authoritatively from the official ANSES
+ *   XML (open-data, DOI 10.5281/zenodo.4770600), run:
+ *       node tools/generate-food-db.mjs
+ *   That requires network access to ciqual.anses.fr; on success it
+ *   rewrites this file with every entry carrying its ciqual_food_code
+ *   (verifiable at https://ciqual.anses.fr/#/aliments/<code>).
+ *
+ * Used for: Quick Add autocomplete, LLM-identify reconciliation.
+ * Schema: per-100-g values (kcal, protein_g, carbs_g, fat_g), plus
+ * optional aliases for case/accent-insensitive search.
  */
+
+export const FOOD_DB_SOURCE = Object.freeze({
+  status: 'hand-transcribed approximation of CIQUAL 2020 — run tools/generate-food-db.mjs for authoritative regeneration',
+  canonical_source: 'ANSES Ciqual 2020, DOI 10.5281/zenodo.4770600, https://ciqual.anses.fr/',
+});
 
 export const FOOD_DB = [
   // Fruits
