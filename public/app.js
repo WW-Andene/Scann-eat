@@ -11,6 +11,7 @@ import { computePersonalScore, personalGrade } from '/personal-score.js';
 import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
+import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
 import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
@@ -2078,6 +2079,201 @@ async function renderTemplatesList() {
     ul.appendChild(li);
   }
 }
+
+// ============================================================================
+// Recipes — multi-component dishes that log as ONE aggregated entry.
+// ============================================================================
+
+const recipesBtn = $('recipes-btn');
+const recipesDialog = $('recipes-dialog');
+const recipesCloseBtn = $('recipes-close');
+const recipesListEl = $('recipes-list');
+const recipeNewBtn = $('recipe-new-btn');
+
+const recipeEditDialog = $('recipe-edit-dialog');
+const recipeEditName = $('recipe-edit-name');
+const recipeEditServings = $('recipe-edit-servings');
+const recipeEditComps = $('recipe-components-list');
+const recipeEditTotals = $('recipe-edit-totals');
+const recipeAddCompBtn = $('recipe-add-component');
+const recipeEditCancel = $('recipe-edit-cancel');
+const recipeEditSave = $('recipe-edit-save');
+
+let editingRecipe = null; // in-memory draft: { id?, name, servings, components: [] }
+
+function newComponent() {
+  return { product_name: '', grams: 0, kcal: 0, carbs_g: 0, fat_g: 0, protein_g: 0 };
+}
+
+function recalcRecipeTotals() {
+  if (!recipeEditTotals) return;
+  const draft = {
+    name: recipeEditName?.value || '',
+    components: readDraftComponentsFromDOM(),
+  };
+  const agg = aggregateRecipe(draft, Number(recipeEditServings?.value) || 1);
+  recipeEditTotals.textContent = t('recipeTotals', {
+    kcal: Math.round(agg.kcal),
+    prot: Math.round(agg.protein_g),
+    carb: Math.round(agg.carbs_g),
+    fat:  Math.round(agg.fat_g),
+    serv: Math.max(1, Math.round(Number(recipeEditServings?.value) || 1)),
+  });
+}
+
+function readDraftComponentsFromDOM() {
+  if (!recipeEditComps) return [];
+  const rows = recipeEditComps.querySelectorAll('.recipe-component');
+  return Array.from(rows).map((row) => ({
+    product_name: row.querySelector('.rc-name')?.value || '',
+    grams:     Number(row.querySelector('.rc-grams')?.value) || 0,
+    kcal:      Number(row.querySelector('.rc-kcal')?.value) || 0,
+    protein_g: Number(row.querySelector('.rc-prot')?.value) || 0,
+    carbs_g:   Number(row.querySelector('.rc-carb')?.value) || 0,
+    fat_g:     Number(row.querySelector('.rc-fat')?.value) || 0,
+  }));
+}
+
+function renderRecipeComponentRow(comp) {
+  const li = document.createElement('li');
+  li.className = 'recipe-component';
+  const fields = document.createElement('div');
+  fields.className = 'rc-fields';
+  const mk = (cls, placeholder, value, type = 'text') => {
+    const i = document.createElement('input');
+    i.type = type;
+    i.className = cls;
+    i.placeholder = placeholder;
+    i.value = value ?? '';
+    if (type === 'number') { i.inputMode = 'decimal'; i.step = 'any'; i.min = '0'; }
+    i.addEventListener('input', recalcRecipeTotals);
+    return i;
+  };
+  fields.appendChild(mk('rc-name', t('recipeCompName'), comp.product_name));
+  fields.appendChild(mk('rc-grams', t('recipeCompGrams'), comp.grams || '', 'number'));
+  fields.appendChild(mk('rc-kcal', t('recipeCompKcal'), comp.kcal || '', 'number'));
+  fields.appendChild(mk('rc-prot', t('recipeCompProt'), comp.protein_g || '', 'number'));
+  fields.appendChild(mk('rc-carb', t('recipeCompCarb'), comp.carbs_g || '', 'number'));
+  fields.appendChild(mk('rc-fat', t('recipeCompFat'), comp.fat_g || '', 'number'));
+
+  const rm = document.createElement('button');
+  rm.type = 'button';
+  rm.className = 'rc-remove';
+  rm.textContent = '×';
+  rm.setAttribute('aria-label', t('recipeRemoveComp'));
+  rm.addEventListener('click', () => { li.remove(); recalcRecipeTotals(); });
+
+  li.appendChild(fields);
+  li.appendChild(rm);
+  return li;
+}
+
+function openRecipeEditor(recipe) {
+  editingRecipe = recipe ?? { id: undefined, name: '', servings: 1, components: [newComponent()] };
+  if (recipeEditName) recipeEditName.value = editingRecipe.name;
+  if (recipeEditServings) recipeEditServings.value = String(editingRecipe.servings || 1);
+  if (recipeEditComps) {
+    recipeEditComps.textContent = '';
+    const comps = editingRecipe.components?.length ? editingRecipe.components : [newComponent()];
+    for (const c of comps) recipeEditComps.appendChild(renderRecipeComponentRow(c));
+  }
+  recalcRecipeTotals();
+  recipeEditDialog?.showModal();
+}
+
+recipeEditName?.addEventListener('input', recalcRecipeTotals);
+recipeEditServings?.addEventListener('input', recalcRecipeTotals);
+
+recipeAddCompBtn?.addEventListener('click', () => {
+  recipeEditComps?.appendChild(renderRecipeComponentRow(newComponent()));
+  recalcRecipeTotals();
+});
+
+recipeEditCancel?.addEventListener('click', (e) => {
+  e.preventDefault();
+  editingRecipe = null;
+  recipeEditDialog?.close();
+});
+
+recipeEditSave?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const components = readDraftComponentsFromDOM().filter((c) => c.product_name || c.kcal || c.grams);
+  try {
+    await saveRecipe({
+      id: editingRecipe?.id,
+      name: recipeEditName?.value || '',
+      servings: Number(recipeEditServings?.value) || 1,
+      components,
+    });
+    editingRecipe = null;
+    recipeEditDialog?.close();
+    await renderRecipesList();
+  } catch (err) { console.error('[recipe-save]', err); }
+});
+
+async function renderRecipesList() {
+  if (!recipesListEl) return;
+  recipesListEl.textContent = '';
+  const all = await listRecipes().catch(() => []);
+  if (all.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'dash-entry-empty';
+    li.textContent = t('recipeEmpty');
+    recipesListEl.appendChild(li);
+    return;
+  }
+  for (const r of all) {
+    const li = document.createElement('li');
+    li.className = 'tpl-item';
+    const head = document.createElement('div');
+    head.className = 'tpl-head';
+    const name = document.createElement('strong');
+    name.textContent = r.name;
+    const agg = aggregateRecipe(r, r.servings || 1);
+    const summary = document.createElement('span');
+    summary.className = 'tpl-kcal';
+    summary.textContent = `${Math.round(agg.kcal)} kcal · ${r.components.length} ingr.`;
+    head.appendChild(name);
+    head.appendChild(summary);
+    li.appendChild(head);
+
+    const actions = document.createElement('div');
+    actions.className = 'tpl-actions';
+    const apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'chip-btn accent';
+    apply.textContent = t('recipeApply');
+    // Apply handler lands in pt3 — stub for now.
+    apply.addEventListener('click', () => { /* pt3 */ });
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'chip-btn';
+    edit.textContent = t('recipeEdit');
+    edit.addEventListener('click', () => openRecipeEditor(r));
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'chip-btn';
+    del.textContent = '🗑';
+    del.setAttribute('aria-label', t('recipeDelete'));
+    del.addEventListener('click', async () => {
+      await deleteRecipe(r.id);
+      await renderRecipesList();
+    });
+    actions.appendChild(apply);
+    actions.appendChild(edit);
+    actions.appendChild(del);
+    li.appendChild(actions);
+    recipesListEl.appendChild(li);
+  }
+}
+
+recipesBtn?.addEventListener('click', async () => {
+  recipesDialog?.showModal();
+  try { await renderRecipesList(); }
+  catch (err) { console.warn('[recipes] render failed', err); }
+});
+recipesCloseBtn?.addEventListener('click', (e) => { e.preventDefault(); recipesDialog?.close(); });
+recipeNewBtn?.addEventListener('click', () => openRecipeEditor(null));
 
 qaSave?.addEventListener('click', async (e) => {
   e.preventDefault();
