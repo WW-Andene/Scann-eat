@@ -1765,6 +1765,30 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 }
 
 /* ---- Progress rows ---- */
+/* ========== RESCAN ROW (after a scan result) ============================
+   ========================================================================== */
+.rescan-row {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+.rescan-row button { flex: 1; }
+.rescan-camera {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: none;
+  padding: 0.85rem 1.4rem;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 1em;
+  cursor: pointer;
+}
+.rescan-camera:active { transform: scale(0.98); }
+
 /* ========== BACKUP / RESTORE ROW ========================================
    ========================================================================== */
 .backup-actions {

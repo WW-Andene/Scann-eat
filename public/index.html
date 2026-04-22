@@ -753,7 +753,13 @@
           <ul id="nutrition-list"></ul>
         </details>
 
-        <button id="reset-btn" type="button" data-i18n="rescan">Scanner un autre produit</button>
+        <div class="rescan-row">
+          <button id="reset-btn" type="button" class="secondary" data-i18n="rescan">Scanner un autre produit</button>
+          <button id="reset-camera-btn" type="button" class="rescan-camera" hidden>
+            <span class="icon" aria-hidden="true">📦</span>
+            <span class="label" data-i18n="rescanCamera">Scanner un autre</span>
+          </button>
+        </div>
       </section>
     </main>
 

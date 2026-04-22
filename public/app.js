@@ -1640,7 +1640,7 @@ queueEl.addEventListener('click', (e) => {
   if (b) removeFromQueue(b.dataset.id);
 });
 scanBtn.addEventListener('click', () => { scanImage(); });
-resetBtn.addEventListener('click', () => {
+function resetScanState() {
   queue.length = 0; fileInput.value = '';
   // Clear lingering scan state so compare-next can't re-arm an old product.
   lastData = null;
@@ -1648,6 +1648,17 @@ resetBtn.addEventListener('click', () => {
   hide(resultEl);
   hide(errorEl);
   hide(comparisonEl);
+}
+resetBtn.addEventListener('click', () => { resetScanState(); });
+
+// "Scanner un autre" — batch-mode shortcut that resets + reopens the
+// barcode camera in a single tap. Only shown when BarcodeDetector is
+// available (same gate as the main capture-screen barcode button).
+const resetCameraBtn = $('reset-camera-btn');
+if (getBarcodeDetector()) show(resetCameraBtn);
+resetCameraBtn?.addEventListener('click', () => {
+  resetScanState();
+  openCameraScanner();
 });
 compareNextBtn?.addEventListener('click', () => { if (lastData) armComparison(lastData); });
 compareClear?.addEventListener('click', () => {
