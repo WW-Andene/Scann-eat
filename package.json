@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --experimental-strip-types parser-tests.ts engine-tests.ts personal-score-tests.ts merge-tests.ts consumption-tests.ts weight-template-tests.ts presenter-tests.ts allergen-tests.ts diet-tests.ts recipe-tests.ts food-db-tests.ts app-settings-tests.ts activity-tests.ts custom-food-db-tests.ts fasting-history-tests.ts day-notes-tests.ts weight-forecast-tests.ts pairings-tests.ts grocery-list-tests.ts close-the-gap-tests.ts meal-plan-tests.ts csv-import-tests.ts weekly-share-tests.ts",
+    "test": "node --test --experimental-strip-types parser-tests.ts engine-tests.ts personal-score-tests.ts merge-tests.ts consumption-tests.ts weight-template-tests.ts presenter-tests.ts allergen-tests.ts diet-tests.ts recipe-tests.ts food-db-tests.ts app-settings-tests.ts activity-tests.ts custom-food-db-tests.ts fasting-history-tests.ts day-notes-tests.ts weight-forecast-tests.ts pairings-tests.ts grocery-list-tests.ts close-the-gap-tests.ts meal-plan-tests.ts csv-import-tests.ts weekly-share-tests.ts i18n-tests.ts explanations-tests.ts",
     "dev": "node --experimental-strip-types server.ts",
     "build:web": "node build.mjs",
     "cap:add": "cap add android",
