@@ -6,7 +6,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { FOOD_DB, searchFoodDB } from './public/food-db.js';
+import { FOOD_DB, searchFoodDB } from './public/data/food-db.js';
 
 describe('FOOD_DB shape', () => {
   it('every entry has required fields', () => {
