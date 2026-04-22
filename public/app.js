@@ -1,7 +1,7 @@
 import { t, setLang, currentLang, applyStaticTranslations } from '/i18n.js';
 import { explainFlag } from '/explanations.js';
 import { enqueue, listPending, remove as removePending, countPending } from '/data/queue-store.js';
-import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '/scan-history.js';
+import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '/data/scan-history.js';
 import { buildBackup, restoreBackup } from '/backup.js';
 import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile } from '/profiles.js';
 import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEvent as telemetryLog, clearEvents as telemetryClear, formatEvents as telemetryFormat } from '/telemetry.js';

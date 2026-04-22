@@ -12,7 +12,7 @@
  *   pending_scans — transient offline queue; not worth saving across devices
  */
 
-import { listScans, saveScan, clearScans } from '/scan-history.js';
+import { listScans, saveScan, clearScans } from '/data/scan-history.js';
 import {
   listAllEntries, putEntry, listByDate, deleteEntry, todayISO,
 } from '/consumption.js';
