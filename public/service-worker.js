@@ -1,4 +1,4 @@
-const CACHE = 'scann-eat-shell-c4f7a91';
+const CACHE = 'scann-eat-shell-d2b8e47';
 const SHELL = [
   '/',
   '/index.html',
@@ -23,6 +23,7 @@ const SHELL = [
   '/core/telemetry.js',
   '/core/app-settings.js',
   '/features/hydration.js',
+  '/features/fasting-history.js',
   '/core/presenters.js',
   '/engine.bundle.js',
   '/styles.css',

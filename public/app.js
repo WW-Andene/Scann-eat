@@ -7,6 +7,7 @@ import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile 
 import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEvent as telemetryLog, clearEvents as telemetryClear, formatEvents as telemetryFormat } from '/core/telemetry.js';
 import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
+import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
 import { buildCustomFood, listCustomFoods, saveCustomFood, deleteCustomFood } from '/data/custom-food-db.js';
 import { detectAllergens } from '/core/allergens.js';
@@ -2925,8 +2926,56 @@ function startFasting(targetHours) {
   localStorage.setItem(LS_FASTING_TARGET, String(targetHours));
 }
 function stopFasting() {
+  // Snapshot the completed fast into history before clearing the timer
+  // state so the streak chip reflects what just happened.
+  const s = getFastingState();
+  if (s) {
+    const rec = buildFastCompletion({
+      start_ms: s.start_ms,
+      end_ms: Date.now(),
+      target_hours: s.target_hours,
+    });
+    if (rec) saveFastCompletion(rec);
+  }
   localStorage.removeItem(LS_FASTING_START);
   localStorage.removeItem(LS_FASTING_TARGET);
+}
+
+function renderFastStreak() {
+  const streakEl = $('fasting-streak');
+  const wrap = $('fasting-history-wrap');
+  const list = $('fasting-history-list');
+  const hist = listFastHistory();
+  if (streakEl) {
+    const n = computeFastStreak(hist);
+    if (n >= 1) {
+      streakEl.textContent = t('fastingStreak', { n });
+      show(streakEl);
+    } else {
+      hide(streakEl);
+    }
+  }
+  if (wrap && list) {
+    if (hist.length === 0) {
+      hide(wrap);
+    } else {
+      list.innerHTML = '';
+      for (const r of hist.slice().reverse()) { // newest first
+        const li = document.createElement('li');
+        const hours = Math.floor(r.duration_ms / 3_600_000);
+        const mins = Math.floor((r.duration_ms % 3_600_000) / 60_000);
+        const date = new Date(r.end_ms).toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
+          day: '2-digit', month: 'short',
+        });
+        li.textContent = t(r.complete ? 'fastingHistoryLineOk' : 'fastingHistoryLineKo', {
+          date, h: hours, m: String(mins).padStart(2, '0'),
+          target: r.target_hours ?? '—',
+        });
+        list.appendChild(li);
+      }
+      show(wrap);
+    }
+  }
 }
 
 function renderFasting() {
@@ -2936,6 +2985,8 @@ function renderFasting() {
   const fill = $('fasting-fill');
   const stateEl = $('fasting-state');
   if (!tile || !startRow) return;
+
+  renderFastStreak();
 
   const s = getFastingState();
   if (!s) {
@@ -2980,6 +3031,10 @@ $('fasting-start')?.addEventListener('click', () => {
 $('fasting-stop')?.addEventListener('click', () => {
   stopFasting();
   renderFasting();
+});
+$('fasting-history-clear')?.addEventListener('click', () => {
+  clearFastHistory();
+  renderFastStreak();
 });
 
 // ============================================================================
