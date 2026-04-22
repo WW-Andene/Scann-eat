@@ -34,8 +34,13 @@ function openDB() {
         db.createObjectStore('meal_templates', { keyPath: 'id' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => { try { db.close(); } catch { /* ignore */ } };
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
+    req.onblocked = () => { /* older tab is holding — eventual close() clears it */ };
   });
 }
 

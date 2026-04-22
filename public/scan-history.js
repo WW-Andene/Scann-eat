@@ -35,28 +35,62 @@ function openDB() {
         db.createObjectStore('meal_templates', { keyPath: 'id' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      // If another tab wants to upgrade, release our connection so it can.
+      db.onversionchange = () => { try { db.close(); } catch { /* ignore */ } };
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
+    req.onblocked = () => { /* older tab is holding — eventual close() clears it */ };
+  });
+}
+
+function isQuotaError(err) {
+  if (!err) return false;
+  const name = err.name || '';
+  return name === 'QuotaExceededError' || name === 'NS_ERROR_DOM_QUOTA_REACHED';
+}
+
+async function putRecord(record) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const req = tx.objectStore(STORE).put(record);
+    req.onerror = () => { db.close(); reject(req.error); };
+    tx.oncomplete = () => { db.close(); resolve(record); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+    tx.onabort = () => { db.close(); reject(tx.error || new Error('transaction aborted')); };
   });
 }
 
 export async function saveScan(record) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(record);
-    tx.oncomplete = async () => {
-      db.close();
-      // Trim to MAX_ITEMS
+  try {
+    await putRecord(record);
+  } catch (err) {
+    if (!isQuotaError(err)) throw err;
+    // Quota hit — drop the thumbnail (biggest payload) and purge the oldest
+    // half of the history, then retry once. If it still fails, surface the
+    // error so the caller can warn the user instead of silently losing data.
+    try {
       const items = await listScans();
-      if (items.length > MAX_ITEMS) {
-        const excess = items.slice(MAX_ITEMS);
-        for (const e of excess) await deleteScan(e.id);
-      }
-      resolve(record);
-    };
-    tx.onerror = () => { db.close(); reject(tx.error); };
-  });
+      const dropCount = Math.max(1, Math.ceil(items.length / 2));
+      const toDrop = items.slice(-dropCount);
+      for (const item of toDrop) await deleteScan(item.id);
+    } catch { /* best-effort cleanup */ }
+    const lean = { ...record, thumbnail: '' };
+    await putRecord(lean);
+  }
+
+  // Trim to MAX_ITEMS (post-save housekeeping, separate from quota recovery)
+  try {
+    const items = await listScans();
+    if (items.length > MAX_ITEMS) {
+      const excess = items.slice(MAX_ITEMS);
+      for (const e of excess) await deleteScan(e.id);
+    }
+  } catch { /* non-fatal */ }
+  return record;
 }
 
 export async function listScans() {

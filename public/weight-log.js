@@ -13,8 +13,13 @@ function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => ensureStores(req.result);
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => { try { db.close(); } catch { /* ignore */ } };
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
+    req.onblocked = () => { /* older tab is holding — eventual close() clears it */ };
   });
 }
 
