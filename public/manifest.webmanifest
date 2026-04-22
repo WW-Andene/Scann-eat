@@ -25,5 +25,34 @@
         }
       ]
     }
-  }
+  },
+  "shortcuts": [
+    {
+      "name": "Scanner un code-barres",
+      "short_name": "Scanner",
+      "description": "Ouvre la caméra et scanne immédiatement",
+      "url": "/?intent=scan",
+      "icons": [
+        { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+      ]
+    },
+    {
+      "name": "Quick Add",
+      "short_name": "Quick Add",
+      "description": "Logger un aliment sans scanner",
+      "url": "/?intent=quick-add",
+      "icons": [
+        { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+      ]
+    },
+    {
+      "name": "Tableau de bord",
+      "short_name": "Dashboard",
+      "description": "Voir tes calories du jour",
+      "url": "/?intent=dashboard",
+      "icons": [
+        { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+      ]
+    }
+  ]
 }

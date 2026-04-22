@@ -1809,6 +1809,27 @@ if (compareArmed()) {
   if (compareNextBtn) compareNextBtn.textContent = t('compareWaiting');
 }
 
+// ---------- PWA dynamic-shortcut intents ----------
+// Manifest declares shortcuts that launch the app with ?intent=... on
+// Android's long-press menu. Route each intent to its existing UI action.
+(() => {
+  const intent = new URLSearchParams(location.search).get('intent');
+  if (!intent) return;
+  history.replaceState({}, '', '/'); // clean URL so reload doesn't re-fire
+  // Defer slightly so the main UI has finished mounting.
+  setTimeout(() => {
+    if (intent === 'scan') {
+      if (getBarcodeDetector()) openCameraScanner();
+      else fileInput?.click();
+    } else if (intent === 'quick-add') {
+      quickAddBtn?.click();
+    } else if (intent === 'dashboard') {
+      document.body.classList.add('returning-user');
+      $('daily-dashboard')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+  }, 50);
+})();
+
 checkForUpdate();
 setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
 document.addEventListener('visibilitychange', () => {
