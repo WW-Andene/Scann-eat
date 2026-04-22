@@ -14,6 +14,7 @@ const SHELL = [
   '/consumption.js',
   '/weight-log.js',
   '/meal-templates.js',
+  '/presenters.js',
   '/engine.bundle.js',
   '/styles.css',
   '/manifest.webmanifest',

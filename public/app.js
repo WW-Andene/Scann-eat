@@ -11,6 +11,7 @@ import { computePersonalScore, personalGrade } from '/personal-score.js';
 import { logEntry, logQuickAdd, listByDate, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/consumption.js';
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket } from '/presenters.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
 // (getItem returns null silently, but setItem/removeItem throw). Shim the
@@ -109,21 +110,6 @@ let lastData = null;
 // Preferences → Profile modifiers (moved into Profile; this block kept for
 // the single UI-side responsibility: projecting the veto status onto flags).
 // ============================================================================
-
-// ============================================================================
-// Confidence heuristic
-// ============================================================================
-
-function computeConfidence(data) {
-  if (data.source === 'openfoodfacts') return 'high';
-  const warns = data.warnings?.length || 0;
-  const n = data.product.nutrition;
-  const filled = [n.energy_kcal, n.fat_g, n.carbs_g, n.sugars_g, n.protein_g, n.salt_g]
-    .filter((v) => v > 0).length;
-  if (warns === 0 && filled >= 4) return 'high';
-  if (warns >= 2 || filled <= 2) return 'low';
-  return 'medium';
-}
 
 // ============================================================================
 // Helpers
@@ -901,14 +887,6 @@ function previousSnapshot() {
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
-function snapshotFromData(data) {
-  return {
-    name: data.audit.product_name || data.product.name,
-    grade: data.audit.grade,
-    score: data.audit.score,
-    ingredients: data.product.ingredients.map((i) => i.name),
-  };
-}
 function maybeRenderComparison(data) {
   const prev = previousSnapshot();
   if (compareArmed() && prev) {
@@ -1303,14 +1281,11 @@ async function persistToHistory(data) {
 }
 
 function timeAgo(ts) {
-  const diff = Date.now() - ts;
-  const min = Math.round(diff / 60000);
-  if (min < 1) return t('justNow');
-  if (min < 60) return t('minutesAgo', { n: min });
-  const h = Math.round(min / 60);
-  if (h < 24) return t('hoursAgo', { n: h });
-  const d = Math.round(h / 24);
-  return t('daysAgo', { n: d });
+  const b = timeAgoBucket(Date.now() - ts);
+  if (b.kind === 'justNow') return t('justNow');
+  if (b.kind === 'minutes') return t('minutesAgo', { n: b.n });
+  if (b.kind === 'hours') return t('hoursAgo', { n: b.n });
+  return t('daysAgo', { n: b.n });
 }
 
 async function renderRecentScans() {
