@@ -124,6 +124,10 @@ export interface ProductInput {
   origin_transparent?: boolean;
   /** Vitamin / mineral names declared on-pack or in OFF nutriments. */
   declared_micronutrients?: string[];
+  /** Open Food Facts ecoscore, when available. Not part of scoring —
+   *  surfaced in the UI alongside the nutritional grade. */
+  ecoscore_grade?: 'a' | 'b' | 'c' | 'd' | 'e' | null;
+  ecoscore_value?: number | null;
 }
 
 export type Grade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';

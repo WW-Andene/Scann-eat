@@ -85,6 +85,8 @@ const FIELDS = [
   'origins',
   'countries_tags',
   'quantity',
+  'ecoscore_grade',
+  'ecoscore_score',
 ];
 
 // ---------- Mapping ----------
@@ -257,6 +259,15 @@ function mapOFFProduct(p: Record<string, unknown>): ProductInput | null {
       ? p.origins.trim()
       : null;
 
+  const ecoGrade =
+    typeof p.ecoscore_grade === 'string' && /^[a-e]$/i.test(p.ecoscore_grade)
+      ? (p.ecoscore_grade.toLowerCase() as 'a' | 'b' | 'c' | 'd' | 'e')
+      : null;
+  const ecoValue =
+    typeof p.ecoscore_score === 'number' && Number.isFinite(p.ecoscore_score)
+      ? p.ecoscore_score
+      : null;
+
   return {
     name,
     category: categoryFromOFF(p.categories_tags),
@@ -272,6 +283,8 @@ function mapOFFProduct(p: Record<string, unknown>): ProductInput | null {
     ),
     origin_transparent: !!origin,
     declared_micronutrients,
+    ecoscore_grade: ecoGrade,
+    ecoscore_value: ecoValue,
   };
 }
 

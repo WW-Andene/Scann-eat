@@ -546,6 +546,21 @@ function renderAudit(data) {
     : conf === 'low' ? t('confidenceLow') : t('confidenceMed');
   show(resultConfidenceEl);
 
+  // Eco-score chip — only populated for OFF-sourced products where OFF has
+  // computed one. Purely informational; not part of our own scoring.
+  const ecoEl = $('result-ecoscore');
+  const ecoGrade = data.product?.ecoscore_grade;
+  if (ecoEl) {
+    if (ecoGrade && /^[a-e]$/.test(ecoGrade)) {
+      ecoEl.dataset.eco = ecoGrade;
+      ecoEl.textContent = t('ecoscoreChip', { grade: ecoGrade.toUpperCase() });
+      ecoEl.title = t('ecoscoreTooltip');
+      show(ecoEl);
+    } else {
+      hide(ecoEl);
+    }
+  }
+
   renderAllergens(data.product);
   renderSparseHint(data);
   renderAdditiveSummary(data.product);

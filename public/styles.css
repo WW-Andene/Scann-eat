@@ -2756,6 +2756,11 @@ button:active { transform: scale(0.98); }
 .chip[data-level="high"]   { border-color: var(--grade-a); color: var(--grade-a); }
 .chip[data-level="medium"] { border-color: var(--grade-c); color: var(--grade-c); }
 .chip[data-level="low"]    { border-color: var(--danger);  color: var(--danger); }
+.chip[data-eco="a"] { border-color: var(--grade-a);     color: var(--grade-a); }
+.chip[data-eco="b"] { border-color: var(--grade-b);     color: var(--grade-b); }
+.chip[data-eco="c"] { border-color: var(--grade-c);     color: var(--grade-c); }
+.chip[data-eco="d"] { border-color: var(--grade-d);     color: var(--grade-d); }
+.chip[data-eco="e"] { border-color: var(--grade-f);     color: var(--grade-f); }
 .source {
   color: var(--muted);
   font-size: 0.92em;
