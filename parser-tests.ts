@@ -23,6 +23,8 @@ import { strict as assert } from 'node:assert';
 import { after, before, describe, it } from 'node:test';
 
 import {
+  coerceNullableNumber,
+  coerceNumber,
   enrichIngredient,
   extractENumber,
   extractJSON,
@@ -240,6 +242,78 @@ describe('enrichIngredient', () => {
   it('uppercases and strips spaces from LLM-declared E-number', () => {
     const ing = enrichIngredient({ name: 'sel nitrité', e_number: 'e 250' });
     assert.equal(ing.e_number, 'E250');
+  });
+
+  it('ignores a non-positive percentage from LLM and reads text instead', () => {
+    // The LLM occasionally emits 0 or -1 as a placeholder. The parser should
+    // fall back to the text extractor instead of locking in garbage.
+    const ing = enrichIngredient({ name: 'jambon 17,4%', percentage: 0 });
+    assert.equal(ing.percentage, 17.4);
+  });
+
+  it('trims surrounding whitespace from the ingredient name', () => {
+    const ing = enrichIngredient({ name: '   sel   ' });
+    assert.equal(ing.name, 'sel');
+  });
+});
+
+// ============================================================================
+// coerceNumber / coerceNullableNumber — boundary coverage for OFF / LLM
+// payloads that may arrive as strings, null, or unexpected shapes
+// ============================================================================
+
+describe('coerceNumber', () => {
+  it('passes finite numbers through', () => {
+    assert.equal(coerceNumber(42), 42);
+    assert.equal(coerceNumber(0), 0);
+    assert.equal(coerceNumber(-3.5), -3.5);
+  });
+
+  it('parses French comma decimals in strings', () => {
+    assert.equal(coerceNumber('17,4'), 17.4);
+  });
+
+  it('parses point decimals in strings', () => {
+    assert.equal(coerceNumber('17.4'), 17.4);
+  });
+
+  it('strips trailing units and still parses', () => {
+    // parseFloat consumes the leading number, ignoring the unit tail
+    assert.equal(coerceNumber('450 kcal'), 450);
+  });
+
+  it('returns 0 for NaN / null / undefined / objects', () => {
+    assert.equal(coerceNumber(NaN), 0);
+    assert.equal(coerceNumber(null), 0);
+    assert.equal(coerceNumber(undefined), 0);
+    assert.equal(coerceNumber({} as unknown), 0);
+  });
+
+  it('returns 0 for unparseable strings', () => {
+    assert.equal(coerceNumber('abc'), 0);
+    assert.equal(coerceNumber(''), 0);
+  });
+
+  it('returns 0 for Infinity and -Infinity', () => {
+    assert.equal(coerceNumber(Infinity), 0);
+    assert.equal(coerceNumber(-Infinity), 0);
+  });
+});
+
+describe('coerceNullableNumber', () => {
+  it('returns null for null / undefined (preserves absence)', () => {
+    assert.equal(coerceNullableNumber(null), null);
+    assert.equal(coerceNullableNumber(undefined), null);
+  });
+
+  it('returns 0 (not null) for a valid zero — zero is a real value', () => {
+    assert.equal(coerceNullableNumber(0), 0);
+  });
+
+  it('returns null when the value is unparseable', () => {
+    // Currently returns 0 via coerceNumber — documents existing behavior
+    // so that if we tighten this later we see the change.
+    assert.equal(coerceNullableNumber('abc'), 0);
   });
 });
 

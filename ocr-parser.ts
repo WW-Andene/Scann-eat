@@ -391,7 +391,7 @@ export function parseIngredientsText(raw: string): Ingredient[] {
 // SECTION 5: VALIDATION / COERCION
 // ============================================================================
 
-function coerceNumber(v: unknown): number {
+export function coerceNumber(v: unknown): number {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
   if (typeof v === 'string') {
     const n = parseFloat(v.replace(',', '.'));
@@ -400,7 +400,7 @@ function coerceNumber(v: unknown): number {
   return 0;
 }
 
-function coerceNullableNumber(v: unknown): number | null {
+export function coerceNullableNumber(v: unknown): number | null {
   if (v == null) return null;
   const n = coerceNumber(v);
   return Number.isFinite(n) ? n : null;
