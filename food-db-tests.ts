@@ -66,6 +66,20 @@ describe('searchFoodDB', () => {
     const r2 = searchFoodDB('p', 3);
     assert.ok(r2.length <= 3);
   });
+
+  it('extraFoods argument merges user-custom foods into results', () => {
+    const extras = [{ name: 'pain de campagne', kcal: 255, protein_g: 9, carbs_g: 48, fat_g: 2 }];
+    const r = searchFoodDB('pain de', 3, extras);
+    assert.ok(r.find((f: { name: string }) => f.name === 'pain de campagne'));
+  });
+
+  it('custom prefix matches outrank built-in prefix matches at the same tier', () => {
+    const extras = [{ name: 'banane bio', kcal: 90, protein_g: 1, carbs_g: 20, fat_g: 0.3 }];
+    const r = searchFoodDB('ban', 5, extras);
+    // Both "banane" (built-in) and "banane bio" (custom) prefix-match "ban".
+    // Custom wins the tie.
+    assert.equal(r[0].name, 'banane bio');
+  });
 });
 
 describe('reconcileWithFoodDB', () => {

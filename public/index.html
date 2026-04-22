@@ -416,6 +416,7 @@
             <button id="quick-add-btn" class="compact chip-btn accent" type="button" data-i18n="quickAdd">Quick Add</button>
             <button id="templates-btn" class="compact chip-btn" type="button" data-i18n="mealTemplates">Repas</button>
             <button id="recipes-btn" class="compact chip-btn" type="button" data-i18n="recipesBtn">Recettes</button>
+            <button id="custom-foods-btn" class="compact chip-btn" type="button" data-i18n="customFoodsBtn">Aliments</button>
             <button id="weight-btn" class="compact chip-btn" type="button" data-i18n="weightBtn">Poids</button>
             <button id="progress-btn" class="compact chip-btn" type="button" data-i18n="progressBtn">📈 Progrès</button>
             <button id="clear-today" class="secondary compact" type="button" data-i18n="clearToday">Effacer</button>
@@ -591,6 +592,37 @@
           <div class="dialog-actions">
             <button id="tpl-name-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
             <button id="tpl-name-confirm" type="submit" data-i18n="save">Sauvegarder</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="custom-foods-dialog" class="settings-dialog" aria-labelledby="custom-foods-title">
+        <form method="dialog">
+          <h2 id="custom-foods-title" data-i18n="customFoodsTitle">Mes aliments</h2>
+          <p class="hint" data-i18n="customFoodsIntro">Crée des entrées réutilisables. Les valeurs sont par 100 g (comme la base intégrée) et apparaissent dans l'autocomplétion du journal.</p>
+          <details class="qa-more" open>
+            <summary data-i18n="customFoodAdd">Ajouter un aliment</summary>
+            <div class="portion-row-flex">
+              <label class="portion-input">
+                <span data-i18n="customFoodName">Nom</span>
+                <input id="cf-name" type="text" maxlength="60" autocomplete="off" />
+              </label>
+              <label class="portion-input">
+                <span data-i18n="customFoodKcal">Kcal / 100 g</span>
+                <input id="cf-kcal" type="number" min="0" step="1" inputmode="numeric" />
+              </label>
+            </div>
+            <div class="qa-macros">
+              <label><span data-i18n="customFoodProt">Prot. / 100 g</span><input id="cf-protein" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+              <label><span data-i18n="customFoodCarb">Gluc. / 100 g</span><input id="cf-carbs" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+              <label><span data-i18n="customFoodFat">Lip. / 100 g</span><input id="cf-fat" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+            </div>
+            <button id="cf-save" type="button" class="log-btn" data-i18n="customFoodSave">Sauvegarder</button>
+          </details>
+          <h3 data-i18n="customFoodsListTitle" class="cf-list-heading">Mes aliments sauvegardés</h3>
+          <ul id="cf-list" class="tpl-list"></ul>
+          <div class="dialog-actions">
+            <button id="cf-close" type="button" class="secondary" data-i18n="close">Fermer</button>
           </div>
         </form>
       </dialog>

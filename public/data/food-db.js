@@ -98,13 +98,13 @@ export const FOOD_DB = [
  * token — handles LLM outputs like "pomme rouge" or "concombre en rondelles"
  * whose prefix matches a DB entry.
  */
-export function reconcileWithFoodDB(identified) {
+export function reconcileWithFoodDB(identified, extraFoods = []) {
   if (!identified || typeof identified !== 'object') return identified;
   const grams = Number(identified.estimated_grams) || 0;
   const name = String(identified.name ?? '').trim();
 
   const tryMatch = (q) => {
-    const hits = searchFoodDB(q, 1);
+    const hits = searchFoodDB(q, 1, extraFoods);
     return hits[0] || null;
   };
 
@@ -135,20 +135,33 @@ export function reconcileWithFoodDB(identified) {
 /**
  * Find up to `limit` foods whose name or alias starts with / contains the
  * query. Case- and accent-insensitive match.
+ *
+ * `extraFoods` lets callers add user-persisted custom foods. Custom foods
+ * win ties over built-ins when both prefix-match the query — a user who
+ * typed "pain" and has their own "pain de campagne" expects to see their
+ * own entry first.
  */
-export function searchFoodDB(query, limit = 6) {
+export function searchFoodDB(query, limit = 6, extraFoods = []) {
   const q = String(query ?? '').trim().toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '');
   if (q.length < 2) return [];
 
   const matches = [];
-  for (const f of FOOD_DB) {
-    const haystack = [f.name, ...(f.aliases ?? [])]
-      .map((s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
-    const idx = haystack.findIndex((h) => h.startsWith(q));
-    const score = idx >= 0 ? 0 : (haystack.some((h) => h.includes(q)) ? 1 : -1);
-    if (score >= 0) matches.push({ food: f, score });
-  }
+  const consider = (list, custom) => {
+    for (const f of list) {
+      const haystack = [f.name, ...(f.aliases ?? [])]
+        .map((s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
+      const idx = haystack.findIndex((h) => h.startsWith(q));
+      const score = idx >= 0 ? 0 : (haystack.some((h) => h.includes(q)) ? 1 : -1);
+      // Give custom entries a −0.5 score bonus so user-curated foods out-
+      // rank built-in foods at the same match tier. Still under the
+      // prefix-vs-substring tier jump (1) so a built-in prefix match beats
+      // a custom substring match.
+      if (score >= 0) matches.push({ food: f, score: custom ? score - 0.5 : score });
+    }
+  };
+  consider(extraFoods, true);
+  consider(FOOD_DB, false);
   matches.sort((a, b) => a.score - b.score || a.food.name.localeCompare(b.food.name));
   return matches.slice(0, limit).map((m) => m.food);
 }

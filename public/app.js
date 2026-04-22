@@ -8,6 +8,7 @@ import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEv
 import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
+import { buildCustomFood, listCustomFoods, saveCustomFood, deleteCustomFood } from '/data/custom-food-db.js';
 import { detectAllergens } from '/core/allergens.js';
 import {
   getProfile, setProfile, hasMinimalProfile,
@@ -2263,7 +2264,7 @@ qaPhotoInput?.addEventListener('change', async (e) => {
     // Reconcile with the built-in DB: if the identified name matches a
     // CIQUAL entry, swap the LLM's guessed macros for the DB's authoritative
     // per-100 g values scaled by the LLM's gram estimate.
-    const reconciled = reconcileWithFoodDB(result);
+    const reconciled = reconcileWithFoodDB(result, listCustomFoods());
     const setField = (id, v) => { const el = $(id); if (el && v != null) el.value = String(v); };
     setField('qa-name',    reconciled.name);
     setField('qa-kcal',    Math.round(reconciled.kcal));
@@ -2319,7 +2320,7 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
     const meal = $('qa-meal')?.value || defaultMealForHour(new Date().getHours());
     let dbHits = 0;
     for (const it of items) {
-      const r = reconcileWithFoodDB(it);
+      const r = reconcileWithFoodDB(it, listCustomFoods());
       if (r.source === 'db') dbHits += 1;
       await logQuickAdd({
         name: r.name,
@@ -2362,7 +2363,7 @@ function applyFoodToQuickAdd(food) {
 
 function renderFoodSuggestions(query) {
   if (!qaSuggestionsList) return;
-  const matches = searchFoodDB(query, 6);
+  const matches = searchFoodDB(query, 6, listCustomFoods());
   qaSuggestionsList.textContent = '';
   if (matches.length === 0) { hide(qaSuggestionsList); return; }
   for (const f of matches) {
@@ -2818,6 +2819,74 @@ qaSave?.addEventListener('click', async (e) => {
 clearTodayBtn?.addEventListener('click', async () => {
   await clearDate();
   await renderDashboard();
+});
+
+// ============================================================================
+// Custom foods dialog — add / list / delete user-curated per-100 g foods.
+// These flow into renderFoodSuggestions + reconcileWithFoodDB via
+// listCustomFoods() at every call site above.
+// ============================================================================
+
+const customFoodsDialog = $('custom-foods-dialog');
+
+function renderCustomFoodsList() {
+  const list = $('cf-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const all = listCustomFoods().slice().sort((a, b) => a.name.localeCompare(b.name));
+  if (all.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'tpl-empty';
+    empty.textContent = t('customFoodsEmpty');
+    list.appendChild(empty);
+    return;
+  }
+  for (const f of all) {
+    const li = document.createElement('li');
+    li.className = 'tpl-item';
+    const label = document.createElement('span');
+    label.textContent = `${f.name} · ${Math.round(f.kcal)} kcal · P ${Math.round(f.protein_g)} g / 100 g`;
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'secondary';
+    del.textContent = t('customFoodDelete');
+    del.addEventListener('click', () => {
+      deleteCustomFood(f.id);
+      renderCustomFoodsList();
+    });
+    li.appendChild(label);
+    li.appendChild(del);
+    list.appendChild(li);
+  }
+}
+
+$('custom-foods-btn')?.addEventListener('click', () => {
+  renderCustomFoodsList();
+  // Reset the add form
+  for (const id of ['cf-name', 'cf-kcal', 'cf-protein', 'cf-carbs', 'cf-fat']) {
+    const el = $(id); if (el) el.value = '';
+  }
+  customFoodsDialog?.showModal();
+});
+$('cf-close')?.addEventListener('click', (e) => { e.preventDefault(); customFoodsDialog?.close(); });
+$('cf-save')?.addEventListener('click', () => {
+  const name = ($('cf-name')?.value || '').trim();
+  const kcal = Number($('cf-kcal')?.value) || 0;
+  if (!name || kcal <= 0) { toast(t('customFoodNeedsNameKcal'), 'warn'); return; }
+  const saved = saveCustomFood({
+    name,
+    kcal,
+    protein_g: Number($('cf-protein')?.value) || 0,
+    carbs_g:   Number($('cf-carbs')?.value)   || 0,
+    fat_g:     Number($('cf-fat')?.value)     || 0,
+  });
+  if (saved) {
+    toast(t('customFoodSavedToast', { name: saved.name }));
+    for (const id of ['cf-name', 'cf-kcal', 'cf-protein', 'cf-carbs', 'cf-fat']) {
+      const el = $(id); if (el) el.value = '';
+    }
+    renderCustomFoodsList();
+  }
 });
 
 function pctClass(pct) {

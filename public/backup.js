@@ -5,8 +5,9 @@
  *
  * Sources of truth covered:
  *   localStorage — settings, profile, preferences, dismissed banners,
- *                  hydration per-date counters
- *   IndexedDB    — history, consumption, weight, meal_templates, recipes
+ *                  hydration per-date counters, custom foods
+ *   IndexedDB    — history, consumption, weight, meal_templates, recipes,
+ *                  activity
  *
  * NOT covered:
  *   pending_scans — transient offline queue; not worth saving across devices
