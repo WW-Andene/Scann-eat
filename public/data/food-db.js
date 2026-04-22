@@ -85,6 +85,54 @@ export const FOOD_DB = [
 ];
 
 /**
+ * Given an LLM-identified food (name + estimated grams + macros for the
+ * visible portion), try to match the name against the built-in DB. On hit,
+ * return the DB's canonical name + authoritative macros scaled to the
+ * estimated grams — the LLM's gram estimate is kept (visual estimation is
+ * what the vision model is actually good at) but per-100 g macros come from
+ * CIQUAL, not from the LLM's guess.
+ *
+ * On miss, returns the identified object unchanged with source: 'llm'.
+ *
+ * Tries the full query first; if that finds nothing, retries with the first
+ * token — handles LLM outputs like "pomme rouge" or "concombre en rondelles"
+ * whose prefix matches a DB entry.
+ */
+export function reconcileWithFoodDB(identified) {
+  if (!identified || typeof identified !== 'object') return identified;
+  const grams = Number(identified.estimated_grams) || 0;
+  const name = String(identified.name ?? '').trim();
+
+  const tryMatch = (q) => {
+    const hits = searchFoodDB(q, 1);
+    return hits[0] || null;
+  };
+
+  let match = tryMatch(name);
+  if (!match) {
+    const firstToken = name.split(/\s+/)[0];
+    if (firstToken && firstToken.length >= 2 && firstToken !== name) {
+      match = tryMatch(firstToken);
+    }
+  }
+
+  if (!match) return { ...identified, source: 'llm' };
+
+  const f = grams / 100;
+  return {
+    name: match.name,
+    estimated_grams: grams,
+    kcal: Math.round((match.kcal ?? 0) * f * 10) / 10,
+    protein_g: Math.round((match.protein_g ?? 0) * f * 10) / 10,
+    carbs_g: Math.round((match.carbs_g ?? 0) * f * 10) / 10,
+    fat_g: Math.round((match.fat_g ?? 0) * f * 10) / 10,
+    confidence: identified.confidence,
+    source: 'db',
+    matched_name: match.name,
+  };
+}
+
+/**
  * Find up to `limit` foods whose name or alias starts with / contains the
  * query. Case- and accent-insensitive match.
  */

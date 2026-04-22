@@ -1143,6 +1143,10 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   color: var(--danger);
   border-left: 3px solid var(--danger);
 }
+.qa-ai-status[data-state="ok"] {
+  color: var(--success, var(--accent));
+  border-left: 3px solid var(--success, var(--accent));
+}
 .recent-item:hover { border-color: var(--accent); }
 .recent-item:active { transform: scale(0.99); }
 .recent-thumb {

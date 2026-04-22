@@ -6,7 +6,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { FOOD_DB, searchFoodDB } from './public/data/food-db.js';
+import { FOOD_DB, searchFoodDB, reconcileWithFoodDB } from './public/data/food-db.js';
 
 describe('FOOD_DB shape', () => {
   it('every entry has required fields', () => {
@@ -65,5 +65,73 @@ describe('searchFoodDB', () => {
     // "a" is below min-length → []. Use a real query:
     const r2 = searchFoodDB('p', 3);
     assert.ok(r2.length <= 3);
+  });
+});
+
+describe('reconcileWithFoodDB', () => {
+  it('matches an exact DB name and scales macros to grams', () => {
+    const r = reconcileWithFoodDB({
+      name: 'pomme',
+      estimated_grams: 150,
+      kcal: 200, protein_g: 1, carbs_g: 50, fat_g: 2, // LLM guesses
+      confidence: 'medium',
+    });
+    assert.equal(r.source, 'db');
+    assert.equal(r.name, 'pomme');
+    // DB pomme: 54/100g → 81 kcal for 150g
+    assert.equal(r.kcal, 81);
+    assert.equal(r.carbs_g, 18);
+    assert.equal(r.confidence, 'medium');
+  });
+
+  it('falls back to first-token when full name misses', () => {
+    const r = reconcileWithFoodDB({
+      name: 'pomme rouge bien mûre',
+      estimated_grams: 100,
+      kcal: 999, protein_g: 99, carbs_g: 99, fat_g: 99,
+    });
+    assert.equal(r.source, 'db');
+    assert.equal(r.name, 'pomme');
+    assert.equal(r.kcal, 54);
+  });
+
+  it('matches through an alias (EN)', () => {
+    const r = reconcileWithFoodDB({
+      name: 'cucumber',
+      estimated_grams: 200,
+      kcal: 999, protein_g: 99, carbs_g: 99, fat_g: 99,
+    });
+    assert.equal(r.source, 'db');
+    assert.equal(r.name, 'concombre');
+  });
+
+  it('passes the LLM values through when there is no DB hit', () => {
+    const r = reconcileWithFoodDB({
+      name: 'plat mystère',
+      estimated_grams: 300,
+      kcal: 450, protein_g: 20, carbs_g: 40, fat_g: 15,
+      confidence: 'low',
+    });
+    assert.equal(r.source, 'llm');
+    assert.equal(r.name, 'plat mystère');
+    assert.equal(r.kcal, 450);
+    assert.equal(r.confidence, 'low');
+  });
+
+  it('handles missing/invalid input gracefully', () => {
+    assert.equal(reconcileWithFoodDB(null), null);
+    assert.equal(reconcileWithFoodDB(undefined), undefined);
+    const r = reconcileWithFoodDB({ name: '', estimated_grams: 0 });
+    assert.equal(r.source, 'llm');
+  });
+
+  it('0 grams yields 0 macros even on DB hit', () => {
+    const r = reconcileWithFoodDB({
+      name: 'banane', estimated_grams: 0,
+      kcal: 500, protein_g: 50, carbs_g: 50, fat_g: 50,
+    });
+    assert.equal(r.source, 'db');
+    assert.equal(r.kcal, 0);
+    assert.equal(r.carbs_g, 0);
   });
 });

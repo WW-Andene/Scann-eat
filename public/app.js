@@ -7,7 +7,7 @@ import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile 
 import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEvent as telemetryLog, clearEvents as telemetryClear, formatEvents as telemetryFormat } from '/core/telemetry.js';
 import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
-import { searchFoodDB } from '/data/food-db.js';
+import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
 import { detectAllergens } from '/core/allergens.js';
 import {
   getProfile, setProfile, hasMinimalProfile,
@@ -2219,14 +2219,19 @@ qaPhotoInput?.addEventListener('change', async (e) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       result = await res.json();
     }
-    // Populate the form from the identified food.
+    // Reconcile with the built-in DB: if the identified name matches a
+    // CIQUAL entry, swap the LLM's guessed macros for the DB's authoritative
+    // per-100 g values scaled by the LLM's gram estimate.
+    const reconciled = reconcileWithFoodDB(result);
     const setField = (id, v) => { const el = $(id); if (el && v != null) el.value = String(v); };
-    setField('qa-name',    result.name);
-    setField('qa-kcal',    Math.round(result.kcal));
-    setField('qa-protein', Math.round(result.protein_g));
-    setField('qa-carbs',   Math.round(result.carbs_g));
-    setField('qa-fat',     Math.round(result.fat_g));
-    if (result.confidence === 'low') {
+    setField('qa-name',    reconciled.name);
+    setField('qa-kcal',    Math.round(reconciled.kcal));
+    setField('qa-protein', Math.round(reconciled.protein_g));
+    setField('qa-carbs',   Math.round(reconciled.carbs_g));
+    setField('qa-fat',     Math.round(reconciled.fat_g));
+    if (reconciled.source === 'db') {
+      setQaStatus(t('identifyMatchedDB', { name: reconciled.name }), 'ok');
+    } else if (reconciled.confidence === 'low') {
       setQaStatus(t('identifyLowConfidence'), 'warn');
     } else {
       hide(qaAiStatus);
@@ -2271,14 +2276,17 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
       return;
     }
     const meal = $('qa-meal')?.value || defaultMealForHour(new Date().getHours());
+    let dbHits = 0;
     for (const it of items) {
+      const r = reconcileWithFoodDB(it);
+      if (r.source === 'db') dbHits += 1;
       await logQuickAdd({
-        name: it.name,
+        name: r.name,
         meal,
-        kcal: Math.round(it.kcal) || 0,
-        protein_g: Math.round(it.protein_g) || 0,
-        carbs_g: Math.round(it.carbs_g) || 0,
-        fat_g: Math.round(it.fat_g) || 0,
+        kcal: Math.round(r.kcal) || 0,
+        protein_g: Math.round(r.protein_g) || 0,
+        carbs_g: Math.round(r.carbs_g) || 0,
+        fat_g: Math.round(r.fat_g) || 0,
         sat_fat_g: 0,
         sugars_g: 0,
         salt_g: 0,
@@ -2286,7 +2294,7 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
     }
     quickAddDialog?.close();
     await renderDashboard();
-    toast(t('identifyMultiToast', { n: items.length }));
+    toast(t('identifyMultiToast', { n: items.length, db: dbHits }));
   } catch (err) {
     console.warn('[identifyMultiFood]', err);
     setQaStatus(t('identifyFailed'), 'error');
