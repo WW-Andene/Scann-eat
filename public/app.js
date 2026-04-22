@@ -880,6 +880,13 @@ function maybeShowOnboarding() {
     localStorage.setItem(LS_ONBOARDED, '1');
     obDialog.close();
   };
+  // Escape key also closes the dialog — mark as onboarded so the user isn't
+  // shown the same intro every reload after choosing to dismiss it.
+  const onClose = () => {
+    localStorage.setItem(LS_ONBOARDED, '1');
+    obDialog.removeEventListener('close', onClose);
+  };
+  obDialog.addEventListener('close', onClose);
   render();
   obDialog.showModal();
 }
