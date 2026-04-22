@@ -3256,3 +3256,51 @@ details li.warn     { color: var(--warning); }
 @media (max-width: 480px) {
   .flags { grid-template-columns: 1fr; }
 }
+
+/* ========== PWA INSTALL BANNER ===========================================
+   Dismissible banner shown at the top of #main-content when the browser
+   fires `beforeinstallprompt`. Hidden by default; app.js reveals it only
+   if snooze hasn't been set.
+   ========================================================================== */
+.install-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 0.92em;
+}
+.install-banner > *:first-child { flex: 0 0 auto; font-weight: 600; }
+.install-banner-hint {
+  flex: 1 1 10rem;
+  color: var(--muted);
+}
+
+/* ========== MENU SCAN DIALOG ============================================= */
+.menu-scan-list {
+  list-style: none;
+  margin: var(--sp-3) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.menu-scan-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "dish action" "meta action";
+  align-items: center;
+  gap: 4px var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel-2);
+  border-radius: var(--r-sm);
+}
+.menu-scan-dish { grid-area: dish; font-weight: 600; color: var(--text); }
+.menu-scan-meta { grid-area: meta; color: var(--muted); font-size: 0.85em; font-variant-numeric: tabular-nums; }
+.menu-scan-item button { grid-area: action; }

@@ -20,7 +20,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { parseLabel, identifyFood, identifyMultiFood, suggestRecipes } from './ocr-parser.ts';
+import { parseLabel, identifyFood, identifyMultiFood, identifyMenu, suggestRecipes } from './ocr-parser.ts';
 import { fetchFromOFF, isOFFSparse, mergeOFFWithLLM, detectSourceConflicts } from './off.ts';
 import { scoreProduct } from './scoring-engine.ts';
 
@@ -189,6 +189,29 @@ async function handleIdentifyMulti(req: IncomingMessage, res: ServerResponse) {
   }
 }
 
+async function handleIdentifyMenu(req: IncomingMessage, res: ServerResponse) {
+  try {
+    const raw = await readBody(req);
+    const body = JSON.parse(raw.toString('utf8')) as {
+      images?: Array<{ base64: string; mime?: string }>;
+    };
+    const images = (body.images ?? [])
+      .filter((i) => typeof i?.base64 === 'string' && i.base64.length > 0)
+      .map((i) => ({ base64: i.base64, mime: i.mime ?? 'image/jpeg' }));
+    if (images.length === 0) return sendJSON(res, 400, { error: 'Missing images' });
+    const result = await identifyMenu(images);
+    return sendJSON(res, 200, result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[/api/identify-menu]', message);
+    const publicMessage =
+      /body too large/i.test(message) ? 'Request body too large'
+      : /JSON/i.test(message) ? 'Invalid JSON body'
+      : 'Menu scan failed';
+    return sendJSON(res, 500, { error: publicMessage });
+  }
+}
+
 async function handleSuggestRecipes(req: IncomingMessage, res: ServerResponse) {
   try {
     const raw = await readBody(req);
@@ -240,6 +263,9 @@ const server = createServer((req, res) => {
   }
   if (req.method === 'POST' && req.url === '/api/identify-multi') {
     return handleIdentifyMulti(req, res);
+  }
+  if (req.method === 'POST' && req.url === '/api/identify-menu') {
+    return handleIdentifyMenu(req, res);
   }
   if (req.method === 'POST' && req.url === '/api/suggest-recipes') {
     return handleSuggestRecipes(req, res);

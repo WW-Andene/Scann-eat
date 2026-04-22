@@ -2510,6 +2510,105 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
   }
 });
 
+// ----- Restaurant menu scan: picks dishes, user taps one to log -----
+//
+// Different semantics from identify-multi: nothing is logged
+// automatically. We extract dishes from the menu photo, open the
+// picker dialog, and each dish becomes a button "Ajouter au journal".
+//
+const menuScanDialog = $('menu-scan-dialog');
+
+async function openMenuScan(dishes) {
+  const list = $('menu-scan-list');
+  const status = $('menu-scan-status');
+  if (!menuScanDialog || !list) return;
+  list.textContent = '';
+  if (status) status.textContent = dishes.length ? '' : t('menuScanEmpty');
+  const meal = $('qa-meal')?.value || defaultMealForHour(new Date().getHours());
+  for (const d of dishes) {
+    const li = document.createElement('li');
+    li.className = 'menu-scan-item';
+    const label = document.createElement('span');
+    label.className = 'menu-scan-dish';
+    label.textContent = d.name;
+    const meta = document.createElement('span');
+    meta.className = 'menu-scan-meta';
+    meta.textContent = t('menuScanMeta', {
+      kcal: Math.round(d.kcal),
+      prot: Math.round(d.protein_g),
+      carb: Math.round(d.carbs_g),
+      fat: Math.round(d.fat_g),
+    });
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip-btn accent compact';
+    btn.textContent = t('menuScanLog');
+    btn.addEventListener('click', async () => {
+      await logQuickAdd({
+        name: d.name, meal,
+        kcal: Math.round(d.kcal) || 0,
+        protein_g: Math.round(d.protein_g) || 0,
+        carbs_g: Math.round(d.carbs_g) || 0,
+        fat_g: Math.round(d.fat_g) || 0,
+        sat_fat_g: 0, sugars_g: 0, salt_g: 0,
+      });
+      btn.disabled = true;
+      btn.textContent = t('menuScanLogged');
+      await renderDashboard();
+    });
+    li.appendChild(label);
+    li.appendChild(meta);
+    li.appendChild(btn);
+    list.appendChild(li);
+  }
+  menuScanDialog.showModal();
+}
+
+$('qa-photo-menu-input')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  setQaStatus(t('identifyingMenu'));
+  try {
+    const compressed = await compressImage(file);
+    const mode = getMode();
+    let result;
+    if (mode === 'direct') {
+      const { identifyMenu } = await loadEngine();
+      const key = getKey();
+      if (!key) throw new Error(t('errMissingKey'));
+      result = await identifyMenu(
+        [{ base64: compressed.base64, mime: compressed.mime }],
+        { apiKey: key },
+      );
+    } else {
+      const res = await fetch('/api/identify-menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: [{ base64: compressed.base64, mime: compressed.mime }] }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      result = await res.json();
+    }
+    const dishes = Array.isArray(result?.dishes) ? result.dishes : [];
+    if (dishes.length === 0) {
+      setQaStatus(t('menuScanEmpty'), 'warn');
+      return;
+    }
+    hide(qaAiStatus);
+    quickAddDialog?.close();
+    await openMenuScan(dishes);
+  } catch (err) {
+    console.warn('[identifyMenu]', err);
+    setQaStatus(t('identifyFailed'), 'error');
+  }
+});
+
+$('menu-scan-close')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  menuScanDialog?.close();
+});
+
 // Reset AI status when the dialog opens (via the quick-add button).
 quickAddBtn?.addEventListener('click', () => hide(qaAiStatus));
 
@@ -3098,6 +3197,60 @@ function pctClass(pct) {
 // Inject its runtime dependencies (i18n lookup, profile getter, goal calc,
 // date helper) at boot so the module stays isolated from app.js internals.
 initHydration({ t, getProfile, waterGoalMl, todayISO });
+
+// ============================================================================
+// PWA install prompt — we catch `beforeinstallprompt` and reveal a small
+// dismissible banner. Respects a localStorage snooze so users who tapped
+// "plus tard" don't get re-prompted on every page load.
+//
+// Note: the browser only fires the event when engagement heuristics are
+// met (SW installed, manifest valid, ~30 s interaction). Nothing to do
+// if it never fires — the aside stays hidden.
+// ============================================================================
+
+const INSTALL_SNOOZE_KEY = 'scanneat.installBanner.snoozedUntil';
+const INSTALL_SNOOZE_DAYS = 30;
+let deferredInstallPrompt = null;
+
+function shouldShowInstallBanner() {
+  const until = Number(localStorage.getItem(INSTALL_SNOOZE_KEY) || 0);
+  return !Number.isFinite(until) || until < Date.now();
+}
+
+function snoozeInstallBanner(days = INSTALL_SNOOZE_DAYS) {
+  localStorage.setItem(INSTALL_SNOOZE_KEY, String(Date.now() + days * 86_400_000));
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const banner = $('install-banner');
+  if (banner && shouldShowInstallBanner()) show(banner);
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  hide($('install-banner'));
+  // Hard-snooze so we never prompt again on this device.
+  snoozeInstallBanner(365 * 10);
+});
+
+$('install-banner-accept')?.addEventListener('click', async () => {
+  const banner = $('install-banner');
+  if (!deferredInstallPrompt) { hide(banner); return; }
+  deferredInstallPrompt.prompt();
+  try {
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'dismissed') snoozeInstallBanner(7);
+  } catch { /* user agent error; fall through */ }
+  deferredInstallPrompt = null;
+  hide(banner);
+});
+
+$('install-banner-dismiss')?.addEventListener('click', () => {
+  snoozeInstallBanner();
+  hide($('install-banner'));
+});
 
 // ============================================================================
 // Fasting timer — intermittent-fasting countdown.

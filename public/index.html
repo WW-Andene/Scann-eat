@@ -365,6 +365,13 @@
     </dialog>
 
     <main id="main-content" role="main">
+
+      <aside id="install-banner" class="install-banner" hidden role="region" aria-labelledby="install-banner-title">
+        <span id="install-banner-title" data-i18n="installBannerTitle">📱 Installer Scann-eat ?</span>
+        <span class="install-banner-hint" data-i18n="installBannerHint">Ajoute l'app à ton écran d'accueil — fonctionne hors ligne.</span>
+        <button id="install-banner-accept" type="button" class="chip-btn accent compact" data-i18n="installBannerAccept">Installer</button>
+        <button id="install-banner-dismiss" type="button" class="secondary compact" data-i18n="installBannerDismiss">Plus tard</button>
+      </aside>
       <section class="capture">
         <div id="queue" class="queue" hidden></div>
         <div class="capture-actions">
@@ -615,6 +622,18 @@
         </form>
       </dialog>
 
+      <dialog id="menu-scan-dialog" class="settings-dialog" aria-labelledby="menu-scan-title">
+        <form method="dialog">
+          <h2 id="menu-scan-title" data-i18n="menuScanTitle">Plats du menu</h2>
+          <p class="hint" data-i18n="menuScanIntro">Sélectionne les plats que tu veux journaliser. Macros estimées par le LLM — indicatives.</p>
+          <p id="menu-scan-status" class="hint" aria-live="polite"></p>
+          <ul id="menu-scan-list" class="menu-scan-list"></ul>
+          <div class="dialog-actions">
+            <button id="menu-scan-close" type="button" class="secondary" data-i18n="close">Fermer</button>
+          </div>
+        </form>
+      </dialog>
+
       <dialog id="recipe-ideas-dialog" class="settings-dialog" aria-labelledby="recipe-ideas-title">
         <form method="dialog">
           <h2 id="recipe-ideas-title" data-i18n="recipeIdeasTitle">Idées de recettes</h2>
@@ -711,6 +730,11 @@
               <span class="icon" aria-hidden="true">🍽️</span>
               <span class="label" data-i18n="identifyFromPlatePhoto">Plateau multi-aliments</span>
               <input id="qa-photo-multi-input" type="file" accept="image/*" capture="environment" hidden />
+            </label>
+            <label class="qa-photo-btn" for="qa-photo-menu-input">
+              <span class="icon" aria-hidden="true">📜</span>
+              <span class="label" data-i18n="identifyFromMenuPhoto">Menu restaurant</span>
+              <input id="qa-photo-menu-input" type="file" accept="image/*" capture="environment" hidden />
             </label>
           </div>
           <p id="qa-ai-status" class="qa-ai-status" hidden></p>

@@ -408,6 +408,92 @@ export async function identifyMultiFood(
 }
 
 // ============================================================================
+// SECTION 3bb: RESTAURANT-MENU SCAN
+// ============================================================================
+
+const IDENTIFY_MENU_PROMPT = `Tu analyses la photo du MENU d'un restaurant (carte, ardoise, menu du jour). Tu lis les plats proposés et tu les transcris proprement.
+
+Ta tâche :
+1. Repère chaque plat listé. Ignore catégories ("Entrées"), prix, descriptions marketing.
+2. Pour chaque plat, estime des macros plausibles pour UNE PORTION restaurant typique (≈ 350-600 kcal).
+3. Donne une estimation — c'est une aide à la décision avant commande, pas un tracker précis.
+
+Règles :
+- Réponds UNIQUEMENT en JSON valide, sans markdown.
+- Décimales avec point.
+- Maximum 12 plats. Si ambigu, laisse de côté.
+- Noms en français, tels qu'affichés sur le menu.
+- Si la photo ne contient pas de menu lisible, renvoie { "dishes": [] }.`;
+
+const IDENTIFY_MENU_SCHEMA = `{
+  "dishes": [
+    {
+      "name": "string (ex: 'Risotto aux champignons')",
+      "kcal": number,
+      "protein_g": number,
+      "carbs_g": number,
+      "fat_g": number
+    }
+  ]
+}`;
+
+export interface IdentifiedMenuDish {
+  name: string;
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+}
+
+export interface IdentifiedMenu {
+  dishes: IdentifiedMenuDish[];
+}
+
+/**
+ * Scan a restaurant menu photo and extract the list of dishes + rough
+ * macro estimates per dish. The user can then log the one they're
+ * ordering or just eyeball the score field before committing.
+ */
+export async function identifyMenu(
+  images: LabelImage | LabelImage[],
+  opts: ParseOptions = {},
+): Promise<IdentifiedMenu> {
+  const imgs = Array.isArray(images) ? images : [images];
+  if (imgs.length === 0) throw new Error('identifyMenu: no images provided.');
+  if (imgs.length > 4) throw new Error('identifyMenu: max 4 images per call.');
+
+  const raw = await callGroqVision(
+    IDENTIFY_MENU_PROMPT,
+    `Lis le menu et renvoie uniquement ce JSON :\n${IDENTIFY_MENU_SCHEMA}`,
+    imgs,
+    opts,
+  );
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(extractJSON(raw));
+  } catch {
+    // eslint-disable-next-line no-console
+    console.warn('[identifyMenu] malformed JSON, first 300 chars:', raw.slice(0, 300));
+    throw new Error('identifyMenu: LLM returned malformed JSON.');
+  }
+
+  const rawDishes = Array.isArray(parsed.dishes) ? parsed.dishes : [];
+  const dishes = rawDishes.slice(0, 12)
+    .filter((d): d is Record<string, unknown> => !!d && typeof d === 'object')
+    .map((d) => ({
+      name: typeof d.name === 'string' && d.name.trim() ? d.name.trim() : '(inconnu)',
+      kcal: Math.max(0, coerceNumber(d.kcal)),
+      protein_g: Math.max(0, coerceNumber(d.protein_g)),
+      carbs_g: Math.max(0, coerceNumber(d.carbs_g)),
+      fat_g: Math.max(0, coerceNumber(d.fat_g)),
+    }))
+    .filter((d) => d.name !== '(inconnu)' && d.kcal > 0);
+
+  return { dishes };
+}
+
+// ============================================================================
 // SECTION 3c: RECIPE SUGGESTIONS (chef-style — text-only, given one ingredient)
 // ============================================================================
 
