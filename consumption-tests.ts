@@ -128,8 +128,29 @@ describe('sumTotals — daily aggregation', () => {
 
   it('empty list → zero totals', () => {
     assert.deepEqual(sumTotals([]), {
-      kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, fiber_g: 0, count: 0,
+      kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, fiber_g: 0,
+      iron_mg: 0, calcium_mg: 0, vit_d_ug: 0, b12_ug: 0, count: 0,
     });
+  });
+
+  it('micros (iron, calcium, vit D, B12) scale + sum', () => {
+    const e1 = buildEntry(product({ iron_mg: 3, calcium_mg: 200, vit_d_ug: 1, b12_ug: 0.5 }), 100);
+    const e2 = buildEntry(product({ iron_mg: 2, calcium_mg: 150, vit_d_ug: 2, b12_ug: 1 }), 50);
+    assert.equal(e1.iron_mg, 3);     // × 1
+    assert.equal(e2.calcium_mg, 75); // 150 × 0.5
+    const total = sumTotals([e1, e2]);
+    assert.equal(total.iron_mg, 4);        // 3 + 1
+    assert.equal(total.calcium_mg, 275);   // 200 + 75
+    assert.equal(total.vit_d_ug, 2);       // 1 + 1
+    assert.equal(total.b12_ug, 1);         // 0.5 + 0.5
+  });
+
+  it('buildQuickAdd accepts iron_mg + calcium_mg + vit_d_ug + b12_ug', () => {
+    const q = buildQuickAdd({ name: 'skyr fortifié', kcal: 60, iron_mg: 2.4, calcium_mg: 120, vit_d_ug: 1.5, b12_ug: 0.3 });
+    assert.equal(q.iron_mg, 2.4);
+    assert.equal(q.calcium_mg, 120);
+    assert.equal(q.vit_d_ug, 1.5);
+    assert.equal(q.b12_ug, 0.3);
   });
 
   it('rounds the final sum to the consumption module precision', () => {

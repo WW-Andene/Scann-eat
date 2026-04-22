@@ -101,6 +101,12 @@ export function buildEntry(product, grams, opts = {}) {
     salt_g: round3((n.salt_g ?? 0) * f),
     protein_g: round2((n.protein_g ?? 0) * f),
     fiber_g: round2((n.fiber_g ?? 0) * f),
+    // Key micros (mg / µg). Stored as 0 when OFF has no value for the
+    // product; the dashboard only renders a row when the daily total > 0.
+    iron_mg: round2((n.iron_mg ?? 0) * f),
+    calcium_mg: round2((n.calcium_mg ?? 0) * f),
+    vit_d_ug: round2((n.vit_d_ug ?? 0) * f),
+    b12_ug: round2((n.b12_ug ?? 0) * f),
   };
 }
 
@@ -108,7 +114,12 @@ export function buildEntry(product, grams, opts = {}) {
  * Build a manual "Quick Add" entry — user-entered totals, not derived from
  * a product. Skips the per-100 g conversion because the user types totals.
  */
-export function buildQuickAdd({ name, meal, kcal = 0, carbs_g = 0, protein_g = 0, fat_g = 0, sat_fat_g = 0, sugars_g = 0, salt_g = 0, fiber_g = 0 }, now = Date.now()) {
+export function buildQuickAdd({
+  name, meal,
+  kcal = 0, carbs_g = 0, protein_g = 0, fat_g = 0,
+  sat_fat_g = 0, sugars_g = 0, salt_g = 0, fiber_g = 0,
+  iron_mg = 0, calcium_mg = 0, vit_d_ug = 0, b12_ug = 0,
+}, now = Date.now()) {
   return {
     id: (globalThis.crypto?.randomUUID?.() ?? `q${now}${Math.random().toString(36).slice(2)}`),
     date: new Date(now).toISOString().slice(0, 10),
@@ -125,6 +136,10 @@ export function buildQuickAdd({ name, meal, kcal = 0, carbs_g = 0, protein_g = 0
     salt_g: round3(Number(salt_g) || 0),
     protein_g: round2(Number(protein_g) || 0),
     fiber_g: round2(Number(fiber_g) || 0),
+    iron_mg: round2(Number(iron_mg) || 0),
+    calcium_mg: round2(Number(calcium_mg) || 0),
+    vit_d_ug: round2(Number(vit_d_ug) || 0),
+    b12_ug: round2(Number(b12_ug) || 0),
     quickAdd: true,
   };
 }
@@ -193,7 +208,11 @@ export async function clearDate(date = todayISO()) {
 
 /** Pure aggregation — exported for tests. */
 export function sumTotals(entries) {
-  const t = { kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, fiber_g: 0, count: entries.length };
+  const t = {
+    kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, fiber_g: 0,
+    iron_mg: 0, calcium_mg: 0, vit_d_ug: 0, b12_ug: 0,
+    count: entries.length,
+  };
   for (const e of entries) {
     t.kcal += e.kcal || 0;
     t.carbs_g += e.carbs_g || 0;
@@ -203,6 +222,10 @@ export function sumTotals(entries) {
     t.salt_g += e.salt_g || 0;
     t.protein_g += e.protein_g || 0;
     t.fiber_g += e.fiber_g || 0;
+    t.iron_mg += e.iron_mg || 0;
+    t.calcium_mg += e.calcium_mg || 0;
+    t.vit_d_ug += e.vit_d_ug || 0;
+    t.b12_ug += e.b12_ug || 0;
   }
   return {
     kcal: round1(t.kcal),
@@ -213,6 +236,10 @@ export function sumTotals(entries) {
     salt_g: round3(t.salt_g),
     protein_g: round2(t.protein_g),
     fiber_g: round2(t.fiber_g),
+    iron_mg: round2(t.iron_mg),
+    calcium_mg: round2(t.calcium_mg),
+    vit_d_ug: round2(t.vit_d_ug),
+    b12_ug: round2(t.b12_ug),
     count: t.count,
   };
 }

@@ -190,6 +190,10 @@ export function proteinPRI_g(p) {
  * Salt: <5 g/day flat (WHO Salt Guideline 2012).
  * Protein: EFSA PRI 0.83 g/kg/d (1.0 g/kg/d ≥65y).
  * Fiber: EFSA DRV 25 g/day adults (adequate intake).
+ * Iron: EFSA PRI 11 mg/d men, 16 mg/d menstruating women.
+ * Calcium: EFSA PRI 950 mg/d adults (1150 mg 18–24 y).
+ * Vitamin D: EFSA AI 15 µg/d (600 IU) all adults.
+ * Vitamin B12: EFSA AI 4 µg/d.
  */
 export function dailyTargets(p) {
   const tdee = tdeeKcal(p);
@@ -199,6 +203,7 @@ export function dailyTargets(p) {
   // targets when the user picks a low-protein macro split.
   const pri = proteinPRI_g(p) ?? 0;
   const pctProtein = Math.round(((split.protein / 100) * tdee) / 4);
+  const isMenstruating = p?.sex === 'female' && (p?.age_years ?? 0) >= 11 && (p?.age_years ?? 0) < 51;
   return {
     kcal: tdee,
     carbs_g_target: Math.round(((split.carbs / 100) * tdee) / 4),
@@ -209,6 +214,10 @@ export function dailyTargets(p) {
     free_sugars_g_ideal: Math.round((0.05 * tdee) / 4),
     salt_g_max: 5,                                          // WHO 2012 fixed
     fiber_g_target: 25,                                     // EFSA DRV 2010
+    iron_mg_target: isMenstruating ? 16 : 11,               // EFSA PRI 2015
+    calcium_mg_target: 950,                                 // EFSA PRI 2015
+    vit_d_ug_target: 15,                                    // EFSA AI 2016
+    b12_ug_target: 4,                                       // EFSA AI 2015
     macro_split_key: p?.macro_split || 'balanced',
   };
 }

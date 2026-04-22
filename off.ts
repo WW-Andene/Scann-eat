@@ -108,6 +108,11 @@ function numNullable(v: unknown): number | null {
 
 function nutritionFromOFF(n: Record<string, unknown> | undefined): NutritionPer100g {
   const nut = n ?? {};
+  // OFF stores micronutrients as grams per 100 g (e.g. 0.012 for 12 mg of
+  // iron, 0.000002 for 2 µg of vitamin D). Convert to the app's preferred
+  // display units (mg for iron/calcium, µg for fat-/water-soluble vitamins).
+  const gToMg = (v: unknown) => num(v) * 1000;
+  const gToUg = (v: unknown) => num(v) * 1_000_000;
   return {
     energy_kcal: num(nut['energy-kcal_100g'] ?? nut['energy_100g']),
     fat_g: num(nut['fat_100g']),
@@ -119,6 +124,10 @@ function nutritionFromOFF(n: Record<string, unknown> | undefined): NutritionPer1
     protein_g: num(nut['proteins_100g']),
     salt_g: num(nut['salt_100g']),
     trans_fat_g: numNullable(nut['trans-fat_100g']),
+    iron_mg: gToMg(nut['iron_100g']),
+    calcium_mg: gToMg(nut['calcium_100g']),
+    vit_d_ug: gToUg(nut['vitamin-d_100g']),
+    b12_ug: gToUg(nut['vitamin-b12_100g']),
   };
 }
 
@@ -351,6 +360,10 @@ export function mergeOFFWithLLM(off: ProductInput, llm: ProductInput): ProductIn
       protein_g: prefer(off.nutrition.protein_g, llm.nutrition.protein_g, emptyNum),
       salt_g: prefer(off.nutrition.salt_g, llm.nutrition.salt_g, emptyNum),
       trans_fat_g: off.nutrition.trans_fat_g ?? llm.nutrition.trans_fat_g ?? null,
+      iron_mg: prefer(off.nutrition.iron_mg, llm.nutrition.iron_mg, emptyNum),
+      calcium_mg: prefer(off.nutrition.calcium_mg, llm.nutrition.calcium_mg, emptyNum),
+      vit_d_ug: prefer(off.nutrition.vit_d_ug, llm.nutrition.vit_d_ug, emptyNum),
+      b12_ug: prefer(off.nutrition.b12_ug, llm.nutrition.b12_ug, emptyNum),
     },
     weight_g: off.weight_g ?? llm.weight_g,
     origin: off.origin ?? llm.origin ?? null,

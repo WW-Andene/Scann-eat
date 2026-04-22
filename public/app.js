@@ -3139,6 +3139,13 @@ async function renderDashboard() {
     { key: 'dashSatFat',  value: totals.sat_fat_g,  target: targets?.sat_fat_g_max,     unit: 'g' },
     { key: 'dashSugars',  value: totals.sugars_g,   target: targets?.free_sugars_g_max, unit: 'g' },
     { key: 'dashSalt',    value: totals.salt_g,     target: targets?.salt_g_max,        unit: 'g' },
+    // Micros: only rendered when a product actually logged a non-zero value
+    // today, so the dashboard stays minimal for users of OFF products that
+    // don't report micros (the majority).
+    ...(totals.iron_mg    > 0 ? [{ key: 'dashIron',    value: totals.iron_mg,    target: targets?.iron_mg_target,    unit: 'mg' }] : []),
+    ...(totals.calcium_mg > 0 ? [{ key: 'dashCalcium', value: totals.calcium_mg, target: targets?.calcium_mg_target, unit: 'mg' }] : []),
+    ...(totals.vit_d_ug   > 0 ? [{ key: 'dashVitD',    value: totals.vit_d_ug,   target: targets?.vit_d_ug_target,   unit: 'µg' }] : []),
+    ...(totals.b12_ug     > 0 ? [{ key: 'dashB12',     value: totals.b12_ug,     target: targets?.b12_ug_target,     unit: 'µg' }] : []),
   ];
 
   dashboardRows.innerHTML = '';

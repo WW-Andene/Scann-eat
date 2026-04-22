@@ -89,6 +89,11 @@ export interface NutritionPer100g {
   protein_g: number;
   salt_g: number;
   trans_fat_g?: number | null;
+  // Key micros — optional because most OFF products don't report them.
+  iron_mg?: number;
+  calcium_mg?: number;
+  vit_d_ug?: number;
+  b12_ug?: number;
 }
 
 /**
