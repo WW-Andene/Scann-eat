@@ -393,6 +393,20 @@ async function scanImage() {
     : queue.length > 1 ? t('analysingN', { n: queue.length })
     : t('analysing');
 
+  // "Progressive" status: real streaming of the LLM response is a bigger
+  // refactor. In the meantime, cycle the status line through the phases a
+  // real progressive parser would report — ingredients → nutrition →
+  // scoring — so the user sees motion instead of one long spinner.
+  let phaseTimer = null;
+  if (!bc) {
+    const phases = [t('phaseIngredients'), t('phaseNutrition'), t('phaseScoring')];
+    let idx = 0;
+    phaseTimer = setInterval(() => {
+      statusText.textContent = phases[idx % phases.length];
+      idx++;
+    }, 1500);
+  }
+
   const mode = getMode();
   try {
     let data;
@@ -405,6 +419,7 @@ async function scanImage() {
         else throw err;
       }
     }
+    if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null; }
     hide(statusEl);
     lastData = data;
     maybeRenderComparison(data);
@@ -414,6 +429,7 @@ async function scanImage() {
     show(resultEl);
     persistToHistory(data);
   } catch (err) {
+    if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null; }
     hide(statusEl);
     console.error('[scan] failed', err);
     // navigator.onLine is the primary signal. The regex is a secondary probe
