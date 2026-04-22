@@ -267,6 +267,46 @@ export function weeklyRollup(entries, endIso) {
   return { days, total, avg, days_logged: daysLogged };
 }
 
+/**
+ * State of an intermittent-fasting window given its start time, the current
+ * time, and a target duration in hours (default 16 for a classic 16:8).
+ *
+ * Pure — takes milliseconds instead of Date objects so tests don't have to
+ * mock the clock.
+ *
+ * Returns:
+ *   elapsed_ms   — how long since start
+ *   remaining_ms — target - elapsed, floored at 0
+ *   pct          — elapsed / target * 100, clamped to 0–100
+ *   complete     — true when pct ≥ 100 (user can eat)
+ *   overrun_ms   — if complete, how long past target (for a "fasted 16h30m" message)
+ *   label        — "6:30 / 16:00" style elapsed/target string
+ */
+export function fastingStatus(startMs, nowMs, targetHours = 16) {
+  const targetMs = Math.max(1, targetHours * 3_600_000);
+  const elapsed = Math.max(0, nowMs - startMs);
+  const remaining = Math.max(0, targetMs - elapsed);
+  const pct = Math.max(0, Math.min(100, (elapsed / targetMs) * 100));
+  const complete = elapsed >= targetMs;
+  const overrun = complete ? elapsed - targetMs : 0;
+
+  const fmt = (ms) => {
+    const totalMin = Math.floor(ms / 60_000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}:${String(m).padStart(2, '0')}`;
+  };
+
+  return {
+    elapsed_ms: elapsed,
+    remaining_ms: remaining,
+    pct,
+    complete,
+    overrun_ms: overrun,
+    label: `${fmt(elapsed)} / ${targetHours}:00`,
+  };
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));

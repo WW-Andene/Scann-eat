@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -434,5 +434,65 @@ describe('weeklyRollup', () => {
     assert.equal(r.total.carbs_g, 40);
     assert.equal(r.total.fat_g, 10);
     assert.equal(r.total.salt_g, 1);
+  });
+});
+
+// ============================================================================
+// fastingStatus — intermittent-fasting countdown
+// ============================================================================
+
+describe('fastingStatus', () => {
+  const hour = (n: number) => n * 3_600_000;
+
+  it('just started: 0% elapsed, 16h remaining', () => {
+    const s = fastingStatus(0, 0, 16);
+    assert.equal(s.elapsed_ms, 0);
+    assert.equal(s.remaining_ms, hour(16));
+    assert.equal(s.pct, 0);
+    assert.equal(s.complete, false);
+  });
+
+  it('halfway: 8h elapsed at 16h target → 50%', () => {
+    const s = fastingStatus(0, hour(8), 16);
+    assert.equal(s.pct, 50);
+    assert.equal(s.remaining_ms, hour(8));
+    assert.equal(s.complete, false);
+  });
+
+  it('complete at target: pct 100, remaining 0, overrun 0', () => {
+    const s = fastingStatus(0, hour(16), 16);
+    assert.equal(s.pct, 100);
+    assert.equal(s.remaining_ms, 0);
+    assert.equal(s.complete, true);
+    assert.equal(s.overrun_ms, 0);
+  });
+
+  it('overrun: elapsed past target reports overrun_ms', () => {
+    const s = fastingStatus(0, hour(17), 16);
+    assert.equal(s.complete, true);
+    assert.equal(s.overrun_ms, hour(1));
+    assert.equal(s.pct, 100); // clamped
+  });
+
+  it('negative elapsed (clock-skew) clamps to 0', () => {
+    const s = fastingStatus(1_000_000, 0, 16);
+    assert.equal(s.elapsed_ms, 0);
+    assert.equal(s.pct, 0);
+  });
+
+  it('formats the elapsed/target label as h:mm', () => {
+    const s = fastingStatus(0, hour(6) + 30 * 60_000, 16);
+    assert.equal(s.label, '6:30 / 16:00');
+  });
+
+  it('default target is 16 hours', () => {
+    const s = fastingStatus(0, hour(16));
+    assert.equal(s.complete, true);
+  });
+
+  it('custom target (e.g. 18:6) respected', () => {
+    const s = fastingStatus(0, hour(16), 18);
+    assert.equal(s.complete, false);
+    assert.equal(s.remaining_ms, hour(2));
   });
 });
