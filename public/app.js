@@ -5,6 +5,7 @@ import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '
 import { buildBackup, restoreBackup } from '/backup.js';
 import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile } from '/profiles.js';
 import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEvent as telemetryLog, clearEvents as telemetryClear, formatEvents as telemetryFormat } from '/telemetry.js';
+import { getSetting, setSetting } from '/app-settings.js';
 import { searchFoodDB } from '/food-db.js';
 import { detectAllergens } from '/allergens.js';
 import {
@@ -1707,16 +1708,17 @@ settingsBtn?.addEventListener('click', () => {
 });
 settingsSave?.addEventListener('click', (e) => {
   e.preventDefault();
-  const key = keyInput.value.trim();
-  if (key) localStorage.setItem(LS_KEY, key); else localStorage.removeItem(LS_KEY);
-  localStorage.setItem(LS_MODE, modeSelect.value);
-  localStorage.setItem(LS_THEME, themeSelect.value);
+  // Route through the central app-settings shim: validates each value
+  // against the typed schema and falls back to defaults for bad enums.
+  setSetting('scanneat.key', keyInput.value.trim());
+  setSetting('scanneat.mode', modeSelect.value);
+  setSetting('scanneat.theme', themeSelect.value);
   const fontSizeSel = document.getElementById('settings-font-size');
   const fontFamSel = document.getElementById('settings-font-family');
   const motionSel = document.getElementById('settings-motion');
-  if (fontSizeSel) localStorage.setItem(LS_FONT_SIZE, fontSizeSel.value);
-  if (fontFamSel)  localStorage.setItem(LS_FONT_FAMILY, fontFamSel.value);
-  if (motionSel)   localStorage.setItem(LS_MOTION, motionSel.value);
+  if (fontSizeSel) setSetting('scanneat.fontSize', fontSizeSel.value);
+  if (fontFamSel)  setSetting('scanneat.fontFamily', fontFamSel.value);
+  if (motionSel)   setSetting('scanneat.motion', motionSel.value);
   // Reminder prefs
   let anyRemindersOn = false;
   for (const meal of ['breakfast', 'lunch', 'dinner']) {
