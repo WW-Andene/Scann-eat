@@ -1,4 +1,4 @@
-import { t, setLang, currentLang, applyStaticTranslations } from '/i18n.js';
+import { t, setLang, currentLang, applyStaticTranslations } from '/core/i18n.js';
 import { explainFlag } from '/core/explanations.js';
 import { enqueue, listPending, remove as removePending, countPending } from '/data/queue-store.js';
 import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '/data/scan-history.js';

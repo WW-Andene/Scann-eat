@@ -1,9 +1,9 @@
-const CACHE = 'scann-eat-shell-e3b0c44';
+const CACHE = 'scann-eat-shell-f5d2a9b';
 const SHELL = [
   '/',
   '/index.html',
   '/app.js',
-  '/i18n.js',
+  '/core/i18n.js',
   '/core/explanations.js',
   '/data/queue-store.js',
   '/data/scan-history.js',
