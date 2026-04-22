@@ -285,9 +285,20 @@ async function addFiles(fileList) {
 }
 
 function addBarcodeOnly(barcode) {
+  // Inline SVG placeholder for the queue thumbnail when the user arrived
+  // via the barcode scanner (no actual photo to show). Palette matches
+  // the coral redesign (--panel + --text), not the retired dark-green.
+  const placeholder =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">' +
+      '<rect width="60" height="60" fill="#1B1B1F"/>' +
+      '<text x="30" y="40" text-anchor="middle" fill="#F5F0E8" font-size="28">📦</text>' +
+      '</svg>'
+    );
   queue.push({
     id: crypto.randomUUID(),
-    dataUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"><rect width="60" height="60" fill="%230f1a14"/><text x="30" y="34" text-anchor="middle" fill="%239be3a6" font-size="20">📦</text></svg>',
+    dataUrl: placeholder,
     base64: '', mime: 'image/jpeg',
     barcode,
   });
