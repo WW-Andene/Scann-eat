@@ -17,6 +17,7 @@ import { initInstallBanner } from '/features/install-banner.js';
 import { initBackupIO } from '/features/backup-io.js';
 import { initFasting, renderFasting } from '/features/fasting.js';
 import { initAppearance, applyAppearance, applyTheme, applyReadingPrefs } from '/features/appearance.js';
+import { shareOrCopy } from '/core/share.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -934,19 +935,12 @@ $('pairings-copy-btn')?.addEventListener('click', async () => {
 // textContent, so co-occurrence counts survive round-trip.
 $('pairings-share-btn')?.addEventListener('click', async () => {
   if (!pairedHit) return;
-  const text = formatPairingsShare(pairedHit, { lang: currentLang });
-  const title = t('pairingsShareTitle', { name: pairedHit.name });
-  try {
-    if (navigator.share) {
-      await navigator.share({ title, text });
-      return;
-    }
-    await navigator.clipboard?.writeText(text);
-    toast(t('pairingsShareCopied'));
-  } catch (err) {
-    // AbortError = user dismissed the native sheet; not a real failure.
-    if (err?.name !== 'AbortError') toast(t('pairingsShareFailed'), 'error');
-  }
+  await shareOrCopy({
+    title: t('pairingsShareTitle', { name: pairedHit.name }),
+    text: formatPairingsShare(pairedHit, { lang: currentLang }),
+    toasts: { copied: t('pairingsShareCopied'), failed: t('pairingsShareFailed') },
+    toast,
+  });
 });
 $('recipe-ideas-close')?.addEventListener('click', (e) => {
   e.preventDefault();
@@ -3629,14 +3623,12 @@ $('daily-share')?.addEventListener('click', async () => {
   const burned = { kcal: sumBurned(burnedForDate) };
   const text = formatDailySummary(totals, targets, burned, { lang: currentLang, dateISO: todayISO() });
   if (!text) { toast(t('dailyShareEmpty'), 'warn'); return; }
-  if (typeof navigator.share === 'function') {
-    try { await navigator.share({ title: t('dailyShareTitle'), text }); return; }
-    catch { /* user cancelled or unsupported; fall through to clipboard */ }
-  }
-  try {
-    await navigator.clipboard?.writeText(text);
-    toast(t('dailyShareCopied'));
-  } catch { toast(t('dailyShareFailed'), 'error'); }
+  await shareOrCopy({
+    title: t('dailyShareTitle'),
+    text,
+    toasts: { copied: t('dailyShareCopied'), failed: t('dailyShareFailed') },
+    toast,
+  });
 });
 
 $('weekly-share')?.addEventListener('click', async () => {
@@ -3644,14 +3636,12 @@ $('weekly-share')?.addEventListener('click', async () => {
   const roll = weeklyRollup(entries, todayISO());
   const text = formatWeeklyShare(roll, { lang: currentLang });
   if (!text) { toast(t('weeklyShareEmpty'), 'warn'); return; }
-  if (typeof navigator.share === 'function') {
-    try { await navigator.share({ title: t('weeklyShareTitle'), text }); return; }
-    catch { /* user cancelled or unsupported; fall through to clipboard */ }
-  }
-  try {
-    await navigator.clipboard?.writeText(text);
-    toast(t('weeklyShareCopied'));
-  } catch { toast(t('weeklyShareFailed'), 'error'); }
+  await shareOrCopy({
+    title: t('weeklyShareTitle'),
+    text,
+    toasts: { copied: t('weeklyShareCopied'), failed: t('weeklyShareFailed') },
+    toast,
+  });
 });
 
 document.querySelectorAll('.view-tab').forEach((btn) =>
