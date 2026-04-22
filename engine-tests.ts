@@ -13,7 +13,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { scoreProduct, type Grade, type ProductInput } from './scoring-engine.ts';
+import { scoreProduct, inferNovaClass, type Grade, type ProductInput } from './scoring-engine.ts';
 
 function expectGrade(product: ProductInput, grades: Grade[], range: [number, number]) {
   const audit = scoreProduct(product);
@@ -569,5 +569,44 @@ describe('veto conditions', () => {
     });
     // threshold is `> 0.1` strictly, so 0.1 should not trigger
     assert.equal(audit.veto.triggered, false, `expected no veto at exactly 0.1g, got ${audit.veto.reason}`);
+  });
+});
+
+// ============================================================================
+// inferNovaClass fresh-produce exception (R3.2): OFF barcode scans for
+// raw produce return an empty ingredients array, which used to collapse
+// to NOVA 4 (ultra-processed). With the lexicon guard, a whole banana
+// scanned by barcode now resolves to NOVA 1.
+// ============================================================================
+
+describe('inferNovaClass fresh-produce exception', () => {
+  it('banana with empty ingredients → NOVA 1 (not 4)', () => {
+    const cls = inferNovaClass({
+      name: 'Banane',
+      category: 'fruit',
+      ingredients: [],
+      nutrition: { energy_kcal: 89, fat_g: 0.3, saturated_fat_g: 0.1, carbs_g: 23, sugars_g: 12, fiber_g: 2.6, protein_g: 1.1, salt_g: 0 },
+    });
+    assert.equal(cls, 1);
+  });
+
+  it('apple / pomme resolves via the FR lexicon', () => {
+    const cls = inferNovaClass({
+      name: 'Pomme',
+      category: 'fruit',
+      ingredients: [],
+      nutrition: { energy_kcal: 52, fat_g: 0.2, saturated_fat_g: 0, carbs_g: 14, sugars_g: 10, fiber_g: 2.4, protein_g: 0.3, salt_g: 0 },
+    });
+    assert.equal(cls, 1);
+  });
+
+  it('unknown product name with empty ingredients still falls back to NOVA 4', () => {
+    const cls = inferNovaClass({
+      name: 'Mystery Branded Snack Co.',
+      category: 'snack',
+      ingredients: [],
+      nutrition: { energy_kcal: 500, fat_g: 25, saturated_fat_g: 10, carbs_g: 50, sugars_g: 20, fiber_g: 2, protein_g: 8, salt_g: 1 },
+    });
+    assert.equal(cls, 4);
   });
 });

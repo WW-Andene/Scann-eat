@@ -526,6 +526,7 @@ export function entriesToDailyCSV(entries) {
     const row = byDate.get(key) ?? {
       date: key, entries: 0, kcal: 0, carbs_g: 0, protein_g: 0,
       fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0,
+      fiber_g: 0, iron_mg: 0, calcium_mg: 0, vit_d_ug: 0, b12_ug: 0,
     };
     row.entries += 1;
     row.kcal      += Number(e.kcal) || 0;
@@ -535,18 +536,29 @@ export function entriesToDailyCSV(entries) {
     row.sat_fat_g += Number(e.sat_fat_g) || 0;
     row.sugars_g  += Number(e.sugars_g) || 0;
     row.salt_g    += Number(e.salt_g) || 0;
+    row.fiber_g    += Number(e.fiber_g) || 0;
+    row.iron_mg    += Number(e.iron_mg) || 0;
+    row.calcium_mg += Number(e.calcium_mg) || 0;
+    row.vit_d_ug   += Number(e.vit_d_ug) || 0;
+    row.b12_ug     += Number(e.b12_ug) || 0;
     byDate.set(key, row);
   }
   const rows = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+  // NEW columns appended at the end so existing CSV importers that parse
+  // by column index or header prefix keep working. Order: fiber then the
+  // four tracked micronutrients.
   const header = [
     'date', 'entries', 'kcal', 'carbs_g', 'protein_g',
     'fat_g', 'sat_fat_g', 'sugars_g', 'salt_g',
+    'fiber_g', 'iron_mg', 'calcium_mg', 'vit_d_ug', 'b12_ug',
   ];
   const round1 = (v) => Math.round(v * 10) / 10;
   const round3 = (v) => Math.round(v * 1000) / 1000;
   const fmt = (r) => [
     r.date, r.entries, round1(r.kcal), round1(r.carbs_g), round1(r.protein_g),
     round1(r.fat_g), round1(r.sat_fat_g), round1(r.sugars_g), round3(r.salt_g),
+    round1(r.fiber_g), round1(r.iron_mg), round1(r.calcium_mg),
+    round1(r.vit_d_ug), round1(r.b12_ug),
   ];
   // CSV quoting: fields don't contain commas or quotes given our data, but
   // wrap in quotes anyway for Excel safety.

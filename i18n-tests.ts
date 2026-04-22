@@ -76,6 +76,30 @@ describe('t() fallback chain', () => {
     // still in French after the no-op
     assert.equal(t('close'), 'Fermer');
   });
+
+  it('t() resolves _one / _other variants via Intl.PluralRules when vars.n is a number', () => {
+    setLang('fr');
+    // clearTodayConfirm has _one + _other variants in FR.
+    const singular = t('clearTodayConfirm', { n: 1 });
+    const plural = t('clearTodayConfirm', { n: 3 });
+    assert.match(singular, /l'entrée/);
+    assert.match(plural, /les 3 entrées/);
+
+    setLang('en');
+    const singEn = t('clearTodayConfirm', { n: 1 });
+    const plurEn = t('clearTodayConfirm', { n: 5 });
+    assert.match(singEn, /single entry/);
+    assert.match(plurEn, /5 entries/);
+  });
+
+  it('t() falls back to the plain key when no plural variant exists', () => {
+    setLang('fr');
+    // daysLogged in the rollup string doesn't have _one / _other variants;
+    // the plain `pendingScansN` key should still resolve.
+    const out = t('pendingScansN', { n: 2 });
+    assert.ok(out.length > 0);
+    assert.notEqual(out, 'pendingScansN');
+  });
 });
 
 describe('SUPPORTED_LANGS contract', () => {

@@ -1025,9 +1025,21 @@ function detectUPFMarkers(ings: Ingredient[]): string[] {
  * when no E-number appears. Clean products with a longer but honest ingredient
  * list can now qualify for NOVA 3 (count ≤10 instead of ≤8).
  */
+// Minimal fresh-produce lexicon (FR + EN) used as an escape hatch when
+// OFF returns a barcode-only product with no ingredients list. Raw apples,
+// bananas, etc. previously fell through to "NOVA 4" which punished the
+// score — Monteiro's NOVA framework explicitly classes these as NOVA 1.
+const FRESH_PRODUCE_NAME = /^(banane|banana|pomme|apple|poire|pear|tomate|tomato|oignon|onion|avocat|avocado|carotte|carrot|concombre|cucumber|courgette|zucchini|kiwi|orange|citron|lemon|fraise|strawberr|framboise|raspberr|ananas|pineapple|raisin|grape|cerise|cherry|prune|plum|peche|pêche|peach|mangue|mango|poireau|leek|chou|cabbage|brocoli|broccoli|salade|lettuce|epinard|épinard|spinach|radis|radish|navet|turnip|betterave|beet|aubergine|eggplant|poivron|bell pepper|champignon|mushroom|asperge|asparagus|artichaut|artichoke|haricot|bean|lentille|lentil|petit[- ]pois|pea)\b/i;
+
 export function inferNovaClass(product: ProductInput): NovaClass {
   const ings = product.ingredients;
-  if (ings.length === 0) return 4;
+  if (ings.length === 0) {
+    // Fresh produce has no "ingredients" — the product IS the ingredient.
+    // Catch this before the conservative NOVA-4 fallback so a banana
+    // scanned by barcode isn't scored as ultra-processed.
+    if (FRESH_PRODUCE_NAME.test(String(product.name ?? '').trim())) return 1;
+    return 4;
+  }
   const additives = ings.filter((i) => i.category === 'additive' || !!i.e_number);
   const cosmetics = additives
     .map((i) => findAdditive(i))

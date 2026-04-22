@@ -103,6 +103,51 @@ describe('Profile physiological formulas', () => {
     assert.equal(tg1.kcal, tg0.kcal);
     assert.equal(tg1.life_stage, null);
   });
+
+  it('menstruating female (age 11–50) iron baseline = 16 mg (EFSA PRI)', () => {
+    const p = { sex: 'female', age_years: 30, height_cm: 165, weight_kg: 60, activity: 'moderate' };
+    const tg = dailyTargets(p)!;
+    assert.equal(tg.iron_mg_target, 16);
+  });
+
+  it('post-menopausal female (age ≥51) iron baseline = 11 mg (EFSA PRI)', () => {
+    const p = { sex: 'female', age_years: 55, height_cm: 165, weight_kg: 60, activity: 'moderate' };
+    const tg = dailyTargets(p)!;
+    assert.equal(tg.iron_mg_target, 11);
+  });
+
+  it('male iron baseline = 11 mg (EFSA PRI)', () => {
+    const p = { sex: 'male', age_years: 30, height_cm: 175, weight_kg: 70, activity: 'moderate' };
+    const tg = dailyTargets(p)!;
+    assert.equal(tg.iron_mg_target, 11);
+  });
+
+  it('lactation override wins over the menstruating baseline (10 mg, not 16)', () => {
+    // Postpartum women are not menstruating; EFSA PRI drops to 10 mg.
+    const p = { sex: 'female', age_years: 30, height_cm: 165, weight_kg: 60, activity: 'moderate', life_stage: 'lactation' };
+    const tg = dailyTargets(p)!;
+    assert.equal(tg.iron_mg_target, 10);
+  });
+
+  it('kcal targets: life-stage delta composes with TDEE, not replaces it', () => {
+    const p = { sex: 'female', age_years: 30, height_cm: 165, weight_kg: 60, activity: 'moderate' };
+    const baseKcal = tdeeKcal(p);
+    const tgPreg = dailyTargets({ ...p, life_stage: 'pregnancy' })!;
+    const tgLact = dailyTargets({ ...p, life_stage: 'lactation' })!;
+    // Exact additive relationship — no replacement.
+    assert.equal(tgPreg.kcal, baseKcal + 300);
+    assert.equal(tgLact.kcal, baseKcal + 500);
+  });
+
+  it('carbs / fat targets recompute from the stage-adjusted TDEE', () => {
+    // If the stage delta weren't feeding macros, pregnancy carbs would be
+    // identical to baseline — but AMDR-derived targets must scale with kcal.
+    const base = { sex: 'female', age_years: 30, height_cm: 165, weight_kg: 60, activity: 'moderate' };
+    const tg0 = dailyTargets(base)!;
+    const tg1 = dailyTargets({ ...base, life_stage: 'pregnancy' })!;
+    assert.ok(tg1.carbs_g_target > tg0.carbs_g_target, 'carbs target must scale up in pregnancy');
+    assert.ok(tg1.fat_g_target > tg0.fat_g_target, 'fat target must scale up in pregnancy');
+  });
 });
 
 // ----- Halal rule coverage -----

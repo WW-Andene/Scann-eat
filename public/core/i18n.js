@@ -428,6 +428,15 @@ const STRINGS = {
     pairingsShareCopied: 'Carte d\'accords copiée',
     pairingsShareFailed: 'Partage impossible',
     mealOfDayShort: 'du jour',
+    qaSaveAsTemplate: '💾 Modèle',
+    qaSaveAsTemplateNeedsName: 'Nom + calories requis pour créer un modèle.',
+    qaSaveAsTemplateDone: 'Modèle « {name} » enregistré',
+    qaSaveAsTemplateFailed: 'Impossible d\'enregistrer le modèle',
+    duplicateBarcodeSkipped: '{n} code-barres en double ignoré(s)',
+    clearTodayConfirm: 'Effacer les {n} entrée(s) d\'aujourd\'hui ? Cette action est irréversible.',
+    clearTodayConfirm_one: 'Effacer l\'entrée d\'aujourd\'hui ? Cette action est irréversible.',
+    clearTodayConfirm_other: 'Effacer les {n} entrées d\'aujourd\'hui ? Cette action est irréversible.',
+    clearTodayNoneToClear: 'Aucune entrée à effacer aujourd\'hui.',
     productFallbackName: 'Produit',
     daysAgo: 'il y a {n} j',
     hoursAgo: 'il y a {n} h',
@@ -943,6 +952,15 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     pairingsShareCopied: 'Pairings card copied',
     pairingsShareFailed: 'Sharing failed',
     mealOfDayShort: 'of day',
+    qaSaveAsTemplate: '💾 Template',
+    qaSaveAsTemplateNeedsName: 'Name + calories are required to save as template.',
+    qaSaveAsTemplateDone: 'Template "{name}" saved',
+    qaSaveAsTemplateFailed: 'Could not save template',
+    duplicateBarcodeSkipped: '{n} duplicate barcode(s) skipped',
+    clearTodayConfirm: 'Delete today\'s {n} entries? This cannot be undone.',
+    clearTodayConfirm_one: 'Delete today\'s single entry? This cannot be undone.',
+    clearTodayConfirm_other: 'Delete today\'s {n} entries? This cannot be undone.',
+    clearTodayNoneToClear: 'Nothing logged today to clear.',
     productFallbackName: 'Product',
     daysAgo: '{n}d ago',
     hoursAgo: '{n}h ago',
@@ -1142,13 +1160,39 @@ export function setLang(lang) {
  */
 export function t(key, vars) {
   const table = STRINGS[currentLang] ?? STRINGS.en;
-  let out = table[key] ?? STRINGS.en[key] ?? STRINGS.fr[key] ?? key;
+  // Plural resolution: if vars has `n` (number) and the table has
+  //   "<key>_one" / "<key>_other"  variants, pick one via
+  // Intl.PluralRules. Falls back to the plain `<key>` lookup when only
+  // a single variant is defined. Example keys:
+  //   daysLogged_one:   'jour enregistré'
+  //   daysLogged_other: 'jours enregistrés'
+  let resolvedKey = key;
+  if (vars && typeof vars.n === 'number') {
+    const category = pluralRules(currentLang).select(vars.n);
+    const variant = `${key}_${category}`;
+    if (table[variant] || STRINGS.en[variant] || STRINGS.fr[variant]) {
+      resolvedKey = variant;
+    } else if (category !== 'one' && (table[`${key}_other`] || STRINGS.en[`${key}_other`] || STRINGS.fr[`${key}_other`])) {
+      resolvedKey = `${key}_other`;
+    }
+  }
+  let out = table[resolvedKey] ?? STRINGS.en[resolvedKey] ?? STRINGS.fr[resolvedKey] ?? table[key] ?? STRINGS.en[key] ?? STRINGS.fr[key] ?? key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
       out = out.replaceAll(`{${k}}`, String(v));
     }
   }
   return out;
+}
+
+// Cached Intl.PluralRules per locale — the constructor is not free.
+const _pluralCache = new Map();
+function pluralRules(lang) {
+  if (!_pluralCache.has(lang)) {
+    try { _pluralCache.set(lang, new Intl.PluralRules(lang)); }
+    catch { _pluralCache.set(lang, new Intl.PluralRules('en')); }
+  }
+  return _pluralCache.get(lang);
 }
 
 /**

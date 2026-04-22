@@ -12,6 +12,9 @@ import { initWeight, renderWeightSummary } from '/features/weight.js';
 import { initReminders, scheduleReminders } from '/features/reminders.js';
 import { initVoiceDictate } from '/features/voice-dictate.js';
 import { initScanner, openCameraScanner, closeCameraScanner } from '/features/scanner.js';
+import { maybeShowOnboarding } from '/features/onboarding.js';
+import { initInstallBanner } from '/features/install-banner.js';
+import { initBackupIO } from '/features/backup-io.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -96,9 +99,7 @@ const pillarDialog = $('pillar-dialog');
 const pillarDialogTitle = $('pillar-dialog-title');
 const pillarDialogList = $('pillar-dialog-list');
 
-const obDialog = $('onboarding-dialog');
-const obSkip = $('ob-skip');
-const obNext = $('ob-next');
+// Onboarding dialog refs moved into /features/onboarding.js.
 
 const historySearchInput = $('history-search');
 const historyGradeSelect = $('history-grade');
@@ -112,7 +113,6 @@ const LS_COMPARE_ARMED = 'scanneat.compare_armed';
 const LS_COMPARE_PREV = 'scanneat.compare_prev';
 const LS_DISMISSED_VERSION = 'scanneat.dismissed_update';
 const LS_PREFS = 'scanneat.prefs';
-const LS_ONBOARDED = 'scanneat.onboarded';
 const LS_THEME = 'scanneat.theme';
 const LS_FONT_SIZE = 'scanneat.font_size';     // 'normal' | 'large' | 'xlarge'
 const LS_FONT_FAMILY = 'scanneat.font_family'; // 'atkinson' | 'lexend' | 'system'
@@ -314,9 +314,18 @@ async function addFiles(fileList) {
   hide(errorEl);
   const files = Array.from(fileList).slice(0, MAX_IMAGES - queue.length);
   let blurryCount = 0;
+  let dupCount = 0;
   for (const file of files) {
     try {
       const barcode = await detectBarcodeFromFile(file);
+      // Duplicate-barcode guard: if the user snaps the same product's
+      // barcode twice, a second identical hit contributes nothing (the
+      // server takes only one barcode anyway) and clutters the queue.
+      // We keep the first and warn via a toast.
+      if (barcode && queue.some((q) => q.barcode === barcode)) {
+        dupCount += 1;
+        continue;
+      }
       const compressed = await compressImage(file);
       if (compressed.sharpness?.verdict === 'blurry' && !barcode) blurryCount++;
       queue.push({ id: crypto.randomUUID(), ...compressed, barcode });
@@ -332,9 +341,19 @@ async function addFiles(fileList) {
   if (blurryCount > 0) {
     toast(t('blurryPhotoWarning'));
   }
+  if (dupCount > 0) {
+    toast(t('duplicateBarcodeSkipped', { n: dupCount }));
+  }
 }
 
 function addBarcodeOnly(barcode) {
+  // Duplicate guard for the live scanner path too — lets the user re-
+  // aim the camera if they accidentally pointed at the same barcode
+  // twice without blocking the UI.
+  if (queue.some((q) => q.barcode === barcode)) {
+    toast(t('duplicateBarcodeSkipped', { n: 1 }));
+    return;
+  }
   // Inline SVG placeholder for the queue thumbnail when the user arrived
   // via the barcode scanner (no actual photo to show). Palette matches
   // the coral redesign (--panel + --text), not the retired dark-green.
@@ -1602,37 +1621,8 @@ function composeReadAloudText(data) {
 }
 window.matchMedia?.('(prefers-color-scheme: light)')?.addEventListener('change', applyTheme);
 
-// ---------- Onboarding ----------
-
-function maybeShowOnboarding() {
-  if (localStorage.getItem(LS_ONBOARDED) === '1') return;
-  const slides = obDialog.querySelectorAll('.ob-slide');
-  const dots = obDialog.querySelectorAll('.ob-dot');
-  const TOTAL = slides.length;
-  let current = 1;
-  const render = () => {
-    slides.forEach((s) => { s.hidden = Number(s.dataset.slide) !== current; });
-    dots.forEach((d, i) => d.classList.toggle('active', i + 1 === current));
-    obNext.textContent = current === TOTAL ? t('start') : t('next');
-  };
-  obNext.onclick = () => {
-    if (current < TOTAL) { current++; render(); }
-    else { localStorage.setItem(LS_ONBOARDED, '1'); obDialog.close(); }
-  };
-  obSkip.onclick = () => {
-    localStorage.setItem(LS_ONBOARDED, '1');
-    obDialog.close();
-  };
-  // Escape key also closes the dialog — mark as onboarded so the user isn't
-  // shown the same intro every reload after choosing to dismiss it.
-  const onClose = () => {
-    localStorage.setItem(LS_ONBOARDED, '1');
-    obDialog.removeEventListener('close', onClose);
-  };
-  obDialog.addEventListener('close', onClose);
-  render();
-  obDialog.showModal();
-}
+// Onboarding extracted to /features/onboarding.js. maybeShowOnboarding()
+// is a no-op after first dismissal (flag in localStorage).
 
 // ============================================================================
 // Comparison
@@ -2312,96 +2302,8 @@ settingsSave?.addEventListener('click', (e) => {
 });
 settingsCancel?.addEventListener('click', (e) => { e.preventDefault(); settingsDialog.close(); });
 
-// ----- Backup / restore -----
-function setBackupStatus(text, state) {
-  const el = $('backup-status');
-  if (!el) return;
-  if (!text) { hide(el); return; }
-  el.textContent = text;
-  if (state) el.dataset.state = state;
-  else delete el.dataset.state;
-  show(el);
-}
-$('backup-export')?.addEventListener('click', async () => {
-  try {
-    const payload = await buildBackup();
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `scanneat-backup-${date}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    setBackupStatus(t('backupExported'));
-  } catch (err) {
-    console.error('[backup export]', err);
-    setBackupStatus(err.message || String(err), 'error');
-  }
-});
-$('health-export')?.addEventListener('click', async () => {
-  try {
-    const all = await listAllEntries().catch(() => []);
-    const payload = entriesToHealthJSON(all);
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `scanneat-health-${date}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    setBackupStatus(t('healthExported', { n: payload.entries.length }));
-  } catch (err) {
-    console.error('[health export]', err);
-    setBackupStatus(err.message || String(err), 'error');
-  }
-});
-
-$('csv-export')?.addEventListener('click', async () => {
-  try {
-    const all = await listAllEntries().catch(() => []);
-    const csv = entriesToDailyCSV(all);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `scanneat-totals-${date}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    const days = new Set(all.map((e) => e.date).filter(Boolean)).size;
-    setBackupStatus(t('csvExported', { days }));
-  } catch (err) {
-    console.error('[csv export]', err);
-    setBackupStatus(err.message || String(err), 'error');
-  }
-});
-
-$('backup-import-file')?.addEventListener('change', async (e) => {
-  const file = e.target.files?.[0];
-  e.target.value = '';
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    await restoreBackup(data);
-    const counts =
-      (data.history?.length || 0) + (data.consumption?.length || 0) +
-      (data.weight?.length || 0) + (data.templates?.length || 0) +
-      (data.recipes?.length || 0);
-    setBackupStatus(t('backupImported', { items: counts }));
-    await renderRecentScans();
-    await renderDashboard();
-  } catch (err) {
-    console.error('[backup import]', err);
-    const msg =
-      /Scann-eat backup/i.test(err.message) ? t('backupInvalid')
-      : /newer than this version/i.test(err.message) ? t('backupTooNew')
-      : err.message || String(err);
-    setBackupStatus(msg, 'error');
-  }
-});
+// Backup / export / import wiring extracted to /features/backup-io.js —
+// initialized below with initBackupIO({ ...deps }).
 
 // ----- MFP / Cronometer CSV import -----
 $('csv-import-file')?.addEventListener('change', async (e) => {
@@ -3385,23 +3287,27 @@ $('recipe-from-plate-btn')?.addEventListener('click', () => {
   });
 });
 
+function readQaForm() {
+  return {
+    name: $('qa-name')?.value || '',
+    meal: $('qa-meal')?.value || 'snack',
+    kcal: Number($('qa-kcal')?.value) || 0,
+    carbs_g: Number($('qa-carbs')?.value) || 0,
+    protein_g: Number($('qa-protein')?.value) || 0,
+    fat_g: Number($('qa-fat')?.value) || 0,
+    sat_fat_g: Number($('qa-satfat')?.value) || 0,
+    sugars_g: Number($('qa-sugars')?.value) || 0,
+    salt_g: Number($('qa-salt')?.value) || 0,
+    fiber_g: Number($('qa-fiber')?.value) || 0,
+  };
+}
+
 qaSave?.addEventListener('click', async (e) => {
   e.preventDefault();
-  const kcal = Number($('qa-kcal')?.value) || 0;
-  if (kcal <= 0) { $('qa-kcal')?.focus(); return; }
+  const f = readQaForm();
+  if (f.kcal <= 0) { $('qa-kcal')?.focus(); return; }
   try {
-    await logQuickAdd({
-      name: $('qa-name')?.value || '',
-      meal: $('qa-meal')?.value || 'snack',
-      kcal,
-      carbs_g: Number($('qa-carbs')?.value) || 0,
-      protein_g: Number($('qa-protein')?.value) || 0,
-      fat_g: Number($('qa-fat')?.value) || 0,
-      sat_fat_g: Number($('qa-satfat')?.value) || 0,
-      sugars_g: Number($('qa-sugars')?.value) || 0,
-      salt_g: Number($('qa-salt')?.value) || 0,
-      fiber_g: Number($('qa-fiber')?.value) || 0,
-    });
+    await logQuickAdd(f);
     quickAddDialog.close();
     await renderDashboard();
   } catch (err) {
@@ -3409,7 +3315,50 @@ qaSave?.addEventListener('click', async (e) => {
   }
 });
 
+// Save-as-template: turn whatever the user has typed into a reusable
+// template without actually logging it. Useful for recurring snacks /
+// dinners the user re-enters weekly — one tap later via the templates
+// dialog re-applies the same shape. We reuse the name field for the
+// template name, which is the intuitive pick.
+$('qa-save-tpl')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const f = readQaForm();
+  if (!f.name.trim() || f.kcal <= 0) {
+    setQaStatus(t('qaSaveAsTemplateNeedsName'), 'warn');
+    return;
+  }
+  try {
+    await saveTemplate({
+      name: f.name.trim(),
+      meal: f.meal,
+      items: [{
+        product_name: f.name,
+        grams: 0,
+        meal: f.meal,
+        kcal: f.kcal,
+        carbs_g: f.carbs_g,
+        protein_g: f.protein_g,
+        fat_g: f.fat_g,
+        sat_fat_g: f.sat_fat_g,
+        sugars_g: f.sugars_g,
+        salt_g: f.salt_g,
+        quickAdd: true,
+      }],
+    });
+    setQaStatus(t('qaSaveAsTemplateDone', { name: f.name.trim() }), 'ok');
+  } catch (err) {
+    console.error('[quickAdd save-as-template]', err);
+    setQaStatus(t('qaSaveAsTemplateFailed'), 'error');
+  }
+});
+
 clearTodayBtn?.addEventListener('click', async () => {
+  // Tier-2 destructive: wipes all entries logged today. Show a count
+  // in the confirm so the user knows the magnitude before nuking.
+  const today = await listByDate();
+  const n = today.length;
+  if (n === 0) { toast(t('clearTodayNoneToClear')); return; }
+  if (!window.confirm(t('clearTodayConfirm', { n }))) return;
   await clearDate();
   await renderDashboard();
 });
@@ -3509,60 +3458,17 @@ initWeight({
 initReminders({ t, toast, nextOccurrenceMs });
 initVoiceDictate({ t, currentLang: () => currentLang, parseVoiceQuickAdd });
 initScanner({ t, errorEl, show, getBarcodeDetector, scanImage, addBarcodeOnly });
+initInstallBanner({ show, hide });
+initBackupIO({
+  t, show, hide,
+  buildBackup, restoreBackup, listAllEntries,
+  entriesToHealthJSON, entriesToDailyCSV,
+  renderRecentScans, renderDashboard,
+});
 
 // ============================================================================
-// PWA install prompt — we catch `beforeinstallprompt` and reveal a small
-// dismissible banner. Respects a localStorage snooze so users who tapped
-// "plus tard" don't get re-prompted on every page load.
-//
-// Note: the browser only fires the event when engagement heuristics are
-// met (SW installed, manifest valid, ~30 s interaction). Nothing to do
-// if it never fires — the aside stays hidden.
-// ============================================================================
-
-const INSTALL_SNOOZE_KEY = 'scanneat.installBanner.snoozedUntil';
-const INSTALL_SNOOZE_DAYS = 30;
-let deferredInstallPrompt = null;
-
-function shouldShowInstallBanner() {
-  const until = Number(localStorage.getItem(INSTALL_SNOOZE_KEY) || 0);
-  return !Number.isFinite(until) || until < Date.now();
-}
-
-function snoozeInstallBanner(days = INSTALL_SNOOZE_DAYS) {
-  localStorage.setItem(INSTALL_SNOOZE_KEY, String(Date.now() + days * 86_400_000));
-}
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  const banner = $('install-banner');
-  if (banner && shouldShowInstallBanner()) show(banner);
-});
-
-window.addEventListener('appinstalled', () => {
-  deferredInstallPrompt = null;
-  hide($('install-banner'));
-  // Hard-snooze so we never prompt again on this device.
-  snoozeInstallBanner(365 * 10);
-});
-
-$('install-banner-accept')?.addEventListener('click', async () => {
-  const banner = $('install-banner');
-  if (!deferredInstallPrompt) { hide(banner); return; }
-  deferredInstallPrompt.prompt();
-  try {
-    const { outcome } = await deferredInstallPrompt.userChoice;
-    if (outcome === 'dismissed') snoozeInstallBanner(7);
-  } catch { /* user agent error; fall through */ }
-  deferredInstallPrompt = null;
-  hide(banner);
-});
-
-$('install-banner-dismiss')?.addEventListener('click', () => {
-  snoozeInstallBanner();
-  hide($('install-banner'));
-});
+// PWA install-prompt banner extracted to /features/install-banner.js —
+// initialised at boot with initInstallBanner({ show, hide }).
 
 // ============================================================================
 // Fasting timer — intermittent-fasting countdown.
@@ -4242,7 +4148,7 @@ renderQueue();
 updatePendingBanner();
 renderRecentScans();
 renderDashboard();
-maybeShowOnboarding();
+maybeShowOnboarding({ t });
 // scheduleReminders() is called inside initReminders() above.
 
 // ----- Dashboard-first for returning users -----
