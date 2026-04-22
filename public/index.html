@@ -622,6 +622,22 @@
         </form>
       </dialog>
 
+      <dialog id="pantry-dialog" class="settings-dialog" aria-labelledby="pantry-title">
+        <form method="dialog">
+          <h2 id="pantry-title" data-i18n="pantryTitle">🥕 Avec ce que j'ai</h2>
+          <p class="hint" data-i18n="pantryIntro">Liste les ingrédients déjà chez toi. On propose 3 recettes simples qui les utilisent (placards classiques inclus : sel, huile, ail…).</p>
+          <label>
+            <span data-i18n="pantryIngredients">Ingrédients (un par ligne ou séparés par des virgules)</span>
+            <textarea id="pantry-input" rows="4" maxlength="500" placeholder="tomate&#10;courgette&#10;mozzarella"></textarea>
+          </label>
+          <button id="pantry-submit" type="button" class="log-btn" data-i18n="pantrySubmit">Trouver des idées</button>
+          <p id="pantry-status" class="hint" aria-live="polite"></p>
+          <div class="dialog-actions">
+            <button id="pantry-close" type="button" class="secondary" data-i18n="close">Fermer</button>
+          </div>
+        </form>
+      </dialog>
+
       <dialog id="menu-scan-dialog" class="settings-dialog" aria-labelledby="menu-scan-title">
         <form method="dialog">
           <h2 id="menu-scan-title" data-i18n="menuScanTitle">Plats du menu</h2>
@@ -682,6 +698,7 @@
           <h2 id="recipes-dialog-title" data-i18n="recipesTitle">Mes recettes</h2>
           <p class="hint" data-i18n="recipesIntro">Construis une recette depuis plusieurs ingrédients. Elle se journalise en une seule ligne avec les macros totales.</p>
           <button id="recipe-new-btn" type="button" class="log-btn" data-i18n="recipeNew">Nouvelle recette</button>
+          <button id="recipe-pantry-btn" type="button" class="secondary compact" data-i18n="recipePantry">🥕 Avec ce que j'ai</button>
           <button id="recipe-from-plate-btn" type="button" class="secondary compact" hidden data-i18n="recipeFromPlate">Depuis le dernier scan multi-aliments</button>
           <ul id="recipes-list" class="tpl-list"></ul>
           <div class="dialog-actions">

@@ -3304,3 +3304,16 @@ details li.warn     { color: var(--warning); }
 .menu-scan-dish { grid-area: dish; font-weight: 600; color: var(--text); }
 .menu-scan-meta { grid-area: meta; color: var(--muted); font-size: 0.85em; font-variant-numeric: tabular-nums; }
 .menu-scan-item button { grid-area: action; }
+
+/* ========== PANTRY DIALOG ================================================ */
+#pantry-input {
+  width: 100%;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2);
+  font-family: inherit;
+  font-size: 0.95em;
+  resize: vertical;
+}

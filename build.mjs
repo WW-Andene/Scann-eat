@@ -44,7 +44,7 @@ try {
 await build({
   stdin: {
     contents: `
-      export { parseLabel, parseIngredientsText, identifyFood, identifyMultiFood, identifyMenu, suggestRecipes } from './ocr-parser.ts';
+      export { parseLabel, parseIngredientsText, identifyFood, identifyMultiFood, identifyMenu, suggestRecipes, suggestRecipesFromPantry } from './ocr-parser.ts';
       export { scoreProduct, ADDITIVES_DB } from './scoring-engine.ts';
       export { fetchFromOFF, searchOFFByCategory, rankAlternatives, suggestionTagFor } from './off.ts';
     `,

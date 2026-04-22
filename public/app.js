@@ -729,43 +729,13 @@ function renderPairings(data) {
 
 const recipeIdeasDialog = $('recipe-ideas-dialog');
 
-async function openRecipeIdeas(ingredient) {
-  if (!recipeIdeasDialog || !ingredient) return;
-  $('recipe-ideas-intro').textContent = t('recipeIdeasIntro', { name: ingredient });
-  $('recipe-ideas-list').textContent = '';
-  $('recipe-ideas-status').textContent = t('recipeIdeasLoading');
-  recipeIdeasDialog.showModal();
-
-  let result;
-  try {
-    const mode = getMode();
-    if (mode === 'direct') {
-      const { suggestRecipes } = await loadEngine();
-      const key = getKey();
-      if (!key) throw new Error(t('errMissingKey'));
-      result = await suggestRecipes(ingredient, { apiKey: key });
-    } else {
-      const res = await fetch('/api/suggest-recipes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ingredient }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      result = await res.json();
-    }
-  } catch (err) {
-    console.warn('[suggestRecipes]', err);
-    $('recipe-ideas-status').textContent = t('recipeIdeasFailed');
-    return;
-  }
-
-  const recipes = Array.isArray(result?.recipes) ? result.recipes : [];
+// Shared card renderer used by both the single-ingredient and pantry
+// recipe-ideas flows. Takes an array of { name, time_min, kcal_estimate,
+// ingredients[], steps[] } and paints them into #recipe-ideas-list.
+function renderRecipeCards(recipes) {
   const list = $('recipe-ideas-list');
-  if (recipes.length === 0) {
-    $('recipe-ideas-status').textContent = t('recipeIdeasEmpty');
-    return;
-  }
-  $('recipe-ideas-status').textContent = '';
+  if (!list) return;
+  list.textContent = '';
   for (const r of recipes) {
     const card = document.createElement('article');
     card.className = 'recipe-idea-card';
@@ -811,6 +781,85 @@ async function openRecipeIdeas(ingredient) {
   }
 }
 
+async function openRecipeIdeas(ingredient) {
+  if (!recipeIdeasDialog || !ingredient) return;
+  $('recipe-ideas-intro').textContent = t('recipeIdeasIntro', { name: ingredient });
+  $('recipe-ideas-list').textContent = '';
+  $('recipe-ideas-status').textContent = t('recipeIdeasLoading');
+  recipeIdeasDialog.showModal();
+
+  let result;
+  try {
+    const mode = getMode();
+    if (mode === 'direct') {
+      const { suggestRecipes } = await loadEngine();
+      const key = getKey();
+      if (!key) throw new Error(t('errMissingKey'));
+      result = await suggestRecipes(ingredient, { apiKey: key });
+    } else {
+      const res = await fetch('/api/suggest-recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ingredient }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      result = await res.json();
+    }
+  } catch (err) {
+    console.warn('[suggestRecipes]', err);
+    $('recipe-ideas-status').textContent = t('recipeIdeasFailed');
+    return;
+  }
+
+  const recipes = Array.isArray(result?.recipes) ? result.recipes : [];
+  if (recipes.length === 0) {
+    $('recipe-ideas-status').textContent = t('recipeIdeasEmpty');
+    return;
+  }
+  $('recipe-ideas-status').textContent = '';
+  renderRecipeCards(recipes);
+}
+
+async function openPantryIdeas(pantry) {
+  if (!recipeIdeasDialog || !pantry || pantry.length === 0) return;
+  const previewName = pantry.slice(0, 3).join(', ') + (pantry.length > 3 ? '…' : '');
+  $('recipe-ideas-intro').textContent = t('recipeIdeasPantryIntro', { ingredients: previewName });
+  $('recipe-ideas-list').textContent = '';
+  $('recipe-ideas-status').textContent = t('recipeIdeasLoading');
+  recipeIdeasDialog.showModal();
+
+  let result;
+  try {
+    const mode = getMode();
+    if (mode === 'direct') {
+      const { suggestRecipesFromPantry } = await loadEngine();
+      const key = getKey();
+      if (!key) throw new Error(t('errMissingKey'));
+      result = await suggestRecipesFromPantry(pantry, { apiKey: key });
+    } else {
+      const res = await fetch('/api/suggest-from-pantry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pantry }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      result = await res.json();
+    }
+  } catch (err) {
+    console.warn('[suggestRecipesFromPantry]', err);
+    $('recipe-ideas-status').textContent = t('recipeIdeasFailed');
+    return;
+  }
+
+  const recipes = Array.isArray(result?.recipes) ? result.recipes : [];
+  if (recipes.length === 0) {
+    $('recipe-ideas-status').textContent = t('recipeIdeasEmpty');
+    return;
+  }
+  $('recipe-ideas-status').textContent = '';
+  renderRecipeCards(recipes);
+}
+
 $('recipe-ideas-btn')?.addEventListener('click', () => {
   if (!pairedIngredientName) return;
   openRecipeIdeas(pairedIngredientName);
@@ -818,6 +867,34 @@ $('recipe-ideas-btn')?.addEventListener('click', () => {
 $('recipe-ideas-close')?.addEventListener('click', (e) => {
   e.preventDefault();
   recipeIdeasDialog?.close();
+});
+
+// Pantry dialog: list ingredients → suggestRecipesFromPantry → reuse
+// recipe-ideas-dialog for the cards.
+const pantryDialog = $('pantry-dialog');
+$('recipe-pantry-btn')?.addEventListener('click', () => pantryDialog?.showModal());
+$('pantry-close')?.addEventListener('click', (e) => { e.preventDefault(); pantryDialog?.close(); });
+$('pantry-submit')?.addEventListener('click', async () => {
+  const raw = ($('pantry-input')?.value || '').trim();
+  if (!raw) { $('pantry-status').textContent = t('pantryEmpty'); return; }
+  // Accept newline OR comma separators; normalise + dedupe + cap at 20.
+  const seen = new Set();
+  const pantry = [];
+  for (const s of raw.split(/[\n,]+/)) {
+    const v = s.trim();
+    if (v.length < 2) continue;
+    const k = v.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    pantry.push(v);
+    if (pantry.length >= 20) break;
+  }
+  if (pantry.length === 0) { $('pantry-status').textContent = t('pantryEmpty'); return; }
+  $('pantry-status').textContent = '';
+  pantryDialog?.close();
+  // Recipes dialog should also close so the card view has space.
+  recipesDialog?.close();
+  await openPantryIdeas(pantry);
 });
 
 async function maybeRenderAlternatives(data) {

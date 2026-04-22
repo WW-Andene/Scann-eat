@@ -582,6 +582,72 @@ export async function suggestRecipes(
   return { recipes };
 }
 
+// ----- Pantry-first recipe search ----------------------------------------
+//
+// Different question from suggestRecipes(single ingredient). Here the
+// user lists what's in their fridge / cupboard and we find recipes
+// that USE most of those items. Strict-mode: only ingredients in the
+// list + standard pantry staples (sel, poivre, huile…) — useful when
+// you don't want to make a shopping run before dinner.
+//
+const PANTRY_RECIPES_PROMPT = `Tu es un chef français qui propose des recettes basées sur ce que l'utilisateur a déjà.
+
+Ta tâche :
+1. À partir de la LISTE D'INGRÉDIENTS DISPONIBLES, propose jusqu'à 3 recettes simples.
+2. Utilise UNIQUEMENT les ingrédients listés + les staples classiques de placard (sel, poivre, huile, vinaigre, ail, oignon, beurre, farine, œufs, herbes courantes).
+3. Préfère les recettes qui utilisent PLUSIEURS ingrédients de la liste — pas une seule.
+4. Maximum 30 minutes par recette.
+
+Règles :
+- Réponds UNIQUEMENT en JSON valide, sans markdown.
+- Décimales avec point.
+- Maximum 8 ingrédients et 5 étapes par recette.
+- Le champ "ingredients" doit citer chaque item utilisé (de la liste OU des staples).
+- Si la liste est vide ou ne permet pas de cuisiner, renvoie { "recipes": [] }.`;
+
+export async function suggestRecipesFromPantry(
+  pantry: string[],
+  opts: ParseOptions = {},
+): Promise<SuggestedRecipes> {
+  const items = (Array.isArray(pantry) ? pantry : [])
+    .map((s) => String(s ?? '').trim())
+    .filter(Boolean);
+  if (items.length === 0) throw new Error('suggestRecipesFromPantry: pantry is empty.');
+
+  const userText = `Ingrédients disponibles dans le placard / frigo :\n- ${items.join('\n- ')}\n\nPropose jusqu'à 3 recettes au format JSON :\n${SUGGEST_RECIPES_SCHEMA}`;
+  const raw = await callGroqVision(PANTRY_RECIPES_PROMPT, userText, [], {
+    ...opts,
+    temperature: opts.temperature ?? 0.6,
+  });
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(extractJSON(raw));
+  } catch {
+    // eslint-disable-next-line no-console
+    console.warn('[suggestRecipesFromPantry] malformed JSON, first 300 chars:', raw.slice(0, 300));
+    throw new Error('suggestRecipesFromPantry: LLM returned malformed JSON.');
+  }
+
+  const rawList = Array.isArray(parsed.recipes) ? parsed.recipes : [];
+  const recipes = rawList.slice(0, 3)
+    .filter((r): r is Record<string, unknown> => !!r && typeof r === 'object')
+    .map((r) => ({
+      name: typeof r.name === 'string' && r.name.trim() ? r.name.trim() : '(sans nom)',
+      time_min: Math.max(0, coerceNumber(r.time_min)),
+      kcal_estimate: Math.max(0, coerceNumber(r.kcal_estimate)),
+      ingredients: Array.isArray(r.ingredients)
+        ? r.ingredients.filter((s): s is string => typeof s === 'string' && s.length > 0).slice(0, 8)
+        : [],
+      steps: Array.isArray(r.steps)
+        ? r.steps.filter((s): s is string => typeof s === 'string' && s.length > 0).slice(0, 5)
+        : [],
+    }))
+    .filter((r) => r.name !== '(sans nom)' && r.ingredients.length > 0 && r.steps.length > 0);
+
+  return { recipes };
+}
+
 // ============================================================================
 // SECTION 4: DETERMINISTIC FRENCH POST-PROCESSOR
 // ============================================================================
