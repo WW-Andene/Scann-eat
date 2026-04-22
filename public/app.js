@@ -1828,6 +1828,72 @@ if (SpeechRecognitionImpl && qaVoiceBtn) {
   });
 }
 
+// ----- Photo-to-food identification for Quick Add -----
+// Complements voice dictation with image recognition: the user snaps a
+// plate / fresh fruit / bakery item, we hit /api/identify, and the dialog
+// pre-fills with the estimated name + macros.
+const qaPhotoInput = $('qa-photo-input');
+const qaAiStatus = $('qa-ai-status');
+
+function setQaStatus(text, state) {
+  if (!qaAiStatus) return;
+  if (!text) { hide(qaAiStatus); return; }
+  qaAiStatus.textContent = text;
+  if (state) qaAiStatus.dataset.state = state;
+  else delete qaAiStatus.dataset.state;
+  show(qaAiStatus);
+}
+
+qaPhotoInput?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = ''; // allow re-selecting the same file
+  if (!file) return;
+  setQaStatus(t('identifyingFood'));
+  try {
+    const compressed = await compressImage(file);
+    const mode = getMode();
+    let result;
+    if (mode === 'direct') {
+      // Direct mode: call Groq from the client using the user's own key.
+      const { identifyFood } = await loadEngine();
+      const key = getKey();
+      if (!key) throw new Error(t('errMissingKey'));
+      result = await identifyFood(
+        [{ base64: compressed.base64, mime: compressed.mime }],
+        { apiKey: key },
+      );
+    } else {
+      // Server mode: go through /api/identify which holds the server-side
+      // GROQ_API_KEY.
+      const res = await fetch('/api/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: [{ base64: compressed.base64, mime: compressed.mime }] }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      result = await res.json();
+    }
+    // Populate the form from the identified food.
+    const setField = (id, v) => { const el = $(id); if (el && v != null) el.value = String(v); };
+    setField('qa-name',    result.name);
+    setField('qa-kcal',    Math.round(result.kcal));
+    setField('qa-protein', Math.round(result.protein_g));
+    setField('qa-carbs',   Math.round(result.carbs_g));
+    setField('qa-fat',     Math.round(result.fat_g));
+    if (result.confidence === 'low') {
+      setQaStatus(t('identifyLowConfidence'), 'warn');
+    } else {
+      hide(qaAiStatus);
+    }
+  } catch (err) {
+    console.warn('[identifyFood]', err);
+    setQaStatus(t('identifyFailed'), 'error');
+  }
+});
+
+// Reset AI status when the dialog opens (via the quick-add button).
+quickAddBtn?.addEventListener('click', () => hide(qaAiStatus));
+
 // ----- Weight tracking -----
 const weightBtn = $('weight-btn');
 const weightDialog = $('weight-dialog');

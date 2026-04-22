@@ -410,10 +410,18 @@
         <form method="dialog">
           <h2 id="quick-add-dialog-title" data-i18n="quickAddTitle">Quick Add</h2>
           <p class="hint" data-i18n="quickAddHint">Logger des calories sans scanner un produit (repas au restaurant, plat maison…).</p>
-          <button id="qa-voice-btn" type="button" class="qa-voice-btn" hidden>
-            <span class="icon" aria-hidden="true">🎙️</span>
-            <span class="label" data-i18n="voiceDictate">Dicter</span>
-          </button>
+          <div class="qa-ai-row">
+            <button id="qa-voice-btn" type="button" class="qa-voice-btn" hidden>
+              <span class="icon" aria-hidden="true">🎙️</span>
+              <span class="label" data-i18n="voiceDictate">Dicter</span>
+            </button>
+            <label class="qa-photo-btn" for="qa-photo-input">
+              <span class="icon" aria-hidden="true">📸</span>
+              <span class="label" data-i18n="identifyFromPhoto">Photo de mon repas</span>
+              <input id="qa-photo-input" type="file" accept="image/*" capture="environment" hidden />
+            </label>
+          </div>
+          <p id="qa-ai-status" class="qa-ai-status" hidden></p>
           <label>
             <span data-i18n="qaName">Nom (optionnel)</span>
             <input id="qa-name" type="text" autocomplete="off" />
