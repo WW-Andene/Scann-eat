@@ -408,6 +408,95 @@ export async function identifyMultiFood(
 }
 
 // ============================================================================
+// SECTION 3c: RECIPE SUGGESTIONS (chef-style — text-only, given one ingredient)
+// ============================================================================
+
+const SUGGEST_RECIPES_PROMPT = `Tu es un chef français qui propose des recettes simples et réalistes à la maison.
+
+Ta tâche :
+1. Propose jusqu'à 3 recettes différentes, toutes réalisables en 30 minutes ou moins.
+2. Considère qu'on a les placards classiques (sel, poivre, huile, ail, oignon, beurre, farine, œufs, herbes courantes).
+3. Privilégie des combinaisons classiques qui respectent le goût, pas des expérimentations.
+
+Règles :
+- Réponds UNIQUEMENT en JSON valide, sans markdown.
+- Noms et étapes en français clair et court.
+- Maximum 8 ingrédients par recette, maximum 5 étapes.
+- Si l'ingrédient est ambigu ou pas comestible, renvoie { "recipes": [] }.`;
+
+const SUGGEST_RECIPES_SCHEMA = `{
+  "recipes": [
+    {
+      "name": "string (ex: 'Salade grecque express')",
+      "time_min": number,
+      "kcal_estimate": number,
+      "ingredients": ["string", ...],
+      "steps": ["string", ...]
+    }
+  ]
+}`;
+
+export interface SuggestedRecipe {
+  name: string;
+  time_min: number;
+  kcal_estimate: number;
+  ingredients: string[];
+  steps: string[];
+}
+
+export interface SuggestedRecipes {
+  recipes: SuggestedRecipe[];
+}
+
+/**
+ * Ask the LLM for 3 chef-style recipes built around a single ingredient.
+ * Text-only call (no vision) — reuses callGroqVision with an empty
+ * images array so the code path stays identical to identify*.
+ */
+export async function suggestRecipes(
+  ingredient: string,
+  opts: ParseOptions = {},
+): Promise<SuggestedRecipes> {
+  const name = String(ingredient ?? '').trim();
+  if (!name) throw new Error('suggestRecipes: ingredient is required.');
+
+  const userText = `Ingrédient principal : ${name}\n\nPropose jusqu'à 3 recettes au format JSON :\n${SUGGEST_RECIPES_SCHEMA}`;
+  const raw = await callGroqVision(SUGGEST_RECIPES_PROMPT, userText, [], {
+    ...opts,
+    // Slightly higher temperature than identify to allow some variety in
+    // recipe choice — still conservative enough to keep the classics.
+    temperature: opts.temperature ?? 0.6,
+  });
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(extractJSON(raw));
+  } catch {
+    // eslint-disable-next-line no-console
+    console.warn('[suggestRecipes] malformed JSON, first 300 chars:', raw.slice(0, 300));
+    throw new Error('suggestRecipes: LLM returned malformed JSON.');
+  }
+
+  const rawList = Array.isArray(parsed.recipes) ? parsed.recipes : [];
+  const recipes = rawList.slice(0, 3)
+    .filter((r): r is Record<string, unknown> => !!r && typeof r === 'object')
+    .map((r) => ({
+      name: typeof r.name === 'string' && r.name.trim() ? r.name.trim() : '(sans nom)',
+      time_min: Math.max(0, coerceNumber(r.time_min)),
+      kcal_estimate: Math.max(0, coerceNumber(r.kcal_estimate)),
+      ingredients: Array.isArray(r.ingredients)
+        ? r.ingredients.filter((s): s is string => typeof s === 'string' && s.length > 0).slice(0, 8)
+        : [],
+      steps: Array.isArray(r.steps)
+        ? r.steps.filter((s): s is string => typeof s === 'string' && s.length > 0).slice(0, 5)
+        : [],
+    }))
+    .filter((r) => r.name !== '(sans nom)' && r.ingredients.length > 0 && r.steps.length > 0);
+
+  return { recipes };
+}
+
+// ============================================================================
 // SECTION 4: DETERMINISTIC FRENCH POST-PROCESSOR
 // ============================================================================
 //

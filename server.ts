@@ -20,7 +20,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { parseLabel, identifyFood, identifyMultiFood } from './ocr-parser.ts';
+import { parseLabel, identifyFood, identifyMultiFood, suggestRecipes } from './ocr-parser.ts';
 import { fetchFromOFF, isOFFSparse, mergeOFFWithLLM, detectSourceConflicts } from './off.ts';
 import { scoreProduct } from './scoring-engine.ts';
 
@@ -189,6 +189,25 @@ async function handleIdentifyMulti(req: IncomingMessage, res: ServerResponse) {
   }
 }
 
+async function handleSuggestRecipes(req: IncomingMessage, res: ServerResponse) {
+  try {
+    const raw = await readBody(req);
+    const body = JSON.parse(raw.toString('utf8')) as { ingredient?: string };
+    const ingredient = typeof body.ingredient === 'string' ? body.ingredient.trim() : '';
+    if (!ingredient) return sendJSON(res, 400, { error: 'Missing ingredient' });
+    const result = await suggestRecipes(ingredient);
+    return sendJSON(res, 200, result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[/api/suggest-recipes]', message);
+    const publicMessage =
+      /body too large/i.test(message) ? 'Request body too large'
+      : /JSON/i.test(message) ? 'Invalid JSON body'
+      : 'Recipe suggestion failed';
+    return sendJSON(res, 500, { error: publicMessage });
+  }
+}
+
 async function handleIdentify(req: IncomingMessage, res: ServerResponse) {
   try {
     const raw = await readBody(req);
@@ -221,6 +240,9 @@ const server = createServer((req, res) => {
   }
   if (req.method === 'POST' && req.url === '/api/identify-multi') {
     return handleIdentifyMulti(req, res);
+  }
+  if (req.method === 'POST' && req.url === '/api/suggest-recipes') {
+    return handleSuggestRecipes(req, res);
   }
   // GET + HEAD both map to static. HEAD lets service workers and curl probe
   // file availability without downloading the full payload.
