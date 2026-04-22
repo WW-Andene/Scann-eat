@@ -281,6 +281,68 @@ export function weeklyRollup(entries, endIso) {
 }
 
 /**
+ * monthlyRollup — same shape as weeklyRollup but over a 30-day trailing
+ * window ending at endIso. Used by the upcoming month view in the
+ * dashboard.
+ *
+ * Pure. avg/day is averaged over days-with-entries (same convention as
+ * weekly), not over 30, so a partially-logged month reports a realistic
+ * "typical day" figure rather than diluting by empty days.
+ */
+export function monthlyRollup(entries, endIso) {
+  const end = new Date(endIso + 'T12:00:00Z');
+  const days = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(end);
+    d.setUTCDate(d.getUTCDate() - i);
+    const date = d.toISOString().slice(0, 10);
+    days.push({
+      date, kcal: 0, carbs_g: 0, protein_g: 0, fat_g: 0,
+      sat_fat_g: 0, sugars_g: 0, salt_g: 0, count: 0,
+    });
+  }
+  const byDate = new Map(days.map((d) => [d.date, d]));
+  for (const e of entries ?? []) {
+    const bucket = byDate.get(e.date);
+    if (!bucket) continue;
+    bucket.kcal      += Number(e.kcal) || 0;
+    bucket.carbs_g   += Number(e.carbs_g) || 0;
+    bucket.protein_g += Number(e.protein_g) || 0;
+    bucket.fat_g     += Number(e.fat_g) || 0;
+    bucket.sat_fat_g += Number(e.sat_fat_g) || 0;
+    bucket.sugars_g  += Number(e.sugars_g) || 0;
+    bucket.salt_g    += Number(e.salt_g) || 0;
+    bucket.count += 1;
+  }
+  const total = days.reduce(
+    (acc, d) => ({
+      kcal:      acc.kcal + d.kcal,
+      carbs_g:   acc.carbs_g + d.carbs_g,
+      protein_g: acc.protein_g + d.protein_g,
+      fat_g:     acc.fat_g + d.fat_g,
+      sat_fat_g: acc.sat_fat_g + d.sat_fat_g,
+      sugars_g:  acc.sugars_g + d.sugars_g,
+      salt_g:    acc.salt_g + d.salt_g,
+    }),
+    { kcal: 0, carbs_g: 0, protein_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0 },
+  );
+  const r1 = (v) => Math.round(v * 10) / 10;
+  const r3 = (v) => Math.round(v * 1000) / 1000;
+  const daysLogged = days.filter((d) => d.count > 0).length;
+  const denom = Math.max(1, daysLogged);
+  const avg = {
+    kcal:      r1(total.kcal / denom),
+    carbs_g:   r1(total.carbs_g / denom),
+    protein_g: r1(total.protein_g / denom),
+    fat_g:     r1(total.fat_g / denom),
+    sat_fat_g: r1(total.sat_fat_g / denom),
+    sugars_g:  r1(total.sugars_g / denom),
+    salt_g:    r3(total.salt_g / denom),
+  };
+  return { days, total, avg, days_logged: daysLogged };
+}
+
+/**
  * Human-readable one-screen summary of a weekly rollup — for
  * navigator.share or copy-paste into a notes app. Pure.
  *
@@ -355,9 +417,12 @@ export function formatDailySummary(totals, targets, burned, opts = {}) {
     : null;
 
   const lines = [];
+  const entriesWord = isFr
+    ? (totals.count === 1 ? 'entrée' : 'entrées')
+    : (totals.count === 1 ? 'entry' : 'entries');
   lines.push(isFr
-    ? `🥗 ${date ?? 'Aujourd\'hui'} — ${totals.count} entrée(s)`
-    : `🥗 ${date ?? 'Today'} — ${totals.count} entries`);
+    ? `🥗 ${date ?? 'Aujourd\'hui'} — ${totals.count} ${entriesWord}`
+    : `🥗 ${date ?? 'Today'} — ${totals.count} ${entriesWord}`);
   const netKcal = r(totals.kcal) - r(burned?.kcal || 0);
   lines.push(isFr
     ? `${r(totals.kcal)} kcal consommées${burned?.kcal ? ` · ${r(burned.kcal)} brûlées · net ${netKcal}` : ''}`

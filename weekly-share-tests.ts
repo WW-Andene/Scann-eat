@@ -6,7 +6,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS
-import { weeklyRollup, formatWeeklyShare, formatPairingsShare, formatDailySummary } from './public/core/presenters.js';
+import { weeklyRollup, monthlyRollup, formatWeeklyShare, formatPairingsShare, formatDailySummary } from './public/core/presenters.js';
 
 const entries = [
   { date: '2026-04-22', kcal: 400, protein_g: 20, carbs_g: 50, fat_g: 10, sat_fat_g: 3, sugars_g: 5, salt_g: 1 },
@@ -123,5 +123,52 @@ describe('formatDailySummary', () => {
     const out = formatDailySummary(totals, targets, null, { lang: 'fr' });
     assert.equal(out.includes('brûlées'), false);
     assert.equal(out.includes('net'), false);
+  });
+
+  it('pluralizes "entry" / "entries" on count=1 vs count>1 (EN + FR)', () => {
+    const one = { ...totals, count: 1 };
+    assert.match(formatDailySummary(one, targets, null, { lang: 'en' }), /1 entry/);
+    assert.match(formatDailySummary(one, targets, null, { lang: 'fr' }), /1 entrée/);
+    const many = { ...totals, count: 5 };
+    assert.match(formatDailySummary(many, targets, null, { lang: 'en' }), /5 entries/);
+    assert.match(formatDailySummary(many, targets, null, { lang: 'fr' }), /5 entrées/);
+  });
+});
+
+describe('monthlyRollup', () => {
+  const entries30 = [
+    { date: '2026-04-22', kcal: 1000, protein_g: 50, carbs_g: 100, fat_g: 30, sat_fat_g: 5, sugars_g: 20, salt_g: 2 },
+    { date: '2026-04-15', kcal: 800,  protein_g: 40, carbs_g: 80,  fat_g: 25, sat_fat_g: 4, sugars_g: 15, salt_g: 1 },
+    { date: '2026-04-01', kcal: 2000, protein_g: 80, carbs_g: 250, fat_g: 60, sat_fat_g: 12, sugars_g: 40, salt_g: 3 },
+    // OUTSIDE the 30-day trailing window — must not be counted.
+    { date: '2026-03-20', kcal: 9999, protein_g: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0 },
+  ];
+
+  it('returns exactly 30 day buckets ending at endIso', () => {
+    const r = monthlyRollup(entries30, '2026-04-22');
+    assert.equal(r.days.length, 30);
+    assert.equal(r.days[29].date, '2026-04-22');
+    assert.equal(r.days[0].date, '2026-03-24'); // 22 − 29 = 24 Mar
+  });
+
+  it('excludes entries outside the 30-day window', () => {
+    const r = monthlyRollup(entries30, '2026-04-22');
+    // Total only includes the three in-window entries.
+    assert.equal(r.total.kcal, 1000 + 800 + 2000);
+  });
+
+  it('avg/day denom is days_logged, not 30', () => {
+    const r = monthlyRollup(entries30, '2026-04-22');
+    assert.equal(r.days_logged, 3);
+    // monthlyRollup rounds avg to 1 decimal.
+    assert.equal(r.avg.kcal, Math.round(((1000 + 800 + 2000) / 3) * 10) / 10);
+  });
+
+  it('empty entries → all-zero totals, days_logged=0, avg/day=0', () => {
+    const r = monthlyRollup([], '2026-04-22');
+    assert.equal(r.days.length, 30);
+    assert.equal(r.days_logged, 0);
+    assert.equal(r.total.kcal, 0);
+    assert.equal(r.avg.kcal, 0);
   });
 });

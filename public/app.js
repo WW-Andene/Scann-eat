@@ -18,6 +18,9 @@ import { initBackupIO } from '/features/backup-io.js';
 import { initFasting, renderFasting } from '/features/fasting.js';
 import { initAppearance, applyAppearance, applyTheme, applyReadingPrefs } from '/features/appearance.js';
 import { shareOrCopy } from '/core/share.js';
+import { initRecipeIdeas, openRecipeIdeas, openPantryIdeas } from '/features/recipe-ideas.js';
+import { initSettingsDialog } from '/features/settings-dialog.js';
+import { initKeybindings } from '/features/keybindings.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -774,138 +777,9 @@ function renderPairings(data) {
 // Opens from the "💡 Idées de recettes" button inside the pairings panel.
 // ============================================================================
 
-const recipeIdeasDialog = $('recipe-ideas-dialog');
-
-// Shared card renderer used by both the single-ingredient and pantry
-// recipe-ideas flows. Takes an array of { name, time_min, kcal_estimate,
-// ingredients[], steps[] } and paints them into #recipe-ideas-list.
-function renderRecipeCards(recipes) {
-  const list = $('recipe-ideas-list');
-  if (!list) return;
-  list.textContent = '';
-  for (const r of recipes) {
-    const card = document.createElement('article');
-    card.className = 'recipe-idea-card';
-    const h = document.createElement('h3');
-    h.textContent = r.name;
-    card.appendChild(h);
-    const meta = document.createElement('p');
-    meta.className = 'recipe-idea-meta';
-    meta.textContent = t('recipeIdeasMeta', {
-      time: Math.round(r.time_min || 0),
-      kcal: Math.round(r.kcal_estimate || 0),
-    });
-    card.appendChild(meta);
-    if (Array.isArray(r.ingredients) && r.ingredients.length) {
-      const label = document.createElement('p');
-      label.className = 'recipe-idea-sublabel';
-      label.textContent = t('recipeIdeasIngredients');
-      card.appendChild(label);
-      const ul = document.createElement('ul');
-      ul.className = 'recipe-idea-ings';
-      for (const ing of r.ingredients) {
-        const li = document.createElement('li');
-        li.textContent = ing;
-        ul.appendChild(li);
-      }
-      card.appendChild(ul);
-    }
-    if (Array.isArray(r.steps) && r.steps.length) {
-      const label = document.createElement('p');
-      label.className = 'recipe-idea-sublabel';
-      label.textContent = t('recipeIdeasSteps');
-      card.appendChild(label);
-      const ol = document.createElement('ol');
-      ol.className = 'recipe-idea-steps';
-      for (const step of r.steps) {
-        const li = document.createElement('li');
-        li.textContent = step;
-        ol.appendChild(li);
-      }
-      card.appendChild(ol);
-    }
-    list.appendChild(card);
-  }
-}
-
-async function openRecipeIdeas(ingredient) {
-  if (!recipeIdeasDialog || !ingredient) return;
-  $('recipe-ideas-intro').textContent = t('recipeIdeasIntro', { name: ingredient });
-  $('recipe-ideas-list').textContent = '';
-  $('recipe-ideas-status').textContent = t('recipeIdeasLoading');
-  recipeIdeasDialog.showModal();
-
-  let result;
-  try {
-    const mode = getMode();
-    if (mode === 'direct') {
-      const { suggestRecipes } = await loadEngine();
-      const key = getKey();
-      if (!key) throw new Error(t('errMissingKey'));
-      result = await suggestRecipes(ingredient, { apiKey: key });
-    } else {
-      const res = await fetch('/api/suggest-recipes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ingredient }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      result = await res.json();
-    }
-  } catch (err) {
-    console.warn('[suggestRecipes]', err);
-    $('recipe-ideas-status').textContent = t('recipeIdeasFailed');
-    return;
-  }
-
-  const recipes = Array.isArray(result?.recipes) ? result.recipes : [];
-  if (recipes.length === 0) {
-    $('recipe-ideas-status').textContent = t('recipeIdeasEmpty');
-    return;
-  }
-  $('recipe-ideas-status').textContent = '';
-  renderRecipeCards(recipes);
-}
-
-async function openPantryIdeas(pantry) {
-  if (!recipeIdeasDialog || !pantry || pantry.length === 0) return;
-  const previewName = pantry.slice(0, 3).join(', ') + (pantry.length > 3 ? '…' : '');
-  $('recipe-ideas-intro').textContent = t('recipeIdeasPantryIntro', { ingredients: previewName });
-  $('recipe-ideas-list').textContent = '';
-  $('recipe-ideas-status').textContent = t('recipeIdeasLoading');
-  recipeIdeasDialog.showModal();
-
-  let result;
-  try {
-    const mode = getMode();
-    if (mode === 'direct') {
-      const { suggestRecipesFromPantry } = await loadEngine();
-      const key = getKey();
-      if (!key) throw new Error(t('errMissingKey'));
-      result = await suggestRecipesFromPantry(pantry, { apiKey: key });
-    } else {
-      const res = await fetch('/api/suggest-from-pantry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pantry }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      result = await res.json();
-    }
-  } catch (err) {
-    console.warn('[suggestRecipesFromPantry]', err);
-    $('recipe-ideas-status').textContent = t('recipeIdeasFailed');
-    return;
-  }
-
-  const recipes = Array.isArray(result?.recipes) ? result.recipes : [];
-  if (recipes.length === 0) {
-    $('recipe-ideas-status').textContent = t('recipeIdeasEmpty');
-    return;
-  }
-  $('recipe-ideas-status').textContent = '';
-  renderRecipeCards(recipes);
-}
+// Recipe-ideas dialog + renderer extracted to /features/recipe-ideas.js.
+// openRecipeIdeas / openPantryIdeas are imported at the top; init happens
+// in the boot sequence below.
 
 $('recipe-ideas-btn')?.addEventListener('click', () => {
   if (!pairedIngredientName) return;
@@ -942,10 +816,7 @@ $('pairings-share-btn')?.addEventListener('click', async () => {
     toast,
   });
 });
-$('recipe-ideas-close')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  recipeIdeasDialog?.close();
-});
+// Recipe-ideas close handler lives in initRecipeIdeas().
 
 // Pantry dialog: list ingredients → suggestRecipesFromPantry → reuse
 // recipe-ideas-dialog for the cards.
@@ -983,11 +854,10 @@ async function openGroceryList() {
     }
   }
   if (text) text.value = formatGroceryList(items);
-  // Surface native share when the platform supports it (mobile PWAs).
+  // Share btn falls back to clipboard via shareOrCopy, so it's useful
+  // on every platform — just reveal it when the dialog opens.
   const shareBtn = $('grocery-share');
-  if (shareBtn) {
-    if (typeof navigator.share === 'function') show(shareBtn); else hide(shareBtn);
-  }
+  if (shareBtn) show(shareBtn);
   groceryDialog?.showModal();
 }
 
@@ -1007,9 +877,13 @@ $('grocery-copy')?.addEventListener('click', async (e) => {
 $('grocery-share')?.addEventListener('click', async (e) => {
   e.preventDefault();
   const text = $('grocery-text')?.value || '';
-  try {
-    await navigator.share({ title: t('groceryTitle'), text });
-  } catch { /* user cancelled or unsupported */ }
+  if (!text) return;
+  await shareOrCopy({
+    title: t('groceryTitle'),
+    text,
+    toasts: { copied: t('groceryCopied'), failed: t('groceryShareFailed') },
+    toast,
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────
@@ -1524,17 +1398,18 @@ function renderAdditiveSummary(product) {
 }
 
 async function shareCurrentScan() {
-  if (!lastData || !navigator.share) return;
-  try {
-    await navigator.share({
-      title: 'Scann-eat',
-      text: t('shareText', {
-        name: lastData.audit.product_name || t('productFallbackName'),
-        score: lastData.audit.score,
-        grade: lastData.audit.grade,
-      }),
-    });
-  } catch { /* user cancelled */ }
+  if (!lastData) return;
+  const text = t('shareText', {
+    name: lastData.audit.product_name || t('productFallbackName'),
+    score: lastData.audit.score,
+    grade: lastData.audit.grade,
+  });
+  await shareOrCopy({
+    title: 'Scann-eat',
+    text,
+    toasts: { copied: t('shareCopied'), failed: t('shareFailed') },
+    toast,
+  });
 }
 
 // Theme + reading accessibility extracted to /features/appearance.js.
@@ -2119,23 +1994,8 @@ exportHistoryBtn?.addEventListener('click', async () => {
 historySearchInput?.addEventListener('input', () => renderRecentScans());
 historyGradeSelect?.addEventListener('change', () => renderRecentScans());
 
-// Keyboard shortcuts: Enter scans, Esc closes dialogs, / focuses search.
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    for (const d of document.querySelectorAll('dialog[open]')) d.close();
-    return;
-  }
-  const tag = (e.target?.tagName || '').toLowerCase();
-  const typing = tag === 'input' || tag === 'textarea' || tag === 'select';
-  if (!typing && e.key === '/' && historySearchInput) {
-    e.preventDefault();
-    historySearchInput.focus();
-    return;
-  }
-  if (!typing && e.key === 'Enter' && !scanBtn.disabled) {
-    scanBtn.click();
-  }
-});
+// Keyboard shortcuts extracted to /features/keybindings.js.
+initKeybindings({ scanBtn, historySearchInput });
 
 // ============================================================================
 // Auto-update (APK only)
@@ -2228,68 +2088,8 @@ cameraClose?.addEventListener('click', () => closeCameraScanner());
 // successful barcode scan all fire the 'close' event.
 cameraDialog?.addEventListener('close', () => closeCameraScanner());
 
-settingsBtn?.addEventListener('click', () => {
-  keyInput.value = getKey();
-  modeSelect.value = localStorage.getItem(LS_MODE) || (isCapacitor ? 'direct' : 'auto');
-  langSelect.value = currentLang;
-  themeSelect.value = localStorage.getItem(LS_THEME) || 'dark';
-  const fontSizeSel = document.getElementById('settings-font-size');
-  const fontFamSel = document.getElementById('settings-font-family');
-  const motionSel = document.getElementById('settings-motion');
-  if (fontSizeSel) fontSizeSel.value = localStorage.getItem(LS_FONT_SIZE) || 'normal';
-  if (fontFamSel)  fontFamSel.value  = localStorage.getItem(LS_FONT_FAMILY) || 'atkinson';
-  if (motionSel)   motionSel.value   = localStorage.getItem(LS_MOTION) || 'normal';
-  // Reminder prefs
-  for (const meal of ['breakfast', 'lunch', 'dinner']) {
-    const cb = $(`reminder-${meal}`);
-    const tm = $(`reminder-${meal}-time`);
-    if (cb) cb.checked = localStorage.getItem(`scanneat.reminder.${meal}.on`) === '1';
-    if (tm) {
-      const stored = localStorage.getItem(`scanneat.reminder.${meal}.time`);
-      if (stored) tm.value = stored;
-    }
-  }
-  renderProfilesUI();
-  const telCb = $('telemetry-enabled');
-  if (telCb) telCb.checked = telemetryEnabled();
-  settingsDialog.showModal();
-});
-settingsSave?.addEventListener('click', (e) => {
-  e.preventDefault();
-  // Route through the central app-settings shim: validates each value
-  // against the typed schema and falls back to defaults for bad enums.
-  setSetting('scanneat.key', keyInput.value.trim());
-  setSetting('scanneat.mode', modeSelect.value);
-  setSetting('scanneat.theme', themeSelect.value);
-  const fontSizeSel = document.getElementById('settings-font-size');
-  const fontFamSel = document.getElementById('settings-font-family');
-  const motionSel = document.getElementById('settings-motion');
-  if (fontSizeSel) setSetting('scanneat.fontSize', fontSizeSel.value);
-  if (fontFamSel)  setSetting('scanneat.fontFamily', fontFamSel.value);
-  if (motionSel)   setSetting('scanneat.motion', motionSel.value);
-  // Reminder prefs
-  let anyRemindersOn = false;
-  for (const meal of ['breakfast', 'lunch', 'dinner']) {
-    const cb = $(`reminder-${meal}`);
-    const tm = $(`reminder-${meal}-time`);
-    const on = !!cb?.checked;
-    if (on) anyRemindersOn = true;
-    localStorage.setItem(`scanneat.reminder.${meal}.on`, on ? '1' : '0');
-    if (tm?.value) localStorage.setItem(`scanneat.reminder.${meal}.time`, tm.value);
-  }
-  // If at least one reminder is newly on, request Notification permission
-  // (noop if already granted). Fire-and-forget.
-  if (anyRemindersOn && typeof Notification !== 'undefined' && Notification.permission === 'default') {
-    try { Notification.requestPermission(); } catch { /* noop */ }
-  }
-  scheduleReminders(); // re-evaluate next-trigger times
-  setLang(langSelect.value);
-  applyTheme();
-  applyReadingPrefs();
-  settingsDialog.close();
-  applyStaticTranslations();
-});
-settingsCancel?.addEventListener('click', (e) => { e.preventDefault(); settingsDialog.close(); });
+// Settings dialog wiring extracted to /features/settings-dialog.js —
+// initialised in the boot block below.
 
 // Backup / export / import wiring extracted to /features/backup-io.js —
 // initialized below with initBackupIO({ ...deps }).
@@ -2431,7 +2231,8 @@ updateDismissBtn?.addEventListener('click', () => {
 
 pendingRetry?.addEventListener('click', () => { retryPending(); });
 
-if (!navigator.share) hide(shareBtn);
+// Share button is now useful even without Web Share — it falls back to
+// clipboard via shareOrCopy(). No need to hide it on unsupported browsers.
 shareBtn?.addEventListener('click', shareCurrentScan);
 
 // Read-aloud wiring
@@ -2627,6 +2428,38 @@ function setQaStatus(text, state) {
   show(qaAiStatus);
 }
 
+// Shared helper for the three qa-photo-* flows. Takes the image payload
+// and runs it through either the direct-mode engine export or the
+// server-mode endpoint — per the user's current /settings-mode choice.
+// Centralises the 429 translation so callers don't each re-implement it.
+async function identifyViaModePath({ images, directFn, serverUrl }) {
+  const mode = getMode();
+  if (mode === 'direct') {
+    const engine = await loadEngine();
+    const key = getKey();
+    if (!key) throw new Error(t('errMissingKey'));
+    try {
+      return await directFn(engine, images, { apiKey: key });
+    } catch (err) {
+      if (err?.status === 429) throw new Error(t('errRateLimit'));
+      throw err;
+    }
+  }
+  const res = await fetch(serverUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ images }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 429 || body.error === 'rate_limit') {
+      throw new Error(t('errRateLimit'));
+    }
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 qaPhotoInput?.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   e.target.value = ''; // allow re-selecting the same file
@@ -2634,28 +2467,12 @@ qaPhotoInput?.addEventListener('change', async (e) => {
   setQaStatus(t('identifyingFood'));
   try {
     const compressed = await compressImage(file);
-    const mode = getMode();
-    let result;
-    if (mode === 'direct') {
-      // Direct mode: call Groq from the client using the user's own key.
-      const { identifyFood } = await loadEngine();
-      const key = getKey();
-      if (!key) throw new Error(t('errMissingKey'));
-      result = await identifyFood(
-        [{ base64: compressed.base64, mime: compressed.mime }],
-        { apiKey: key },
-      );
-    } else {
-      // Server mode: go through /api/identify which holds the server-side
-      // GROQ_API_KEY.
-      const res = await fetch('/api/identify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: [{ base64: compressed.base64, mime: compressed.mime }] }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      result = await res.json();
-    }
+    const images = [{ base64: compressed.base64, mime: compressed.mime }];
+    const result = await identifyViaModePath({
+      images,
+      directFn: (engine, imgs, opts) => engine.identifyFood(imgs, opts),
+      serverUrl: '/api/identify',
+    });
     // Reconcile with the built-in DB: if the identified name matches a
     // CIQUAL entry, swap the LLM's guessed macros for the DB's authoritative
     // per-100 g values scaled by the LLM's gram estimate.
@@ -2688,25 +2505,12 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
   setQaStatus(t('identifyingFood'));
   try {
     const compressed = await compressImage(file);
-    const mode = getMode();
-    let result;
-    if (mode === 'direct') {
-      const { identifyMultiFood } = await loadEngine();
-      const key = getKey();
-      if (!key) throw new Error(t('errMissingKey'));
-      result = await identifyMultiFood(
-        [{ base64: compressed.base64, mime: compressed.mime }],
-        { apiKey: key },
-      );
-    } else {
-      const res = await fetch('/api/identify-multi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: [{ base64: compressed.base64, mime: compressed.mime }] }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      result = await res.json();
-    }
+    const images = [{ base64: compressed.base64, mime: compressed.mime }];
+    const result = await identifyViaModePath({
+      images,
+      directFn: (engine, imgs, opts) => engine.identifyMultiFood(imgs, opts),
+      serverUrl: '/api/identify-multi',
+    });
     const items = Array.isArray(result?.items) ? result.items : [];
     if (items.length === 0) {
       setQaStatus(t('identifyMultiEmpty'), 'warn');
@@ -2809,25 +2613,12 @@ $('qa-photo-menu-input')?.addEventListener('change', async (e) => {
   setQaStatus(t('identifyingMenu'));
   try {
     const compressed = await compressImage(file);
-    const mode = getMode();
-    let result;
-    if (mode === 'direct') {
-      const { identifyMenu } = await loadEngine();
-      const key = getKey();
-      if (!key) throw new Error(t('errMissingKey'));
-      result = await identifyMenu(
-        [{ base64: compressed.base64, mime: compressed.mime }],
-        { apiKey: key },
-      );
-    } else {
-      const res = await fetch('/api/identify-menu', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: [{ base64: compressed.base64, mime: compressed.mime }] }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      result = await res.json();
-    }
+    const images = [{ base64: compressed.base64, mime: compressed.mime }];
+    const result = await identifyViaModePath({
+      images,
+      directFn: (engine, imgs, opts) => engine.identifyMenu(imgs, opts),
+      serverUrl: '/api/identify-menu',
+    });
     const dishes = Array.isArray(result?.dishes) ? result.dishes : [];
     if (dishes.length === 0) {
       setQaStatus(t('menuScanEmpty'), 'warn');
@@ -3454,6 +3245,18 @@ initBackupIO({
   entriesToHealthJSON, entriesToDailyCSV,
   renderRecentScans, renderDashboard,
 });
+initRecipeIdeas({ t, getMode, getKey, loadEngine });
+initSettingsDialog({
+  t, setLang, applyStaticTranslations,
+  isCapacitor,
+  currentLang: () => currentLang,
+  applyTheme, applyReadingPrefs,
+  setSetting, scheduleReminders,
+  renderProfilesUI, telemetryEnabled,
+  setTelemetryEnabled: telemetrySetEnabled,
+  getKey,
+  onLangChange: () => renderDashboard(),
+});
 initFasting({
   t,
   currentLang: () => currentLang,
@@ -3560,6 +3363,13 @@ async function renderWeeklyView() {
   summary.appendChild(mkChip('weeklyAvgKcal', `${Math.round(roll.avg.kcal)} kcal`));
   summary.appendChild(mkChip('weeklyTotalKcal', `${Math.round(roll.total.kcal)} kcal`));
   summary.appendChild(mkChip('weeklyDaysLogged', t('weeklyDaysLogged', { n: roll.days_logged })));
+
+  // Streak chip: consecutive days logged ending at today. Use the same
+  // logStreakDays presenter the dashboard uses, so the two agree.
+  const streak = logStreakDays(all, todayISO());
+  if (streak > 0) {
+    summary.appendChild(mkChip('weeklyStreakLabel', t('streakDays', { n: streak })));
+  }
 
   // Bar chart — one column per day
   bars.textContent = '';
