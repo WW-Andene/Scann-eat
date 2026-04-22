@@ -1356,7 +1356,11 @@ function reopenScan(item) {
   renderIngredients(item.snapshot.product);
   renderNutrition(item.snapshot.product);
   show(resultEl);
-  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Respect prefers-reduced-motion + the in-app motion preference so the
+  // screen doesn't lurch for users sensitive to smooth-scroll animations.
+  const reduced = document.body.classList.contains('reduce-motion')
+    || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  resultEl.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
 }
 
 clearHistoryBtn?.addEventListener('click', async () => {
