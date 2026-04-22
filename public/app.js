@@ -1282,6 +1282,7 @@ function openProfileDialog() {
   profileHeight.value = p.height_cm ?? '';
   profileWeight.value = p.weight_kg ?? '';
   $('profile-goal-weight').value = p.goal_weight_kg ?? '';
+  $('profile-water-goal').value = p.water_goal_ml ?? '';
   profileActivity.value = p.activity || '';
   profileDiet.value = p.diet || 'none';
   profileCustomForbidden.value = (p.custom_diet?.forbidden || []).join('\n');
@@ -1357,6 +1358,7 @@ function readProfileFromForm() {
       organic: !!$('mod-organic')?.checked,
     },
     goal_weight_kg: toNum($('profile-goal-weight')?.value),
+    water_goal_ml: toNum($('profile-water-goal')?.value),
     macro_split: $('profile-macro-split')?.value || 'balanced',
     macro_split_custom: {
       carbs: Number($('macro-custom-carbs')?.value) || 50,

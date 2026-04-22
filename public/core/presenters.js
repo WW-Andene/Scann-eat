@@ -180,6 +180,13 @@ export function parseVoiceQuickAdd(transcript) {
  *   - High activity      → +500 ml (WHO training heuristic)
  */
 export function waterGoalMl(profile) {
+  // User-set override wins. Clamp to a sane range (500 ml – 6 L) so a
+  // typo like 20000 doesn't make the progress bar uselessly tiny.
+  const override = Number(profile?.water_goal_ml);
+  if (Number.isFinite(override) && override >= 500 && override <= 6000) {
+    return Math.round(override / 100) * 100;
+  }
+
   const weight = Number(profile?.weight_kg);
   const sex = profile?.sex;
   const activity = profile?.activity;

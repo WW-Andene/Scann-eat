@@ -67,6 +67,7 @@ export const DEFAULT_PROFILE = {
   height_cm: null,
   weight_kg: null,
   goal_weight_kg: null, // optional goal for the weight tracker
+  water_goal_ml: null,  // optional user override; see waterGoalMl()
   activity: null,       // sedentary | light | moderate | active | very_active
   diet: 'none',         // HARD constraint — violation caps personal score at 0
   custom_diet: null,    // { forbidden: string[], preferred: string[] } when diet==='custom'
