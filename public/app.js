@@ -11,6 +11,7 @@ import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastSt
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
 import { buildCustomFood, listCustomFoods, saveCustomFood, deleteCustomFood } from '/data/custom-food-db.js';
+import { findPairings, matchPairings } from '/data/pairings.js';
 import { detectAllergens } from '/core/allergens.js';
 import {
   getProfile, setProfile, hasMinimalProfile,
@@ -539,6 +540,8 @@ function renderAudit(data) {
   // call; the section reveals itself when ready.
   maybeRenderAlternatives(data).catch(() => { /* non-critical */ });
 
+  renderPairings(data);
+
   if (data.source === 'openfoodfacts') {
     resultSourceEl.textContent = t('sourceOFF');
     show(resultSourceEl);
@@ -667,6 +670,40 @@ function renderSparseHint(data) {
  * Silently no-ops on any failure path (no category tag available, network
  * failure, no alternatives found) — the suggestion section is decorative.
  */
+
+/**
+ * Classic-pairings chip row: "Ça va bien avec…" under the product card.
+ * Offline, zero-LLM. Looks up the scanned product's name (or its first
+ * ingredient when the name is a brand) against the curated PAIRINGS
+ * table. Hidden when nothing matches.
+ */
+function renderPairings(data) {
+  const section = $('pairings');
+  const title = $('pairings-title');
+  const list = $('pairings-list');
+  if (!section || !title || !list) return;
+  const product = data?.product || {};
+  // Try the product name first, then the primary ingredient (OFF products
+  // often have brand names that won't match, but their first ingredient
+  // often does — e.g. a "Président Mozzarella Bio" resolves via
+  // ingredients[0] = 'lait').
+  let hit = matchPairings(product.name || '');
+  if (!hit && Array.isArray(product.ingredients) && product.ingredients.length > 0) {
+    const firstIng = product.ingredients[0]?.name || '';
+    hit = matchPairings(firstIng);
+  }
+  list.textContent = '';
+  if (!hit) { hide(section); return; }
+  title.textContent = t('pairingsTitle', { name: hit.name });
+  for (const p of hit.pairs.slice(0, 6)) {
+    const li = document.createElement('li');
+    li.className = 'pairing-chip';
+    li.textContent = p;
+    list.appendChild(li);
+  }
+  show(section);
+}
+
 async function maybeRenderAlternatives(data) {
   const section = $('alternatives');
   const list = $('alternatives-list');
