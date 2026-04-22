@@ -2243,8 +2243,23 @@ async function renderRecipesList() {
     apply.type = 'button';
     apply.className = 'chip-btn accent';
     apply.textContent = t('recipeApply');
-    // Apply handler lands in pt3 — stub for now.
-    apply.addEventListener('click', () => { /* pt3 */ });
+    apply.addEventListener('click', async () => {
+      try {
+        const aggregated = aggregateRecipe(r, r.servings || 1);
+        const meal = defaultMealForHour(new Date().getHours());
+        const entry = {
+          id: globalThis.crypto?.randomUUID?.() ?? `a${Date.now()}${Math.random().toString(36).slice(2)}`,
+          date: todayISO(),
+          timestamp: Date.now(),
+          meal,
+          ...aggregated,
+        };
+        await putEntry(entry);
+        await renderDashboard();
+        recipesDialog?.close();
+        toast(t('recipeAppliedToast', { name: r.name }));
+      } catch (err) { console.error('[recipe-apply]', err); }
+    });
     const edit = document.createElement('button');
     edit.type = 'button';
     edit.className = 'chip-btn';
