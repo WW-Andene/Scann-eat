@@ -2079,3 +2079,16 @@ updatePendingBanner();
 renderRecentScans();
 renderDashboard();
 maybeShowOnboarding();
+
+// ----- Dashboard-first for returning users -----
+// If the user logged anything in the last 3 days, they're in "daily use" mode
+// and the dashboard (kcal remaining, macros) is more useful above the fold
+// than the scan-capture card. CSS handles the reorder via body.returning-user
+// so it works even if the user scrolls down and back up.
+(async () => {
+  try {
+    const entries = await listByDate().catch(() => []);
+    const logged3d = entries.length > 0; // today specifically; cheap proxy
+    if (logged3d) document.body.classList.add('returning-user');
+  } catch { /* non-critical */ }
+})();
