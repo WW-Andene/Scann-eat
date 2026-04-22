@@ -3,6 +3,7 @@ import { explainFlag } from '/explanations.js';
 import { enqueue, listPending, remove as removePending, countPending } from '/queue-store.js';
 import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '/scan-history.js';
 import { buildBackup, restoreBackup } from '/backup.js';
+import { searchFoodDB } from '/food-db.js';
 import { detectAllergens } from '/allergens.js';
 import {
   getProfile, setProfile, hasMinimalProfile,
@@ -2168,6 +2169,57 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
 
 // Reset AI status when the dialog opens (via the quick-add button).
 quickAddBtn?.addEventListener('click', () => hide(qaAiStatus));
+
+// ---------- Quick Add name autocomplete (built-in food DB) ----------
+const qaNameInput = $('qa-name');
+const qaSuggestionsList = $('qa-name-suggestions-list');
+
+function applyFoodToQuickAdd(food) {
+  const set = (id, v) => { const el = $(id); if (el) el.value = String(Math.round(v ?? 0)); };
+  if (qaNameInput) qaNameInput.value = food.name;
+  // food-db values are per 100 g. Default to 100 g portion unless the user
+  // typed a specific grams value in qa-kcal already.
+  set('qa-kcal', food.kcal);
+  set('qa-protein', food.protein_g);
+  set('qa-carbs', food.carbs_g);
+  set('qa-fat', food.fat_g);
+}
+
+function renderFoodSuggestions(query) {
+  if (!qaSuggestionsList) return;
+  const matches = searchFoodDB(query, 6);
+  qaSuggestionsList.textContent = '';
+  if (matches.length === 0) { hide(qaSuggestionsList); return; }
+  for (const f of matches) {
+    const li = document.createElement('li');
+    li.className = 'qa-suggestion';
+    li.setAttribute('role', 'option');
+    const name = document.createElement('span');
+    name.className = 'qs-name';
+    name.textContent = f.name;
+    const kcal = document.createElement('span');
+    kcal.className = 'qs-kcal';
+    kcal.textContent = `${Math.round(f.kcal)} kcal / 100 g`;
+    li.appendChild(name);
+    li.appendChild(kcal);
+    li.addEventListener('mousedown', (ev) => {
+      ev.preventDefault(); // keep focus on the input
+      applyFoodToQuickAdd(f);
+      hide(qaSuggestionsList);
+    });
+    qaSuggestionsList.appendChild(li);
+  }
+  show(qaSuggestionsList);
+}
+
+qaNameInput?.addEventListener('input', (e) => renderFoodSuggestions(e.target.value));
+qaNameInput?.addEventListener('blur', () => {
+  // Slight delay so a mousedown on a suggestion can fire before we hide.
+  setTimeout(() => hide(qaSuggestionsList), 150);
+});
+qaNameInput?.addEventListener('focus', (e) => {
+  if (e.target.value) renderFoodSuggestions(e.target.value);
+});
 
 // ----- Weight tracking -----
 const weightBtn = $('weight-btn');

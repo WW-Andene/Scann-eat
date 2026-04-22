@@ -565,9 +565,10 @@
             </label>
           </div>
           <p id="qa-ai-status" class="qa-ai-status" hidden></p>
-          <label>
+          <label class="qa-name-wrap">
             <span data-i18n="qaName">Nom (optionnel)</span>
-            <input id="qa-name" type="text" autocomplete="off" />
+            <input id="qa-name" type="text" autocomplete="off" list="qa-name-suggestions" aria-autocomplete="list" />
+            <ul id="qa-name-suggestions-list" class="qa-suggestions" role="listbox" hidden></ul>
           </label>
           <label>
             <span data-i18n="qaMeal">Repas</span>
