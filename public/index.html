@@ -103,6 +103,26 @@
         <p class="hint settings-profile-hint" data-i18n="settingsProfileHint">Les préférences alimentaires (régime, faible sucre, bio, etc.) sont maintenant dans le Profil 👤.</p>
 
         <fieldset class="prefs">
+          <legend data-i18n="remindersSection">Rappels repas</legend>
+          <p class="hint" data-i18n="remindersHint">Notifications locales aux heures des repas. Elles ne fonctionnent que pendant que l'app est ouverte.</p>
+          <label class="reminder-row">
+            <input id="reminder-breakfast" type="checkbox" />
+            <span data-i18n="mealBreakfast">Petit-déjeuner</span>
+            <input id="reminder-breakfast-time" type="time" value="08:00" />
+          </label>
+          <label class="reminder-row">
+            <input id="reminder-lunch" type="checkbox" />
+            <span data-i18n="mealLunch">Déjeuner</span>
+            <input id="reminder-lunch-time" type="time" value="12:30" />
+          </label>
+          <label class="reminder-row">
+            <input id="reminder-dinner" type="checkbox" />
+            <span data-i18n="mealDinner">Dîner</span>
+            <input id="reminder-dinner-time" type="time" value="19:30" />
+          </label>
+        </fieldset>
+
+        <fieldset class="prefs">
           <legend data-i18n="backupSection">Sauvegarde</legend>
           <p class="hint" data-i18n="backupHint">Exporte toutes tes données (historique, journal, poids, recettes, préférences) dans un seul fichier JSON. Importe pour restaurer.</p>
           <div class="backup-actions">

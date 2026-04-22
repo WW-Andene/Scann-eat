@@ -13,7 +13,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -1686,6 +1686,16 @@ settingsBtn?.addEventListener('click', () => {
   if (fontSizeSel) fontSizeSel.value = localStorage.getItem(LS_FONT_SIZE) || 'normal';
   if (fontFamSel)  fontFamSel.value  = localStorage.getItem(LS_FONT_FAMILY) || 'atkinson';
   if (motionSel)   motionSel.value   = localStorage.getItem(LS_MOTION) || 'normal';
+  // Reminder prefs
+  for (const meal of ['breakfast', 'lunch', 'dinner']) {
+    const cb = $(`reminder-${meal}`);
+    const tm = $(`reminder-${meal}-time`);
+    if (cb) cb.checked = localStorage.getItem(`scanneat.reminder.${meal}.on`) === '1';
+    if (tm) {
+      const stored = localStorage.getItem(`scanneat.reminder.${meal}.time`);
+      if (stored) tm.value = stored;
+    }
+  }
   settingsDialog.showModal();
 });
 settingsSave?.addEventListener('click', (e) => {
@@ -1700,6 +1710,22 @@ settingsSave?.addEventListener('click', (e) => {
   if (fontSizeSel) localStorage.setItem(LS_FONT_SIZE, fontSizeSel.value);
   if (fontFamSel)  localStorage.setItem(LS_FONT_FAMILY, fontFamSel.value);
   if (motionSel)   localStorage.setItem(LS_MOTION, motionSel.value);
+  // Reminder prefs
+  let anyRemindersOn = false;
+  for (const meal of ['breakfast', 'lunch', 'dinner']) {
+    const cb = $(`reminder-${meal}`);
+    const tm = $(`reminder-${meal}-time`);
+    const on = !!cb?.checked;
+    if (on) anyRemindersOn = true;
+    localStorage.setItem(`scanneat.reminder.${meal}.on`, on ? '1' : '0');
+    if (tm?.value) localStorage.setItem(`scanneat.reminder.${meal}.time`, tm.value);
+  }
+  // If at least one reminder is newly on, request Notification permission
+  // (noop if already granted). Fire-and-forget.
+  if (anyRemindersOn && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    try { Notification.requestPermission(); } catch { /* noop */ }
+  }
+  scheduleReminders(); // re-evaluate next-trigger times
   setLang(langSelect.value);
   applyTheme();
   applyReadingPrefs();
@@ -3061,11 +3087,59 @@ async function renderWeightSummary(profile) {
   show(el);
 }
 
+// ============================================================================
+// Meal reminders — local, in-page only.
+// No service-worker push (would need a backend). Reminders fire only while
+// the tab is open, via setTimeout. Shows a Notification if permission was
+// granted, else falls back to an in-app toast.
+// ============================================================================
+
+const reminderTimers = [];
+
+function fireMealReminder(meal) {
+  const body = t('reminderBody', { meal: t(
+    meal === 'breakfast' ? 'mealBreakfast'
+    : meal === 'lunch' ? 'mealLunch'
+    : 'mealDinner',
+  ).toLowerCase() });
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try { new Notification('Scann-eat', { body, icon: '/icon.svg' }); }
+    catch { toast(body); }
+  } else {
+    toast(body);
+  }
+}
+
+function scheduleReminders() {
+  // Clear any pending timers first — called on boot + after settings save.
+  for (const id of reminderTimers) clearTimeout(id);
+  reminderTimers.length = 0;
+
+  for (const meal of ['breakfast', 'lunch', 'dinner']) {
+    const on = localStorage.getItem(`scanneat.reminder.${meal}.on`) === '1';
+    if (!on) continue;
+    const time = localStorage.getItem(`scanneat.reminder.${meal}.time`);
+    if (!time) continue;
+    const nextMs = nextOccurrenceMs(time, Date.now());
+    if (nextMs == null) continue;
+    // setTimeout accepts up to ~24.8 days — plenty for a 24h-max scheduling
+    // window.
+    const delay = Math.max(0, nextMs - Date.now());
+    const id = setTimeout(() => {
+      fireMealReminder(meal);
+      // Re-schedule for the next day by re-running the whole planner.
+      scheduleReminders();
+    }, delay);
+    reminderTimers.push(id);
+  }
+}
+
 renderQueue();
 updatePendingBanner();
 renderRecentScans();
 renderDashboard();
 maybeShowOnboarding();
+scheduleReminders();
 
 // ----- Dashboard-first for returning users -----
 // If the user logged anything in the last 3 days, they're in "daily use" mode

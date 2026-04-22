@@ -1765,6 +1765,25 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 }
 
 /* ---- Progress rows ---- */
+/* ========== MEAL REMINDER ROWS (Settings) ================================ */
+.reminder-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-2) 0;
+  font-size: 0.95em;
+}
+.reminder-row input[type="checkbox"] { width: 22px; height: 22px; }
+.reminder-row input[type="time"] {
+  padding: 4px 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ========== RESCAN ROW (after a scan result) ============================
    ========================================================================== */
 .rescan-row {
