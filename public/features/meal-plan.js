@@ -36,18 +36,7 @@ function writeAll(obj) {
   try { localStorage.setItem(KEY, JSON.stringify(obj)); } catch { /* quota */ }
 }
 
-export function isoToday(now = Date.now()) {
-  // Local-date, not UTC. See public/data/consumption.js todayISO() for
-  // rationale — users outside Europe/London were getting meals bucketed
-  // on the next calendar day after ~midnight local.
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(new Date(now));
-  const y = parts.find((p) => p.type === 'year')?.value ?? '0000';
-  const m = parts.find((p) => p.type === 'month')?.value ?? '00';
-  const day = parts.find((p) => p.type === 'day')?.value ?? '00';
-  return `${y}-${m}-${day}`;
-}
+export { localDateISO as isoToday } from '../core/dateutil.js';
 
 /**
  * Yields the 7 ISO dates starting at `startDate` (inclusive), or today

@@ -69,20 +69,10 @@ export async function putEntry(entry) {
   });
 }
 
-export function todayISO(now = Date.now()) {
-  // User-local date, not UTC. Using toISOString() returns the UTC day, so
-  // a user in UTC+12 logging dinner at 21:00 local would bucket it on the
-  // next calendar day (09:00 UTC). Intl.DateTimeFormat handles DST + non-
-  // Gregorian calendars cleanly in modern browsers / Node 22.
-  const d = new Date(now);
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(d);
-  const y = parts.find((p) => p.type === 'year')?.value ?? '0000';
-  const m = parts.find((p) => p.type === 'month')?.value ?? '00';
-  const day = parts.find((p) => p.type === 'day')?.value ?? '00';
-  return `${y}-${m}-${day}`;
-}
+// Re-exported via /core/dateutil.js — kept here as the canonical name
+// the rest of the app imports from. See that file for why it's local
+// (not UTC) day.
+export { localDateISO as todayISO } from '../core/dateutil.js';
 
 export const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
 

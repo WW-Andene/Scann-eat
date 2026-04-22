@@ -5,6 +5,8 @@
  * by simple linear regression over the last N days.
  */
 
+import { localDateISO } from '../core/dateutil.js';
+
 const DB_NAME = 'scanneat';
 const DB_VERSION = 6;
 const STORE = 'weight';
@@ -51,16 +53,7 @@ export function ensureStores(db) {
   }
 }
 
-function todayISO(now = Date.now()) {
-  // Local-date ISO — see public/data/consumption.js for rationale.
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(new Date(now));
-  const y = parts.find((p) => p.type === 'year')?.value ?? '0000';
-  const m = parts.find((p) => p.type === 'month')?.value ?? '00';
-  const day = parts.find((p) => p.type === 'day')?.value ?? '00';
-  return `${y}-${m}-${day}`;
-}
+const todayISO = localDateISO;
 
 export async function logWeight(kg, notes = '', date = todayISO()) {
   const weight = Number(kg);

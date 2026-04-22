@@ -54,16 +54,7 @@ export function estimateKcalBurned(type, minutes, weightKg) {
   return Math.round(met * w * (m / 60));
 }
 
-// Local-date ISO — see public/data/consumption.js todayISO() for rationale.
-export function todayISO(now = Date.now()) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(new Date(now));
-  const y = parts.find((p) => p.type === 'year')?.value ?? '0000';
-  const m = parts.find((p) => p.type === 'month')?.value ?? '00';
-  const day = parts.find((p) => p.type === 'day')?.value ?? '00';
-  return `${y}-${m}-${day}`;
-}
+export { localDateISO as todayISO } from '../core/dateutil.js';
 
 /**
  * Build an entry object. Split out so tests don't need IDB.
