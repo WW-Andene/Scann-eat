@@ -6,8 +6,8 @@
 
 const DB_NAME = 'scanneat';
 // Must stay in lockstep with scan-history.js / consumption.js / weight-log.js /
-// meal-templates.js / recipes.js.
-const DB_VERSION = 5;
+// meal-templates.js / recipes.js / activity.js.
+const DB_VERSION = 6;
 const STORE = 'pending_scans';
 
 function openDB() {
@@ -35,6 +35,10 @@ function openDB() {
       }
       if (!db.objectStoreNames.contains('recipes')) {
         db.createObjectStore('recipes', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('activity')) {
+        const s = db.createObjectStore('activity', { keyPath: 'id' });
+        s.createIndex('date', 'date');
       }
     };
     req.onsuccess = () => {

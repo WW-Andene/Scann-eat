@@ -14,7 +14,7 @@
  */
 
 const DB_NAME = 'scanneat';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const STORE = 'consumption';
 
 function openDB() {
@@ -42,6 +42,10 @@ function openDB() {
       }
       if (!db.objectStoreNames.contains('recipes')) {
         db.createObjectStore('recipes', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('activity')) {
+        const s = db.createObjectStore('activity', { keyPath: 'id' });
+        s.createIndex('date', 'date');
       }
     };
     req.onsuccess = () => {

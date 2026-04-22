@@ -14,7 +14,7 @@
  */
 
 const DB_NAME = 'scanneat';
-const DB_VERSION = 5; // bumped for the new 'recipes' store
+const DB_VERSION = 6; // v6 adds the 'activity' store (exercise log)
 const STORE = 'recipes';
 
 function openDB() {
@@ -55,6 +55,10 @@ export function ensureStores(db) {
   }
   if (!db.objectStoreNames.contains('recipes')) {
     db.createObjectStore('recipes', { keyPath: 'id' });
+  }
+  if (!db.objectStoreNames.contains('activity')) {
+    const s = db.createObjectStore('activity', { keyPath: 'id' });
+    s.createIndex('date', 'date');
   }
 }
 

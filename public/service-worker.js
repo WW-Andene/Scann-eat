@@ -15,6 +15,7 @@ const SHELL = [
   '/data/weight-log.js',
   '/data/meal-templates.js',
   '/data/recipes.js',
+  '/data/activity.js',
   '/backup.js',
   '/profiles.js',
   '/data/food-db.js',

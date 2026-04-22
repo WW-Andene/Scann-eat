@@ -19,8 +19,11 @@ import {
 import { listWeight, logWeight, deleteWeight } from '/data/weight-log.js';
 import { listTemplates, saveTemplate, deleteTemplate } from '/data/meal-templates.js';
 import { listRecipes, saveRecipe, deleteRecipe } from '/data/recipes.js';
+import { listAllActivity, logActivity, deleteActivity } from '/data/activity.js';
 
-const BACKUP_VERSION = 1;
+// v2 adds the `activity` array. v1 readers just ignore it; we still read
+// old v1 backups by defaulting to [].
+const BACKUP_VERSION = 2;
 const LS_PREFIX = 'scanneat.';
 
 function readAllLocalStorage() {
@@ -40,12 +43,13 @@ function writeAllLocalStorage(map) {
 }
 
 export async function buildBackup() {
-  const [history, consumption, weight, templates, recipes] = await Promise.all([
+  const [history, consumption, weight, templates, recipes, activity] = await Promise.all([
     listScans().catch(() => []),
     listAllEntries().catch(() => []),
     listWeight().catch(() => []),
     listTemplates().catch(() => []),
     listRecipes().catch(() => []),
+    listAllActivity().catch(() => []),
   ]);
   return {
     app: 'scann-eat',
@@ -57,6 +61,7 @@ export async function buildBackup() {
     weight,
     templates,
     recipes,
+    activity,
   };
 }
 
@@ -99,6 +104,10 @@ export async function restoreBackup(backup, opts = {}) {
       const recipes = await listRecipes();
       for (const r of recipes) await deleteRecipe(r.id).catch(() => {});
     } catch { /* ignore */ }
+    try {
+      const activity = await listAllActivity();
+      for (const a of activity) await deleteActivity(a.id).catch(() => {});
+    } catch { /* ignore */ }
   }
 
   for (const rec of backup.history ?? []) {
@@ -115,5 +124,8 @@ export async function restoreBackup(backup, opts = {}) {
   }
   for (const r of backup.recipes ?? []) {
     try { await saveRecipe(r); } catch { /* skip */ }
+  }
+  for (const a of backup.activity ?? []) {
+    try { await logActivity(a); } catch { /* skip */ }
   }
 }
