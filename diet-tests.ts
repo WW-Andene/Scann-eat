@@ -223,3 +223,45 @@ describe('checkDiet: gluten_free', () => {
     assert.equal(checkDiet(b2, 'gluten_free').compliant, true);
   });
 });
+
+// ============================================================================
+// Kosher — Leviticus 11 land animals + scaleless fish + shellfish
+// ============================================================================
+
+describe('checkDiet: kosher', () => {
+  it('compliant for a plant-based product', () => {
+    const p = product('', ['pommes de terre', 'huile d\'olive', 'sel']);
+    const r = checkDiet(p, 'kosher');
+    assert.equal(r.compliant, true);
+  });
+
+  it('REJECTS pork', () => {
+    const p = product('', ['viande de porc', 'sel']);
+    const r = checkDiet(p, 'kosher');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS "écrevisse" (accented leading char — pins the regression fix)', () => {
+    const p = product('', ['écrevisse', 'mayonnaise']);
+    const r = checkDiet(p, 'kosher');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS "pétoncle" (accented leading char)', () => {
+    const p = product('', ['pétoncle', 'persil']);
+    const r = checkDiet(p, 'kosher');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS "anguille" (scaleless fish — ASCII baseline)', () => {
+    const p = product('', ['anguille fumée']);
+    const r = checkDiet(p, 'kosher');
+    assert.equal(r.compliant, false);
+  });
+
+  it('"OU" certification earns the bonus', () => {
+    const p = product('Snack OU-certified', ['flour', 'sugar']);
+    const r = checkDiet(p, 'kosher');
+    assert.equal(r.certified, true);
+  });
+});
