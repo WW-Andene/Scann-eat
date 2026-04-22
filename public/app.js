@@ -1771,6 +1771,54 @@ quickAddBtn?.addEventListener('click', () => {
   quickAddDialog.showModal();
 });
 qaCancel?.addEventListener('click', (e) => { e.preventDefault(); quickAddDialog.close(); });
+
+// ----- Voice-dictate for Quick Add -----
+// Uses the Web Speech API. Desktop Safari/Chrome + Android Chrome are the
+// widely-supported targets; on Firefox the button stays hidden.
+const SpeechRecognitionImpl =
+  globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
+const qaVoiceBtn = $('qa-voice-btn');
+let qaRecognizer = null;
+
+if (SpeechRecognitionImpl && qaVoiceBtn) {
+  show(qaVoiceBtn);
+  qaVoiceBtn.addEventListener('click', () => {
+    // Toggle: if already listening, stop.
+    if (qaRecognizer) { try { qaRecognizer.stop(); } catch { /* ignore */ } return; }
+    try {
+      const rec = new SpeechRecognitionImpl();
+      rec.lang = currentLang === 'en' ? 'en-US' : 'fr-FR';
+      rec.interimResults = false;
+      rec.continuous = false;
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        qaVoiceBtn.dataset.state = 'listening';
+        qaVoiceBtn.querySelector('.label').textContent = t('voiceListening');
+      };
+      rec.onresult = (ev) => {
+        const transcript = Array.from(ev.results)
+          .map((r) => r[0]?.transcript || '')
+          .join(' ')
+          .trim();
+        if (!transcript) return;
+        // For now, dump the raw transcript into the name field. Round 82
+        // will add a parser that extracts kcal / grams from it.
+        const nameEl = $('qa-name');
+        if (nameEl) nameEl.value = transcript;
+      };
+      rec.onerror = () => { /* handled by onend */ };
+      rec.onend = () => {
+        delete qaVoiceBtn.dataset.state;
+        qaVoiceBtn.querySelector('.label').textContent = t('voiceDictate');
+        qaRecognizer = null;
+      };
+      qaRecognizer = rec;
+      rec.start();
+    } catch { qaRecognizer = null; }
+  });
+}
+
 // ----- Weight tracking -----
 const weightBtn = $('weight-btn');
 const weightDialog = $('weight-dialog');

@@ -1077,6 +1077,33 @@ body.returning-user main > .capture         { order: 1; }
   font-size: 0.85em;
   font-variant-numeric: tabular-nums;
 }
+
+/* ========== VOICE-DICTATE BUTTON (Quick Add) ============================= */
+.qa-voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: none;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 1em;
+  cursor: pointer;
+  margin-bottom: var(--sp-3);
+  transition: transform 120ms ease;
+}
+.qa-voice-btn[data-state="listening"] {
+  background: var(--danger);
+  animation: voice-pulse 1.2s ease-in-out infinite;
+}
+body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
+@keyframes voice-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
+}
+.qa-voice-btn .icon { font-size: 1.2em; }
 .recent-item:hover { border-color: var(--accent); }
 .recent-item:active { transform: scale(0.99); }
 .recent-thumb {
