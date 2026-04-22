@@ -22,7 +22,7 @@ import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, week
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/data/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/recipes.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast } from '/core/presenters.js';
 import { checkDiet } from '/core/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -3630,6 +3630,20 @@ async function renderWeightSummary(profile) {
   if (trend !== 0 && Number.isFinite(trend)) {
     const sign = trend > 0 ? '+' : '';
     appendSpan([text(`${t('weightTrend')} : ${sign}${trend} kg/sem`)]);
+  }
+  // At-this-rate forecast: only when a goal weight is set AND the trend
+  // actually points toward it. Shown as a soft, non-committal line so
+  // users treat it as extrapolation, not a promise.
+  if (profile?.goal_weight_kg && s.recent_count >= 2) {
+    const f = weightForecast(s.latest_kg, profile.goal_weight_kg, trend);
+    if (f.status === 'ok') {
+      const locale = currentLang === 'en' ? 'en-GB' : 'fr-FR';
+      const d = new Date(f.targetISO + 'T00:00:00');
+      const datePretty = d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+      appendSpan([text(t('weightForecastOk', { date: datePretty, weeks: f.weeks }))]);
+    } else if (f.status === 'wrong-direction') {
+      appendSpan([text(t('weightForecastWrongDir'))]);
+    }
   }
   show(el);
 }

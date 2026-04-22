@@ -539,3 +539,43 @@ export function logStreakDays(entries, todayIso) {
   }
   return streak;
 }
+
+/**
+ * Linear extrapolation from the current weight + weekly slope to a target
+ * weight. Pure function — exported for unit tests.
+ *
+ * Returns one of:
+ *   { status: 'insufficient-data' }    — <2 entries or no goal set
+ *   { status: 'flat'           }       — slope is 0 kg/week (no trend)
+ *   { status: 'wrong-direction' }      — slope takes user AWAY from goal
+ *   { status: 'already-reached' }      — current_kg already at / past goal
+ *   { status: 'ok', weeks, days, targetISO, kgPerWeek }
+ *
+ * Kept intentionally simple — it's a display aid, not a medical
+ * prediction. Doesn't try to project fat vs lean mass splits or account
+ * for metabolic adaptation as weight changes.
+ */
+export function weightForecast(currentKg, goalKg, weeklySlopeKg, nowMs = Date.now()) {
+  const c = Number(currentKg);
+  const g = Number(goalKg);
+  const s = Number(weeklySlopeKg);
+  if (!Number.isFinite(c) || c <= 0) return { status: 'insufficient-data' };
+  if (!Number.isFinite(g) || g <= 0) return { status: 'insufficient-data' };
+  if (!Number.isFinite(s)) return { status: 'insufficient-data' };
+  const delta = g - c; // positive → need to gain; negative → need to lose
+  if (Math.abs(delta) < 0.05) return { status: 'already-reached' };
+  if (s === 0) return { status: 'flat' };
+  // Signs must agree: gaining (delta > 0) requires positive slope,
+  // losing (delta < 0) requires negative slope.
+  if (Math.sign(delta) !== Math.sign(s)) return { status: 'wrong-direction' };
+  const weeks = Math.abs(delta / s);
+  const days = Math.round(weeks * 7);
+  const target = new Date(nowMs + days * 86_400_000);
+  return {
+    status: 'ok',
+    weeks: Math.round(weeks * 10) / 10,
+    days,
+    targetISO: target.toISOString().slice(0, 10),
+    kgPerWeek: s,
+  };
+}
