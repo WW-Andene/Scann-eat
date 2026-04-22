@@ -613,7 +613,7 @@ describe('parseLabel (mocked fetch)', () => {
     }));
     await assert.rejects(
       () => parseLabel({ base64: 'ZmFrZQ==' }),
-      /did not return valid JSON/,
+      /malformed JSON/,
     );
   });
 
