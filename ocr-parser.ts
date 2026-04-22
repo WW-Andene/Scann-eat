@@ -513,8 +513,13 @@ export async function parseLabel(
   let parsed: Record<string, unknown>;
   try {
     parsed = JSON.parse(extractJSON(raw));
-  } catch (e) {
-    throw new Error(`parseLabel: LLM did not return valid JSON. First 300 chars: ${raw.slice(0, 300)}`);
+  } catch {
+    // Log the raw preview for dev debugging; surface a concise user-facing
+    // error. Previously the full 300-char dump leaked into errorEl and was
+    // overwhelming on mobile.
+    // eslint-disable-next-line no-console
+    console.warn('[parseLabel] malformed JSON, first 300 chars:', raw.slice(0, 300));
+    throw new Error('parseLabel: LLM returned malformed JSON.');
   }
 
   const warnings: string[] = [];
