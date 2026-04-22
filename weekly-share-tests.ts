@@ -6,7 +6,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS
-import { weeklyRollup, formatWeeklyShare, formatPairingsShare } from './public/core/presenters.js';
+import { weeklyRollup, formatWeeklyShare, formatPairingsShare, formatDailySummary } from './public/core/presenters.js';
 
 const entries = [
   { date: '2026-04-22', kcal: 400, protein_g: 20, carbs_g: 50, fat_g: 10, sat_fat_g: 3, sugars_g: 5, salt_g: 1 },
@@ -78,5 +78,50 @@ describe('formatPairingsShare', () => {
     assert.equal(formatPairingsShare(null as unknown as { name: string; pairs: never[] }), '');
     assert.equal(formatPairingsShare({ name: '', pairs: [] } as { name: string; pairs: never[] }), '');
     assert.equal(formatPairingsShare({ name: 'x', pairs: [] } as { name: string; pairs: never[] }), '');
+  });
+});
+
+describe('formatDailySummary', () => {
+  const totals = {
+    kcal: 1800, protein_g: 85, carbs_g: 220, fat_g: 55,
+    fiber_g: 28, sat_fat_g: 12, sugars_g: 35, salt_g: 3.5, count: 8,
+  };
+  const targets = {
+    kcal: 2200, protein_g_target: 100, carbs_g_target: 250,
+    fat_g_target: 70, fiber_g_target: 25,
+  } as unknown as Record<string, number>;
+  const burned = { kcal: 300 };
+
+  it('returns "" when nothing is logged', () => {
+    assert.equal(formatDailySummary(null as unknown as { count: number }, targets, burned), '');
+    assert.equal(formatDailySummary({ count: 0 } as unknown as { count: number }, targets, burned), '');
+  });
+
+  it('produces a FR summary with macros + kcal + target %', () => {
+    const out = formatDailySummary(totals, targets, burned, { lang: 'fr', dateISO: '2026-04-22' });
+    assert.ok(out.includes('🥗'));
+    assert.ok(out.includes('1800 kcal'));
+    assert.ok(out.includes('300 brûlées'));
+    assert.ok(out.includes('net 1500'));
+    assert.ok(out.includes('85 g protéines'));
+    assert.ok(out.includes('28 g'));
+    assert.ok(out.match(/82%|81%/)); // 1800/2200 = 81.8%
+    assert.ok(out.includes('Scann-eat'));
+  });
+
+  it('produces an EN summary', () => {
+    const out = formatDailySummary(totals, targets, burned, { lang: 'en', dateISO: '2026-04-22' });
+    assert.ok(out.includes('kcal in'));
+    assert.ok(out.includes('burned'));
+    assert.ok(out.includes('protein'));
+    assert.ok(out.includes('carbs'));
+    assert.ok(out.includes('fat'));
+    assert.ok(out.includes('of daily goal'));
+  });
+
+  it('omits the burned/net clause when no exercise was logged', () => {
+    const out = formatDailySummary(totals, targets, null, { lang: 'fr' });
+    assert.equal(out.includes('brûlées'), false);
+    assert.equal(out.includes('net'), false);
   });
 });

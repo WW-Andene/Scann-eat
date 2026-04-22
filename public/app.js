@@ -15,6 +15,8 @@ import { initScanner, openCameraScanner, closeCameraScanner } from '/features/sc
 import { maybeShowOnboarding } from '/features/onboarding.js';
 import { initInstallBanner } from '/features/install-banner.js';
 import { initBackupIO } from '/features/backup-io.js';
+import { initFasting, renderFasting } from '/features/fasting.js';
+import { initAppearance, applyAppearance, applyTheme, applyReadingPrefs } from '/features/appearance.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -33,7 +35,7 @@ import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/re
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatPairingsShare } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatPairingsShare, formatDailySummary } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
@@ -1541,35 +1543,11 @@ async function shareCurrentScan() {
   } catch { /* user cancelled */ }
 }
 
-// ---------- Theme ----------
-
-function applyTheme() {
-  const pref = localStorage.getItem(LS_THEME) || 'dark';
-  const mediaLight = pref === 'auto' && window.matchMedia?.('(prefers-color-scheme: light)').matches;
-  const actual = pref === 'light' || mediaLight ? 'light' : 'dark';
-  document.documentElement.dataset.theme = actual;
-}
-applyTheme();
-
-// ---------- Reading accessibility (font size / family / motion) ----------
-
-function applyReadingPrefs() {
-  const body = document.body;
-  const size = localStorage.getItem(LS_FONT_SIZE) || 'normal';
-  const family = localStorage.getItem(LS_FONT_FAMILY) || 'atkinson';
-  const motion = localStorage.getItem(LS_MOTION) || 'normal';
-
-  body.classList.remove('font-size-large', 'font-size-xlarge');
-  if (size === 'large')  body.classList.add('font-size-large');
-  if (size === 'xlarge') body.classList.add('font-size-xlarge');
-
-  body.classList.remove('font-lexend', 'font-system');
-  if (family === 'lexend') body.classList.add('font-lexend');
-  if (family === 'system') body.classList.add('font-system');
-
-  body.classList.toggle('reduce-motion', motion === 'reduced');
-}
-applyReadingPrefs();
+// Theme + reading accessibility extracted to /features/appearance.js.
+// initAppearance() is called at boot below with no deps; applyTheme()
+// and applyReadingPrefs() are imported so Settings-save handlers can
+// re-paint without routing through initAppearance again.
+initAppearance();
 
 // ---------- Read-aloud (SpeechSynthesis) ----------
 
@@ -1619,7 +1597,6 @@ function composeReadAloudText(data) {
   }
   return `${name}. Score ${score} sur 100. Note ${grade}. ${verdict}`;
 }
-window.matchMedia?.('(prefers-color-scheme: light)')?.addEventListener('change', applyTheme);
 
 // Onboarding extracted to /features/onboarding.js. maybeShowOnboarding()
 // is a no-op after first dismissal (flag in localStorage).
@@ -1781,6 +1758,7 @@ function openProfileDialog() {
   profileActivity.value = p.activity || '';
   const lifeStageEl = $('profile-life-stage');
   if (lifeStageEl) lifeStageEl.value = p.life_stage || '';
+  toggleLifeStageVisibility();
   profileDiet.value = p.diet || 'none';
   profileCustomForbidden.value = (p.custom_diet?.forbidden || []).join('\n');
   profileCustomPreferred.value = (p.custom_diet?.preferred || []).join('\n');
@@ -1842,6 +1820,22 @@ function renderMacroSum() {
 function toggleCustomDietWrap() {
   if (profileDiet.value === 'custom') show(profileCustomWrap);
   else hide(profileCustomWrap);
+}
+
+// Life-stage (pregnancy / lactation) only applies to female users per
+// EFSA DRVs. The selector stays visible — just auto-cleared and hidden
+// — when sex is male / other / unset so it doesn't clutter the form
+// for users it doesn't apply to.
+function toggleLifeStageVisibility() {
+  const wrap = $('profile-life-stage-wrap');
+  const sel = $('profile-life-stage');
+  if (!wrap) return;
+  if (profileSex?.value === 'female') {
+    show(wrap);
+  } else {
+    hide(wrap);
+    if (sel) sel.value = ''; // no stale pregnancy on a male profile
+  }
 }
 
 function readProfileFromForm() {
@@ -1923,6 +1917,7 @@ function renderDerived() {
 }
 
 profileBtn?.addEventListener('click', openProfileDialog);
+profileSex?.addEventListener('change', () => { toggleLifeStageVisibility(); renderDerived(); });
 profileDiet?.addEventListener('change', () => { toggleCustomDietWrap(); renderDerived(); });
 $('profile-macro-split')?.addEventListener('change', () => { toggleMacroCustomWrap(); renderDerived(); });
 for (const id of ['macro-custom-carbs', 'macro-custom-protein', 'macro-custom-fat']) {
@@ -3465,50 +3460,22 @@ initBackupIO({
   entriesToHealthJSON, entriesToDailyCSV,
   renderRecentScans, renderDashboard,
 });
+initFasting({
+  t,
+  currentLang: () => currentLang,
+  show, hide,
+  fastingStatus,
+  buildFastCompletion, saveFastCompletion,
+  listFastHistory, computeFastStreak, clearFastHistory,
+});
 
 // ============================================================================
 // PWA install-prompt banner extracted to /features/install-banner.js —
 // initialised at boot with initInstallBanner({ show, hide }).
 
-// ============================================================================
-// Fasting timer — intermittent-fasting countdown.
-// State persists in localStorage so the clock survives reloads + app restarts.
-// ============================================================================
-
-const LS_FASTING_START = 'scanneat.fasting.start';
-const LS_FASTING_TARGET = 'scanneat.fasting.target';
-let fastingInterval = null;
-
-function getFastingState() {
-  const startRaw = localStorage.getItem(LS_FASTING_START);
-  const targetRaw = localStorage.getItem(LS_FASTING_TARGET);
-  const start = Number(startRaw);
-  const target = Number(targetRaw);
-  if (!Number.isFinite(start) || start <= 0) return null;
-  return {
-    start_ms: start,
-    target_hours: Number.isFinite(target) && target > 0 ? target : 16,
-  };
-}
-function startFasting(targetHours) {
-  localStorage.setItem(LS_FASTING_START, String(Date.now()));
-  localStorage.setItem(LS_FASTING_TARGET, String(targetHours));
-}
-function stopFasting() {
-  // Snapshot the completed fast into history before clearing the timer
-  // state so the streak chip reflects what just happened.
-  const s = getFastingState();
-  if (s) {
-    const rec = buildFastCompletion({
-      start_ms: s.start_ms,
-      end_ms: Date.now(),
-      target_hours: s.target_hours,
-    });
-    if (rec) saveFastCompletion(rec);
-  }
-  localStorage.removeItem(LS_FASTING_START);
-  localStorage.removeItem(LS_FASTING_TARGET);
-}
+// Fasting timer extracted to /features/fasting.js — initFasting()
+// wires the Start / Stop / Clear-history buttons, renderFasting() is
+// imported for the dashboard tick.
 
 function renderDayNote() {
   const input = $('day-note-input');
@@ -3529,101 +3496,8 @@ $('day-note-input')?.addEventListener('input', (e) => {
   if (counter) counter.textContent = `${text.length} / ${DAY_NOTE_MAX_CHARS}`;
 });
 
-function renderFastStreak() {
-  const streakEl = $('fasting-streak');
-  const wrap = $('fasting-history-wrap');
-  const list = $('fasting-history-list');
-  const hist = listFastHistory();
-  if (streakEl) {
-    const n = computeFastStreak(hist);
-    if (n >= 1) {
-      streakEl.textContent = t('fastingStreak', { n });
-      show(streakEl);
-    } else {
-      hide(streakEl);
-    }
-  }
-  if (wrap && list) {
-    if (hist.length === 0) {
-      hide(wrap);
-    } else {
-      list.innerHTML = '';
-      for (const r of hist.slice().reverse()) { // newest first
-        const li = document.createElement('li');
-        const hours = Math.floor(r.duration_ms / 3_600_000);
-        const mins = Math.floor((r.duration_ms % 3_600_000) / 60_000);
-        const date = new Date(r.end_ms).toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
-          day: '2-digit', month: 'short',
-        });
-        li.textContent = t(r.complete ? 'fastingHistoryLineOk' : 'fastingHistoryLineKo', {
-          date, h: hours, m: String(mins).padStart(2, '0'),
-          target: r.target_hours ?? '—',
-        });
-        list.appendChild(li);
-      }
-      show(wrap);
-    }
-  }
-}
-
-function renderFasting() {
-  const tile = $('fasting-tile');
-  const startRow = $('fasting-start-row');
-  const amt = $('fasting-amount');
-  const fill = $('fasting-fill');
-  const stateEl = $('fasting-state');
-  if (!tile || !startRow) return;
-
-  renderFastStreak();
-
-  const s = getFastingState();
-  if (!s) {
-    hide(tile);
-    show(startRow);
-    if (fastingInterval) { clearInterval(fastingInterval); fastingInterval = null; }
-    return;
-  }
-
-  const st = fastingStatus(s.start_ms, Date.now(), s.target_hours);
-  if (amt) amt.textContent = st.label;
-  if (fill) {
-    fill.style.width = `${st.pct}%`;
-    if (st.complete) fill.dataset.state = 'done';
-    else delete fill.dataset.state;
-  }
-  if (stateEl) {
-    if (st.complete) {
-      const overH = Math.floor(st.overrun_ms / 3_600_000);
-      const overM = Math.floor((st.overrun_ms % 3_600_000) / 60_000);
-      stateEl.textContent = overH > 0 || overM > 0
-        ? `${t('fastingComplete')} · ${t('fastingOverrun', { h: overH, m: String(overM).padStart(2, '0') })}`
-        : t('fastingComplete');
-    } else {
-      stateEl.textContent = t('fastingInProgress');
-    }
-  }
-  show(tile);
-  hide(startRow);
-  // Tick once a minute — fine for a countdown measured in hours. Skipped
-  // under reduce-motion for users who prefer no animated counters.
-  if (!fastingInterval && !document.body.classList.contains('reduce-motion')) {
-    fastingInterval = setInterval(renderFasting, 60_000);
-  }
-}
-
-$('fasting-start')?.addEventListener('click', () => {
-  const target = Number($('fasting-target')?.value) || 16;
-  startFasting(target);
-  renderFasting();
-});
-$('fasting-stop')?.addEventListener('click', () => {
-  stopFasting();
-  renderFasting();
-});
-$('fasting-history-clear')?.addEventListener('click', () => {
-  clearFastHistory();
-  renderFastStreak();
-});
+// Fasting handlers + render loop moved to /features/fasting.js —
+// initialised via initFasting() at boot.
 
 // Activity (exercise) UI is extracted to /features/activity.js.
 // renderActivity() is imported below; initialisation lives next to
@@ -3631,22 +3505,25 @@ $('fasting-history-clear')?.addEventListener('click', () => {
 
 // ============================================================================
 // Day / Week view toggle — flips between daily dashboard and weekly rollup.
-// Stored in-memory only (resets on reload).
+// Persisted to localStorage so Week-view users don't have to re-click
+// on every reload.
 // ============================================================================
 
-let dashboardView = 'day'; // 'day' | 'week'
+const LS_DASHBOARD_VIEW = 'scanneat.dashboard.view';
+let dashboardView = localStorage.getItem(LS_DASHBOARD_VIEW) === 'week' ? 'week' : 'day';
 
 function applyViewToggle(view) {
-  dashboardView = view;
+  dashboardView = view === 'week' ? 'week' : 'day';
+  try { localStorage.setItem(LS_DASHBOARD_VIEW, dashboardView); } catch { /* quota */ }
   for (const btn of document.querySelectorAll('.view-tab')) {
-    const isActive = btn.dataset.view === view;
+    const isActive = btn.dataset.view === dashboardView;
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
   }
   const weeklyEl = $('weekly-view');
   const rowsEl = $('dashboard-rows');
   const logEl = $('dashboard-log');
-  if (view === 'week') {
+  if (dashboardView === 'week') {
     hide(rowsEl);
     hide(logEl);
     renderWeeklyView();
@@ -3741,6 +3618,27 @@ async function renderWeeklyView() {
 // Share button wiring — hidden when navigator.share is unavailable (desktop
 // browsers without Web Share). Falls back to clipboard copy so the action
 // isn't a dead end even without native share.
+// Daily summary share — the same pattern as weekly, but for today's log.
+// Gives users a one-tap way to copy or send today's kcal / macros rundown
+// to a partner or a coach, without having to screenshot the dashboard.
+$('daily-share')?.addEventListener('click', async () => {
+  const totals = await dailyTotals().catch(() => null);
+  const profile = getProfile();
+  const targets = dailyTargets(profile);
+  const burnedForDate = await listActivityByDate(todayISO()).catch(() => []);
+  const burned = { kcal: sumBurned(burnedForDate) };
+  const text = formatDailySummary(totals, targets, burned, { lang: currentLang, dateISO: todayISO() });
+  if (!text) { toast(t('dailyShareEmpty'), 'warn'); return; }
+  if (typeof navigator.share === 'function') {
+    try { await navigator.share({ title: t('dailyShareTitle'), text }); return; }
+    catch { /* user cancelled or unsupported; fall through to clipboard */ }
+  }
+  try {
+    await navigator.clipboard?.writeText(text);
+    toast(t('dailyShareCopied'));
+  } catch { toast(t('dailyShareFailed'), 'error'); }
+});
+
 $('weekly-share')?.addEventListener('click', async () => {
   const entries = await listAllEntries().catch(() => []);
   const roll = weeklyRollup(entries, todayISO());
@@ -3862,6 +3760,19 @@ async function renderDashboard() {
       net.className = 'dash-net';
       net.textContent = t('netKcalLine', { net: Math.round(totals.kcal - burned.kcal) });
       dashboardRows.appendChild(net);
+    }
+    // Life-stage kcal chip directly under kcal row — reminds the user
+    // that today's target includes the EFSA pregnancy / lactation
+    // uplift, not just their baseline TDEE. Only shown when life_stage
+    // is set (dailyTargets surfaces it).
+    if (row.key === 'dashKcal' && targets?.life_stage) {
+      const chip = document.createElement('li');
+      chip.className = 'dash-lifestage-chip';
+      const delta = targets.life_stage === 'pregnancy' ? 300 : 500;
+      chip.textContent = targets.life_stage === 'pregnancy'
+        ? t('lifeStageChipPregnancy', { delta })
+        : t('lifeStageChipLactation', { delta });
+      dashboardRows.appendChild(chip);
     }
   }
 
@@ -4147,7 +4058,10 @@ $('progress-close')?.addEventListener('click', (e) => {
 renderQueue();
 updatePendingBanner();
 renderRecentScans();
-renderDashboard();
+// If the user's last session was in Week view, apply that now — otherwise
+// applyViewToggle('day') is a no-op since 'day' is the default state.
+if (dashboardView === 'week') applyViewToggle('week');
+else renderDashboard();
 maybeShowOnboarding({ t });
 // scheduleReminders() is called inside initReminders() above.
 

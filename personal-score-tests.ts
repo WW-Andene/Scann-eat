@@ -148,6 +148,19 @@ describe('Profile physiological formulas', () => {
     assert.ok(tg1.carbs_g_target > tg0.carbs_g_target, 'carbs target must scale up in pregnancy');
     assert.ok(tg1.fat_g_target > tg0.fat_g_target, 'fat target must scale up in pregnancy');
   });
+
+  it('life_stage is echoed back on dailyTargets so UI can surface it', () => {
+    // The dashboard life-stage chip (R4.5) reads targets.life_stage to
+    // decide whether to show the +300 / +500 kcal uplift chip. Pin that
+    // the field flows through so the UI can't be fooled into hiding it.
+    const base = { sex: 'female', age_years: 30, height_cm: 165, weight_kg: 60, activity: 'moderate' };
+    const tg = dailyTargets({ ...base, life_stage: 'pregnancy' })!;
+    assert.equal(tg.life_stage, 'pregnancy');
+    const tg2 = dailyTargets({ ...base, life_stage: 'lactation' })!;
+    assert.equal(tg2.life_stage, 'lactation');
+    const tg3 = dailyTargets(base)!;
+    assert.equal(tg3.life_stage, null);
+  });
 });
 
 // ----- Halal rule coverage -----

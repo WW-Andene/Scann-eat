@@ -332,6 +332,53 @@ export function formatWeeklyShare(rollup, opts = {}) {
 }
 
 /**
+ * formatDailySummary — today's log as a shareable text block.
+ * Pure; takes pre-aggregated totals + targets + burned-kcal snapshot.
+ * Returns '' if nothing was logged. Used by the daily-share button;
+ * mirrored in spirit by formatWeeklyShare above.
+ *
+ *   totals: { kcal, protein_g, carbs_g, fat_g, sat_fat_g, sugars_g, salt_g, count }
+ *   targets: dailyTargets shape (may be null)
+ *   burned: { kcal } (may be null)
+ *   opts: { lang, dateISO }
+ */
+export function formatDailySummary(totals, targets, burned, opts = {}) {
+  if (!totals || !(totals.count > 0)) return '';
+  const { lang = 'fr', dateISO } = opts;
+  const isFr = lang !== 'en';
+  const r = (n) => Math.round(Number(n) || 0);
+  const r1 = (n) => Math.round((Number(n) || 0) * 10) / 10;
+  const date = dateISO
+    ? new Date(`${dateISO}T12:00:00Z`).toLocaleDateString(isFr ? 'fr-FR' : 'en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long',
+      })
+    : null;
+
+  const lines = [];
+  lines.push(isFr
+    ? `🥗 ${date ?? 'Aujourd\'hui'} — ${totals.count} entrée(s)`
+    : `🥗 ${date ?? 'Today'} — ${totals.count} entries`);
+  const netKcal = r(totals.kcal) - r(burned?.kcal || 0);
+  lines.push(isFr
+    ? `${r(totals.kcal)} kcal consommées${burned?.kcal ? ` · ${r(burned.kcal)} brûlées · net ${netKcal}` : ''}`
+    : `${r(totals.kcal)} kcal in${burned?.kcal ? ` · ${r(burned.kcal)} burned · net ${netKcal}` : ''}`);
+  lines.push(isFr
+    ? `Macros : ${r(totals.protein_g)} g protéines · ${r(totals.carbs_g)} g glucides · ${r(totals.fat_g)} g lipides`
+    : `Macros: ${r(totals.protein_g)} g protein · ${r(totals.carbs_g)} g carbs · ${r(totals.fat_g)} g fat`);
+  if (r1(totals.fiber_g)) {
+    lines.push(isFr ? `Fibres : ${r1(totals.fiber_g)} g` : `Fiber: ${r1(totals.fiber_g)} g`);
+  }
+  if (targets) {
+    const pct = targets.kcal > 0 ? Math.round((totals.kcal / targets.kcal) * 100) : 0;
+    lines.push(isFr
+      ? `${pct}% de l'objectif (${r(targets.kcal)} kcal cible)`
+      : `${pct}% of daily goal (${r(targets.kcal)} kcal target)`);
+  }
+  lines.push('— Scann-eat');
+  return lines.join('\n');
+}
+
+/**
  * formatPairingsShare — turns a matchPairings() hit into a shareable
  * plain-text "recipe card". Used by the pairings section's Share button
  * and by navigator.share on mobile (WhatsApp, Messages, Mail). Pure
