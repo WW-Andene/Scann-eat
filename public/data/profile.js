@@ -189,6 +189,7 @@ export function proteinPRI_g(p) {
  * Free sugars: <10 %E ideal <5 %E (WHO Sugars Guideline 2015).
  * Salt: <5 g/day flat (WHO Salt Guideline 2012).
  * Protein: EFSA PRI 0.83 g/kg/d (1.0 g/kg/d ≥65y).
+ * Fiber: EFSA DRV 25 g/day adults (adequate intake).
  */
 export function dailyTargets(p) {
   const tdee = tdeeKcal(p);
@@ -207,6 +208,7 @@ export function dailyTargets(p) {
     free_sugars_g_max: Math.round((0.10 * tdee) / 4),      // WHO 2015
     free_sugars_g_ideal: Math.round((0.05 * tdee) / 4),
     salt_g_max: 5,                                          // WHO 2012 fixed
+    fiber_g_target: 25,                                     // EFSA DRV 2010
     macro_split_key: p?.macro_split || 'balanced',
   };
 }

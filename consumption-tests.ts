@@ -128,7 +128,7 @@ describe('sumTotals — daily aggregation', () => {
 
   it('empty list → zero totals', () => {
     assert.deepEqual(sumTotals([]), {
-      kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, count: 0,
+      kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, fiber_g: 0, count: 0,
     });
   });
 
@@ -138,6 +138,20 @@ describe('sumTotals — daily aggregation', () => {
     const e = buildEntry(product({ salt_g: 0.1234 }), 100);
     const total = sumTotals([e, e, e]);
     assert.equal(total.salt_g, 0.369);
+  });
+
+  it('fiber_g scales linearly and sums like the other macros', () => {
+    const e1 = buildEntry(product({ fiber_g: 3 }), 100);   // 3 g
+    const e2 = buildEntry(product({ fiber_g: 2 }), 150);   // 3 g
+    assert.equal(e1.fiber_g, 3);
+    assert.equal(e2.fiber_g, 3);
+    const total = sumTotals([e1, e2]);
+    assert.equal(total.fiber_g, 6);
+  });
+
+  it('buildQuickAdd accepts and rounds fiber_g', () => {
+    const q = buildQuickAdd({ name: 'lentilles', kcal: 100, fiber_g: 8.256 });
+    assert.equal(q.fiber_g, 8.26);
   });
 });
 

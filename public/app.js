@@ -2109,7 +2109,7 @@ document.querySelectorAll('.share-presets [data-share]').forEach((btn) => {
 // ----- Quick Add -----
 quickAddBtn?.addEventListener('click', () => {
   // reset fields
-  for (const id of ['qa-name', 'qa-kcal', 'qa-carbs', 'qa-protein', 'qa-fat', 'qa-satfat', 'qa-sugars', 'qa-salt']) {
+  for (const id of ['qa-name', 'qa-kcal', 'qa-carbs', 'qa-protein', 'qa-fat', 'qa-satfat', 'qa-sugars', 'qa-salt', 'qa-fiber']) {
     const el = $(id);
     if (el) el.value = '';
   }
@@ -2766,6 +2766,7 @@ qaSave?.addEventListener('click', async (e) => {
       sat_fat_g: Number($('qa-satfat')?.value) || 0,
       sugars_g: Number($('qa-sugars')?.value) || 0,
       salt_g: Number($('qa-salt')?.value) || 0,
+      fiber_g: Number($('qa-fiber')?.value) || 0,
     });
     quickAddDialog.close();
     await renderDashboard();
@@ -3132,6 +3133,7 @@ async function renderDashboard() {
   const rows = [
     { key: 'dashKcal',    value: totals.kcal,       target: targets?.kcal,              unit: 'kcal' },
     { key: 'dashCarbs',   value: totals.carbs_g,    target: targets?.carbs_g_target,    unit: 'g' },
+    { key: 'dashFiber',   value: totals.fiber_g,    target: targets?.fiber_g_target,    unit: 'g' },
     { key: 'dashProtein', value: totals.protein_g,  target: targets?.protein_g_target,  unit: 'g' },
     { key: 'dashFat',     value: totals.fat_g,      target: targets?.fat_g_target,      unit: 'g' },
     { key: 'dashSatFat',  value: totals.sat_fat_g,  target: targets?.sat_fat_g_max,     unit: 'g' },
