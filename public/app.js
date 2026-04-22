@@ -708,7 +708,15 @@ function renderPairings(data) {
   for (const p of hit.pairs.slice(0, 6)) {
     const li = document.createElement('li');
     li.className = 'pairing-chip';
-    li.textContent = p;
+    // Ahn 2011 pair shape: { b, fr, cooccur }. Use fr when available,
+    // otherwise fall back to the English id with underscores stripped.
+    const label = p.fr ?? p.b.replace(/_/g, ' ');
+    li.textContent = label;
+    // Title attr exposes the empirical strength — "co-cité dans 577
+    // recettes" — without cluttering the chip itself.
+    if (Number.isFinite(p.cooccur)) {
+      li.title = t('pairingsSharedCompounds', { n: p.cooccur });
+    }
     list.appendChild(li);
   }
   show(section);

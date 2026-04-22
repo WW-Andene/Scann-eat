@@ -1,4 +1,4 @@
-const CACHE = 'scann-eat-shell-00bff05';
+const CACHE = 'scann-eat-shell-c507e40';
 const SHELL = [
   '/',
   '/index.html',
