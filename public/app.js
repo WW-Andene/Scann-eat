@@ -451,13 +451,28 @@ function renderAudit(data) {
   const pillarList = $('pillar-list'); pillarList.innerHTML = '';
   for (const [label, pillar] of pillars) {
     const pct = Math.round((pillar.score / pillar.max) * 100);
+    const safePct = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
     const li = document.createElement('li');
     li.className = 'pillar-row pillar-clickable';
-    li.innerHTML = `
-      <span class="pillar-label">${label}</span>
-      <span class="pillar-bar"><span class="pillar-bar-fill" style="width:${pct}%"></span></span>
-      <strong class="pillar-value">${pillar.score} / ${pillar.max}</strong>
-    `;
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'pillar-label';
+    labelSpan.textContent = String(label);
+
+    const bar = document.createElement('span');
+    bar.className = 'pillar-bar';
+    const fill = document.createElement('span');
+    fill.className = 'pillar-bar-fill';
+    fill.style.width = `${safePct}%`;
+    bar.appendChild(fill);
+
+    const value = document.createElement('strong');
+    value.className = 'pillar-value';
+    value.textContent = `${pillar.score} / ${pillar.max}`;
+
+    li.appendChild(labelSpan);
+    li.appendChild(bar);
+    li.appendChild(value);
     li.addEventListener('click', () => openPillarDialog(label, pillar));
     pillarList.appendChild(li);
   }
@@ -540,12 +555,21 @@ function buildIngredientRow(ing) {
   li.appendChild(label);
 
   if (ing.percentage != null) {
+    const rawPct = Number(ing.percentage);
+    const safePct = Number.isFinite(rawPct) ? Math.max(0, Math.min(100, rawPct)) : 0;
     const pct = document.createElement('span');
     pct.className = 'ing-pct';
-    pct.innerHTML = `
-      <span class="ing-pct-bar"><span class="ing-pct-fill" style="width:${Math.min(100, ing.percentage)}%"></span></span>
-      <span class="ing-pct-val">${ing.percentage}%</span>
-    `;
+    const bar = document.createElement('span');
+    bar.className = 'ing-pct-bar';
+    const fill = document.createElement('span');
+    fill.className = 'ing-pct-fill';
+    fill.style.width = `${safePct}%`;
+    bar.appendChild(fill);
+    const val = document.createElement('span');
+    val.className = 'ing-pct-val';
+    val.textContent = `${Number.isFinite(rawPct) ? rawPct : '?'}%`;
+    pct.appendChild(bar);
+    pct.appendChild(val);
     li.appendChild(pct);
   }
 
@@ -1122,9 +1146,17 @@ function renderDerived() {
     rows.push([t('satfatMax'), `${targets.sat_fat_g_max} g`]);
     rows.push([t('freeSugarMax'), `${targets.free_sugars_g_max} g (idéal ${targets.free_sugars_g_ideal} g)`]);
   }
-  profileDerivedList.innerHTML = rows
-    .map(([k, v]) => `<li><span>${k}</span><strong>${v}</strong></li>`)
-    .join('');
+  profileDerivedList.innerHTML = '';
+  for (const [k, v] of rows) {
+    const li = document.createElement('li');
+    const span = document.createElement('span');
+    span.textContent = String(k);
+    const strong = document.createElement('strong');
+    strong.textContent = String(v);
+    li.appendChild(span);
+    li.appendChild(strong);
+    profileDerivedList.appendChild(li);
+  }
   show(profileDerivedEl);
 }
 
@@ -1853,21 +1885,33 @@ async function renderWeightSummary(profile) {
   const s = summarizeWeight(entries, 30);
   const trend = weeklyTrend(entries.slice(-10));
   el.innerHTML = '';
-  const parts = [];
-  parts.push(`<strong>${s.latest_kg} kg</strong> · ${t('weightCurrent')}`);
+
+  const appendSpan = (nodes) => {
+    const span = document.createElement('span');
+    for (const n of nodes) span.appendChild(n);
+    if (el.childNodes.length > 0) el.appendChild(document.createTextNode(' · '));
+    el.appendChild(span);
+  };
+  const strong = (txt) => {
+    const s2 = document.createElement('strong');
+    s2.textContent = String(txt);
+    return s2;
+  };
+  const text = (txt) => document.createTextNode(String(txt));
+
+  appendSpan([strong(`${s.latest_kg} kg`), text(` · ${t('weightCurrent')}`)]);
   if (profile?.goal_weight_kg) {
     const toGo = round1(s.latest_kg - profile.goal_weight_kg);
-    parts.push(`🎯 ${profile.goal_weight_kg} kg (${toGo > 0 ? '+' : ''}${toGo} kg)`);
+    appendSpan([text(`🎯 ${profile.goal_weight_kg} kg (${toGo > 0 ? '+' : ''}${toGo} kg)`)]);
   }
   if (s.recent_count >= 2) {
     const sign = s.delta_kg > 0 ? '+' : '';
-    parts.push(`Δ 30 j : ${sign}${s.delta_kg} kg`);
+    appendSpan([text(`Δ 30 j : ${sign}${s.delta_kg} kg`)]);
   }
   if (trend !== 0 && Number.isFinite(trend)) {
     const sign = trend > 0 ? '+' : '';
-    parts.push(`${t('weightTrend')} : ${sign}${trend} kg/sem`);
+    appendSpan([text(`${t('weightTrend')} : ${sign}${trend} kg/sem`)]);
   }
-  el.innerHTML = parts.map((p) => `<span>${p}</span>`).join(' · ');
   show(el);
 }
 
