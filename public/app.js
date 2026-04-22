@@ -3,6 +3,7 @@ import { explainFlag } from '/explanations.js';
 import { enqueue, listPending, remove as removePending, countPending } from '/queue-store.js';
 import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '/scan-history.js';
 import { buildBackup, restoreBackup } from '/backup.js';
+import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile } from '/profiles.js';
 import { searchFoodDB } from '/food-db.js';
 import { detectAllergens } from '/allergens.js';
 import {
@@ -1697,6 +1698,7 @@ settingsBtn?.addEventListener('click', () => {
       if (stored) tm.value = stored;
     }
   }
+  renderProfilesUI();
   settingsDialog.showModal();
 });
 settingsSave?.addEventListener('click', (e) => {
@@ -1805,6 +1807,81 @@ $('backup-import-file')?.addEventListener('change', async (e) => {
       : err.message || String(err);
     setBackupStatus(msg, 'error');
   }
+});
+
+// ----- Multi-profile -----
+function setProfilesStatus(text, state) {
+  const el = $('profiles-status');
+  if (!el) return;
+  if (!text) { hide(el); return; }
+  el.textContent = text;
+  if (state) el.dataset.state = state;
+  else delete el.dataset.state;
+  show(el);
+}
+
+function renderProfilesUI() {
+  const active = activeProfile();
+  const list = listProfiles();
+  const activeEl = $('profiles-active');
+  if (activeEl) activeEl.textContent = active || '—';
+  const sel = $('profiles-switch-select');
+  if (sel) {
+    sel.textContent = '';
+    if (list.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = '—';
+      sel.appendChild(opt);
+    }
+    for (const name of list) {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      if (name === active) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+$('profiles-save')?.addEventListener('click', async () => {
+  const name = $('profiles-name')?.value.trim();
+  if (!name) { setProfilesStatus(t('profilesNoName'), 'error'); return; }
+  try {
+    await saveProfile(name);
+    renderProfilesUI();
+    setProfilesStatus(t('profilesSaved', { name }));
+  } catch (err) {
+    console.error('[profiles save]', err);
+    setProfilesStatus(err.message || String(err), 'error');
+  }
+});
+
+$('profiles-switch')?.addEventListener('click', async () => {
+  const name = $('profiles-switch-select')?.value;
+  if (!name) return;
+  try {
+    await switchProfile(name);
+    renderProfilesUI();
+    setProfilesStatus(t('profilesSwitched', { name }));
+    // Re-render everything that depends on profile / stored data.
+    await renderRecentScans();
+    await renderDashboard();
+    await renderWeightSummary(getProfile());
+    applyTheme();
+    applyReadingPrefs();
+  } catch (err) {
+    console.error('[profiles switch]', err);
+    setProfilesStatus(err.message || String(err), 'error');
+  }
+});
+
+$('profiles-delete')?.addEventListener('click', () => {
+  const name = $('profiles-switch-select')?.value;
+  if (!name) return;
+  deleteProfile(name);
+  renderProfilesUI();
+  setProfilesStatus(t('profilesDeleted', { name }));
 });
 
 updateDismissBtn?.addEventListener('click', () => {

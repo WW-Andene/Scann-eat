@@ -1796,6 +1796,34 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 .qa-suggestion .qs-name { color: var(--text); font-weight: 600; }
 .qa-suggestion .qs-kcal { color: var(--muted); font-variant-numeric: tabular-nums; }
 
+/* ========== PROFILES SECTION (Settings) =================================
+   ========================================================================== */
+.profile-active-row {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: baseline;
+  margin: var(--sp-2) 0;
+  color: var(--muted);
+}
+.profile-active-row strong { color: var(--text); }
+#profiles-name {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  font-size: 0.95em;
+}
+#profiles-switch-select {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+}
+
 /* ========== MEAL REMINDER ROWS (Settings) ================================ */
 .reminder-row {
   display: grid;

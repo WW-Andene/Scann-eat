@@ -13,10 +13,12 @@
  */
 
 import { listScans, saveScan, clearScans } from '/scan-history.js';
-import { listAllEntries, putEntry } from '/consumption.js';
-import { listWeight, logWeight } from '/weight-log.js';
-import { listTemplates, saveTemplate } from '/meal-templates.js';
-import { listRecipes, saveRecipe } from '/recipes.js';
+import {
+  listAllEntries, putEntry, listByDate, deleteEntry, todayISO,
+} from '/consumption.js';
+import { listWeight, logWeight, deleteWeight } from '/weight-log.js';
+import { listTemplates, saveTemplate, deleteTemplate } from '/meal-templates.js';
+import { listRecipes, saveRecipe, deleteRecipe } from '/recipes.js';
 
 const BACKUP_VERSION = 1;
 const LS_PREFIX = 'scanneat.';
@@ -78,10 +80,25 @@ export async function restoreBackup(backup, opts = {}) {
   writeAllLocalStorage(backup.localStorage);
 
   if (opts.wipe) {
+    // Full-wipe mode (used for profile switching, where the current user's
+    // data shouldn't mix with the loaded profile's).
     await clearScans().catch(() => {});
-    // Note: we don't wipe consumption/weight/templates/recipes to preserve
-    // a "merge wins" semantic on items created since the backup. Users who
-    // want a full reset can clear storage manually.
+    try {
+      const entries = await listAllEntries();
+      for (const e of entries) await deleteEntry(e.id).catch(() => {});
+    } catch { /* ignore */ }
+    try {
+      const weights = await listWeight();
+      for (const w of weights) await deleteWeight(w.id).catch(() => {});
+    } catch { /* ignore */ }
+    try {
+      const templates = await listTemplates();
+      for (const tpl of templates) await deleteTemplate(tpl.id).catch(() => {});
+    } catch { /* ignore */ }
+    try {
+      const recipes = await listRecipes();
+      for (const r of recipes) await deleteRecipe(r.id).catch(() => {});
+    } catch { /* ignore */ }
   }
 
   for (const rec of backup.history ?? []) {

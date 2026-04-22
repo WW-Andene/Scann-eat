@@ -103,6 +103,25 @@
         <p class="hint settings-profile-hint" data-i18n="settingsProfileHint">Les préférences alimentaires (régime, faible sucre, bio, etc.) sont maintenant dans le Profil 👤.</p>
 
         <fieldset class="prefs">
+          <legend data-i18n="profilesSection">Profils multiples</legend>
+          <p class="hint" data-i18n="profilesHint">Plusieurs personnes partagent cette app ? Sauvegarde chaque profil (journal, poids, préférences) et change d'un tap.</p>
+          <div class="profile-active-row">
+            <span data-i18n="profilesActive">Profil actif :</span>
+            <strong id="profiles-active">—</strong>
+          </div>
+          <div class="backup-actions">
+            <input id="profiles-name" type="text" placeholder="Nom (ex: Alice)" maxlength="30" autocomplete="off" />
+            <button id="profiles-save" type="button" class="chip-btn" data-i18n="profilesSave">💾 Sauvegarder profil</button>
+          </div>
+          <div class="backup-actions">
+            <select id="profiles-switch-select" aria-label="Changer de profil"></select>
+            <button id="profiles-switch" type="button" class="chip-btn" data-i18n="profilesSwitch">🔄 Changer</button>
+            <button id="profiles-delete" type="button" class="chip-btn" data-i18n="profilesDelete">🗑 Supprimer</button>
+          </div>
+          <p id="profiles-status" class="qa-ai-status" hidden></p>
+        </fieldset>
+
+        <fieldset class="prefs">
           <legend data-i18n="remindersSection">Rappels repas</legend>
           <p class="hint" data-i18n="remindersHint">Notifications locales aux heures des repas. Elles ne fonctionnent que pendant que l'app est ouverte.</p>
           <label class="reminder-row">
