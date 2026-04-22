@@ -22,6 +22,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/data/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/data/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/recipes.js';
+import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
 import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast } from '/core/presenters.js';
 import { checkDiet } from '/core/diets.js';
@@ -874,6 +875,66 @@ $('recipe-ideas-close')?.addEventListener('click', (e) => {
 const pantryDialog = $('pantry-dialog');
 $('recipe-pantry-btn')?.addEventListener('click', () => pantryDialog?.showModal());
 $('pantry-close')?.addEventListener('click', (e) => { e.preventDefault(); pantryDialog?.close(); });
+// Grocery list dialog: aggregates ingredients across the recipes ticked
+// in the recipes-list. If nothing is ticked, takes ALL recipes (the
+// "list all my recipes" weekly-shopping use case).
+const groceryDialog = $('grocery-dialog');
+async function openGroceryList() {
+  const all = await listRecipes().catch(() => []);
+  const checked = Array.from(document.querySelectorAll('#recipes-list .tpl-pick:checked'));
+  const ids = new Set(checked.map((el) => el.dataset.recipeId));
+  const picked = ids.size > 0 ? all.filter((r) => ids.has(r.id)) : all;
+  if (picked.length === 0) { toast(t('groceryEmpty'), 'warn'); return; }
+  const items = aggregateGroceryList(picked);
+  const list = $('grocery-list');
+  const text = $('grocery-text');
+  const source = $('grocery-source');
+  if (source) source.textContent = t('grocerySource', { n: picked.length });
+  if (list) {
+    list.textContent = '';
+    for (const it of items) {
+      const li = document.createElement('li');
+      li.className = 'tpl-item';
+      const name = document.createElement('strong');
+      name.textContent = it.name;
+      const grams = document.createElement('span');
+      grams.className = 'tpl-kcal';
+      grams.textContent = it.grams > 0 ? `${it.grams} g` : '';
+      li.appendChild(name);
+      li.appendChild(grams);
+      list.appendChild(li);
+    }
+  }
+  if (text) text.value = formatGroceryList(items);
+  // Surface native share when the platform supports it (mobile PWAs).
+  const shareBtn = $('grocery-share');
+  if (shareBtn) {
+    if (typeof navigator.share === 'function') show(shareBtn); else hide(shareBtn);
+  }
+  groceryDialog?.showModal();
+}
+
+$('recipe-grocery-btn')?.addEventListener('click', openGroceryList);
+$('grocery-close')?.addEventListener('click', (e) => { e.preventDefault(); groceryDialog?.close(); });
+$('grocery-copy')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const text = $('grocery-text')?.value || '';
+  try {
+    await navigator.clipboard?.writeText(text);
+    toast(t('groceryCopied'));
+  } catch {
+    // Fallback: select the textarea so the user can copy manually.
+    $('grocery-text')?.select();
+  }
+});
+$('grocery-share')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const text = $('grocery-text')?.value || '';
+  try {
+    await navigator.share({ title: t('groceryTitle'), text });
+  } catch { /* user cancelled or unsupported */ }
+});
+
 $('pantry-submit')?.addEventListener('click', async () => {
   const raw = ($('pantry-input')?.value || '').trim();
   if (!raw) { $('pantry-status').textContent = t('pantryEmpty'); return; }
@@ -3070,8 +3131,15 @@ async function renderRecipesList() {
   for (const r of all) {
     const li = document.createElement('li');
     li.className = 'tpl-item';
+    li.dataset.recipeId = r.id;
     const head = document.createElement('div');
     head.className = 'tpl-head';
+    const pick = document.createElement('input');
+    pick.type = 'checkbox';
+    pick.className = 'tpl-pick';
+    pick.setAttribute('aria-label', t('recipeGrocerySelect'));
+    pick.dataset.recipeId = r.id;
+    head.appendChild(pick);
     const name = document.createElement('strong');
     name.textContent = r.name;
     const agg = aggregateRecipe(r, r.servings || 1);

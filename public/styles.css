@@ -3317,3 +3317,23 @@ details li.warn     { color: var(--warning); }
   font-size: 0.95em;
   resize: vertical;
 }
+
+/* ========== GROCERY LIST DIALOG ========================================== */
+.grocery-list { max-height: 50vh; overflow-y: auto; margin: 0 0 var(--sp-3); }
+.grocery-text {
+  width: 100%;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  resize: vertical;
+}
+.tpl-pick {
+  width: 18px; height: 18px;
+  margin-right: var(--sp-2);
+  accent-color: var(--accent);
+  cursor: pointer;
+}
