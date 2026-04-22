@@ -3,25 +3,28 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f1a14" />
+    <meta name="theme-color" content="#F54B5E" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F8C8CF" media="(prefers-color-scheme: light)" />
     <title>Scann-eat</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <aside id="update-banner" class="update-banner" hidden>
+    <a class="skip-link" href="#main-content" data-i18n="skipToContent">Aller au contenu principal</a>
+
+    <aside id="update-banner" class="update-banner" role="status" aria-live="polite" hidden>
       <span class="update-text"><span data-i18n="updateAvail">Mise à jour disponible : </span><strong id="update-version">—</strong></span>
       <a id="update-install-btn" class="update-install" href="#" download rel="noopener" data-i18n="install">Installer</a>
-      <button id="update-dismiss-btn" class="update-dismiss" type="button" aria-label="×">×</button>
+      <button id="update-dismiss-btn" class="update-dismiss" type="button" data-i18n-aria-label="dismiss" aria-label="Ignorer">×</button>
     </aside>
 
-    <aside id="pending-banner" class="pending-banner" hidden>
+    <aside id="pending-banner" class="pending-banner" role="status" aria-live="polite" hidden>
       <span id="pending-text" class="pending-text">—</span>
       <button id="pending-retry" type="button" class="pending-retry" data-i18n="retryAll">Réessayer</button>
     </aside>
 
-    <header>
+    <header role="banner">
       <button id="profile-btn" class="settings-btn profile-btn" type="button" data-i18n-aria-label="profile" aria-label="Profil">&#128100;</button>
       <button id="settings-btn" class="settings-btn" type="button" data-i18n-aria-label="settings" aria-label="Réglages">&#9881;</button>
       <h1>Scann-eat</h1>
@@ -265,16 +268,16 @@
       </form>
     </dialog>
 
-    <dialog id="camera-dialog" class="camera-dialog">
+    <dialog id="camera-dialog" class="camera-dialog" aria-labelledby="camera-status">
       <div class="camera-frame">
-        <video id="camera-video" playsinline autoplay muted></video>
+        <video id="camera-video" playsinline autoplay muted aria-hidden="true"></video>
         <div class="camera-reticle" aria-hidden="true"></div>
-        <div class="camera-status" id="camera-status" data-i18n="cameraReady">Pointer vers le code-barres…</div>
+        <div class="camera-status" id="camera-status" role="status" aria-live="polite" data-i18n="cameraReady">Pointer vers le code-barres…</div>
         <button id="camera-close" type="button" class="camera-close" data-i18n="close">Fermer</button>
       </div>
     </dialog>
 
-    <main>
+    <main id="main-content" role="main">
       <section class="capture">
         <div id="queue" class="queue" hidden></div>
         <div class="capture-actions">
@@ -299,7 +302,7 @@
         <p class="hint" data-i18n="hintCapture">Jusqu'à 4 photos (face + ingrédients + nutrition).</p>
       </section>
 
-      <section id="status" class="status" hidden>
+      <section id="status" class="status" role="status" aria-live="polite" hidden>
         <div class="skeleton-card">
           <div class="skeleton-grade"></div>
           <div class="skeleton-lines">

@@ -81,6 +81,29 @@
   color-scheme: light;
 }
 
+/* ========== SKIP LINK =====================================================
+   Keyboard users tab to this first; jumps past the banners + header
+   straight to main content.
+   ========================================================================== */
+.skip-link {
+  position: absolute;
+  top: -50px;
+  left: var(--sp-4, 16px);
+  background: var(--accent, #FF6B45);
+  color: var(--accent-ink, #1B1B1F);
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  z-index: 9999;
+  transition: top 160ms ease;
+}
+.skip-link:focus-visible {
+  top: var(--sp-3, 12px);
+  outline: 3px solid var(--text-on-bg, #1B1B1F);
+  outline-offset: 2px;
+}
+
 /* ========== RESET =========================================================
    ========================================================================== */
 * { box-sizing: border-box; }
