@@ -130,6 +130,30 @@ function getKey() { return localStorage.getItem(LS_KEY) || ''; }
 function show(el) { if (el) el.hidden = false; }
 function hide(el) { if (el) el.hidden = true; }
 
+/**
+ * Lightweight non-blocking toast. Announces to screen readers via role=status
+ * and auto-removes after a short delay. Prefer this over alert() inside the
+ * PWA — native alert() on Android steals focus, breaks the read-aloud flow,
+ * and looks foreign compared to the rest of the UI.
+ */
+let toastEl = null;
+let toastTimer = null;
+function toast(text, ms = 2600) {
+  if (!toastEl) {
+    toastEl = document.createElement('div');
+    toastEl.className = 'app-toast';
+    toastEl.setAttribute('role', 'status');
+    toastEl.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toastEl);
+  }
+  toastEl.textContent = String(text);
+  toastEl.dataset.visible = 'true';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastEl.dataset.visible = 'false';
+  }, ms);
+}
+
 // ============================================================================
 // Barcode detection
 // ============================================================================
@@ -1675,14 +1699,14 @@ tplClose?.addEventListener('click', (e) => { e.preventDefault(); templatesDialog
 tplSaveToday?.addEventListener('click', async () => {
   const entries = await listByDate().catch(() => []);
   if (entries.length === 0) {
-    alert(t('nothingLoggedToSave'));
+    toast(t('nothingLoggedToSave'));
     return;
   }
   const name = prompt(t('templateNamePlaceholder'));
   if (!name) return;
   const saved = await saveTemplate({ name, items: entries });
   await renderTemplatesList();
-  alert(t('templateSavedToast', { name: saved.name }));
+  toast(t('templateSavedToast', { name: saved.name }));
 });
 
 async function renderTemplatesList() {
@@ -1720,7 +1744,7 @@ async function renderTemplatesList() {
       const entries = expandTemplate(tpl, todayISO());
       for (const e of entries) await putEntry(e);
       await renderDashboard();
-      alert(t('templateApplyToast', { n: entries.length, plural: entries.length > 1 ? 'ies' : 'y' }));
+      toast(t('templateApplyToast', { n: entries.length, plural: entries.length > 1 ? 'ies' : 'y' }));
     });
     const del = document.createElement('button');
     del.type = 'button';
