@@ -4,6 +4,7 @@ import { enqueue, listPending, remove as removePending, countPending } from '/qu
 import { saveScan, listScans, deleteScan, clearScans, findScanByBarcode } from '/scan-history.js';
 import { buildBackup, restoreBackup } from '/backup.js';
 import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile } from '/profiles.js';
+import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEvent as telemetryLog, clearEvents as telemetryClear, formatEvents as telemetryFormat } from '/telemetry.js';
 import { searchFoodDB } from '/food-db.js';
 import { detectAllergens } from '/allergens.js';
 import {
@@ -448,6 +449,7 @@ async function scanImage() {
     if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null; }
     hide(statusEl);
     console.error('[scan] failed', err);
+    telemetryLog('scan-failed', err?.message || String(err), bc ? `barcode=${bc}` : `mode=${mode}`);
     // navigator.onLine is the primary signal. The regex is a secondary probe
     // on the error message: cover EN phrasing (Chrome, Safari) + FR phrasing
     // ("Échec du réseau", "Impossible de charger") so French users also hit
@@ -1699,6 +1701,8 @@ settingsBtn?.addEventListener('click', () => {
     }
   }
   renderProfilesUI();
+  const telCb = $('telemetry-enabled');
+  if (telCb) telCb.checked = telemetryEnabled();
   settingsDialog.showModal();
 });
 settingsSave?.addEventListener('click', (e) => {
@@ -1893,6 +1897,29 @@ $('profiles-switch')?.addEventListener('click', async () => {
     console.error('[profiles switch]', err);
     setProfilesStatus(err.message || String(err), 'error');
   }
+});
+
+// ----- Telemetry (local-only log) -----
+$('telemetry-enabled')?.addEventListener('change', (e) => {
+  telemetrySetEnabled(!!e.target.checked);
+});
+$('telemetry-view')?.addEventListener('click', () => {
+  const out = $('telemetry-output');
+  if (!out) return;
+  out.textContent = telemetryFormat();
+  show(out);
+});
+$('telemetry-copy')?.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard?.writeText(telemetryFormat());
+    setBackupStatus(t('telemetryCopied'));
+  } catch (err) { setBackupStatus(err.message || String(err), 'error'); }
+});
+$('telemetry-clear')?.addEventListener('click', () => {
+  telemetryClear();
+  const out = $('telemetry-output');
+  if (out) { out.textContent = ''; hide(out); }
+  setBackupStatus(t('telemetryCleared'));
 });
 
 $('profiles-delete')?.addEventListener('click', () => {

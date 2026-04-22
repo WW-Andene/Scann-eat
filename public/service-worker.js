@@ -18,6 +18,7 @@ const SHELL = [
   '/backup.js',
   '/profiles.js',
   '/food-db.js',
+  '/telemetry.js',
   '/presenters.js',
   '/engine.bundle.js',
   '/styles.css',

@@ -1796,6 +1796,21 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 .qa-suggestion .qs-name { color: var(--text); font-weight: 600; }
 .qa-suggestion .qs-kcal { color: var(--muted); font-variant-numeric: tabular-nums; }
 
+/* ========== TELEMETRY OUTPUT ============================================ */
+.telemetry-output {
+  max-height: 180px;
+  overflow: auto;
+  background: var(--panel-2);
+  color: var(--text);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  font-size: 0.78em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: var(--sp-2);
+}
+
 /* ========== PROFILES SECTION (Settings) =================================
    ========================================================================== */
 .profile-active-row {
