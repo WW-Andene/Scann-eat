@@ -87,6 +87,24 @@
   color-scheme: light;
 }
 
+/* ========== NOSCRIPT FALLBACK ===========================================
+   Shown only when JavaScript is disabled — the rest of the UI is driven
+   by JS so the user would otherwise see a blank page.
+   ========================================================================== */
+.noscript-warning {
+  max-width: 520px;
+  margin: 48px auto;
+  padding: 24px 20px;
+  background: var(--panel, #1B1B1F);
+  color: var(--text, #F5F0E8);
+  border-radius: 18px;
+  text-align: center;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+}
+.noscript-warning h1 { margin: 0 0 12px; font-size: 1.4em; }
+.noscript-warning p { margin: 8px 0; }
+
 /* ========== SKIP LINK =====================================================
    Keyboard users tab to this first; jumps past the banners + header
    straight to main content.
