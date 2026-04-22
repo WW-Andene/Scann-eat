@@ -2342,6 +2342,37 @@ $('backup-import-file')?.addEventListener('change', async (e) => {
   }
 });
 
+// ----- MFP / Cronometer CSV import -----
+$('csv-import-file')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  const status = $('csv-import-status');
+  if (!file) return;
+  if (status) status.textContent = t('csvImportLoading');
+  try {
+    const { parseCsvImport } = await import('/features/csv-import.js');
+    const text = await file.text();
+    const { format, entries, errors } = parseCsvImport(text);
+    if (format === 'unknown') {
+      if (status) status.textContent = t('csvImportUnknown');
+      return;
+    }
+    let written = 0;
+    for (const e of entries) {
+      try { await putEntry(e); written += 1; } catch { /* skip */ }
+    }
+    if (status) {
+      status.textContent = t('csvImportDone', {
+        n: written, format, skipped: errors.length,
+      });
+    }
+    await renderDashboard();
+  } catch (err) {
+    console.error('[csv import]', err);
+    if (status) status.textContent = t('csvImportFailed');
+  }
+});
+
 // ----- Multi-profile -----
 function setProfilesStatus(text, state) {
   const el = $('profiles-status');
