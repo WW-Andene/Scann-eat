@@ -265,3 +265,60 @@ describe('checkDiet: kosher', () => {
     assert.equal(r.certified, true);
   });
 });
+
+// ============================================================================
+// Low-FODMAP — Monash list
+// ============================================================================
+
+describe('checkDiet: low_fodmap', () => {
+  it('compliant for rice', () => {
+    const p = product('', ['riz', 'sel']);
+    assert.equal(checkDiet(p, 'low_fodmap').compliant, true);
+  });
+
+  it('REJECTS oignon', () => {
+    const p = product('', ['oignon caramélisé']);
+    assert.equal(checkDiet(p, 'low_fodmap').compliant, false);
+  });
+
+  it('REJECTS "chicorée" (accented regression guard)', () => {
+    const p = product('', ['fibre de chicorée']);
+    assert.equal(checkDiet(p, 'low_fodmap').compliant, false);
+  });
+
+  it('"lait sans lactose" still triggers (lactose is a standalone trigger)', () => {
+    // Documents current behavior: the rule list has both `lait(?! sans
+    // lactose)` and plain `lactose`, so "lait sans lactose" is caught by the
+    // second alternative. If this is ever considered wrong, remove `lactose`
+    // from the list — but be careful: plain "lactose monohydrate" would then
+    // also pass, which may or may not be desired.
+    const p = product('', ['lait sans lactose']);
+    assert.equal(checkDiet(p, 'low_fodmap').compliant, false);
+  });
+});
+
+// ============================================================================
+// Paleo — no grains, legumes, dairy, refined sugars
+// ============================================================================
+
+describe('checkDiet: paleo', () => {
+  it('compliant for meat + veggies', () => {
+    const p = product('', ['viande de boeuf', 'épinard', 'huile d\'olive']);
+    assert.equal(checkDiet(p, 'paleo').compliant, true);
+  });
+
+  it('REJECTS grains', () => {
+    const p = product('', ['farine de blé']);
+    assert.equal(checkDiet(p, 'paleo').compliant, false);
+  });
+
+  it('REJECTS legumes', () => {
+    const p = product('', ['pois chiche']);
+    assert.equal(checkDiet(p, 'paleo').compliant, false);
+  });
+
+  it('REJECTS refined sugar (accented "raffiné")', () => {
+    const p = product('', ['sucre raffiné']);
+    assert.equal(checkDiet(p, 'paleo').compliant, false);
+  });
+});
