@@ -126,19 +126,25 @@ export function parseVoiceQuickAdd(transcript) {
   };
 
   const kcal = grab(new RegExp(`${num}\\s*(?:kcal|calories?|cal)\\b`, 'i'));
-  const protein = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:prot[eé]ines?|protein)\\b`, 'i'));
-  const carbs = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:glucides?|carbs?|carbohydrates?)\\b`, 'i'));
-  const fat = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:lipides?|fat|mati[eè]res? grasses?)\\b`, 'i'));
+  // Optional connector word — "de" (FR), "of" (EN), or nothing.
+  const conn = '(?:(?:de|of)\\s+)?';
+  const protein = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:prot[eé]ines?|protein)\\b`, 'i'));
+  const carbs = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:glucides?|carbs?|carbohydrates?)\\b`, 'i'));
+  const fat = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:lipides?|fat|mati[eè]res? grasses?)\\b`, 'i'));
 
   // Portion (grams OR ml). Only take if no macro claimed the same number —
   // tested last and excluded when the nutrient labels are adjacent.
-  const portionRe = new RegExp(`${num}\\s*(g(?:rammes?)?|ml|millilitres?)(?![a-zà-ÿ])`, 'i');
+  // The 'g' flag is REQUIRED on this regex so .exec() advances lastIndex
+  // between iterations. Without it, a "continue" inside the while loop
+  // re-matches the same position forever — that's the bug that hung
+  // presenter-tests.ts for ~6 weeks before B6.1.
+  const portionRe = new RegExp(`${num}\\s*(g(?:rammes?)?|ml|millilitres?)(?![a-zà-ÿ])`, 'gi');
   let grams;
   let m;
   while ((m = portionRe.exec(text)) !== null) {
     // Reject if this number was already consumed by a macro label.
     const next20 = text.slice(m.index + m[0].length, m.index + m[0].length + 30);
-    if (/^\s*(?:de\s+)?(?:prot|gluc|carb|lipid|fat|mati[eè]re)/.test(next20)) continue;
+    if (/^\s*(?:(?:de|of)\s+)?(?:prot|gluc|carb|lipid|fat|mati[eè]re)/.test(next20)) continue;
     grams = n(m[1]);
     break;
   }
@@ -476,9 +482,13 @@ export function entriesToDailyCSV(entries) {
  */
 export function nextOccurrenceMs(hhmm, nowMs) {
   if (typeof hhmm !== 'string') return null;
-  const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+  // Strict on hour (0-23): a "25:00" input is almost certainly user error
+  // and we don't want to silently clamp it to 23:00 — that's surprising.
+  // Loose on minutes: "23:75" parses + clamps to 23:59 since the typo
+  // intent is clearer (you can guess they meant 23:59).
+  const m = hhmm.match(/^([01]?\d|2[0-3]):(\d{2})$/);
   if (!m) return null;
-  const hh = Math.max(0, Math.min(23, Number(m[1])));
+  const hh = Number(m[1]);
   const mm = Math.max(0, Math.min(59, Number(m[2])));
   const now = new Date(nowMs);
   const target = new Date(now);
