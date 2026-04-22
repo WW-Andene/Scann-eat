@@ -55,6 +55,10 @@ export function initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }) {
         setField('qa-protein', parsed.protein_g);
         setField('qa-carbs',   parsed.carbs_g);
         setField('qa-fat',     parsed.fat_g);
+        // Meal slot override — only when the user clearly said a meal
+        // word ("petit-déjeuner", "dinner", "snack"). Stays on the
+        // time-of-day default otherwise.
+        if (parsed.meal) setField('qa-meal', parsed.meal);
       };
       rec.onerror = () => { /* handled by onend */ };
       rec.onend = () => {

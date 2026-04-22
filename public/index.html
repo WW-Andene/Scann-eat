@@ -437,6 +437,7 @@
           <div class="view-toggle" role="tablist" aria-label="Vue">
             <button id="view-day" type="button" role="tab" aria-selected="true" class="view-tab active" data-view="day" data-i18n="viewDay">Jour</button>
             <button id="view-week" type="button" role="tab" aria-selected="false" class="view-tab" data-view="week" data-i18n="viewWeek">7 jours</button>
+            <button id="view-month" type="button" role="tab" aria-selected="false" class="view-tab" data-view="month" data-i18n="viewMonth">30 jours</button>
           </div>
           <p id="dashboard-streak" class="dashboard-streak" hidden></p>
           <div class="dashboard-actions">
@@ -508,6 +509,12 @@
           <div class="weekly-summary" id="weekly-summary"></div>
           <div class="weekly-bars" id="weekly-bars" role="img" aria-label="Graphique barres 7 jours"></div>
           <button id="weekly-share" type="button" class="secondary compact" data-i18n="weeklyShare">📤 Partager cette semaine</button>
+        </section>
+
+        <section id="monthly-view" class="weekly-view" hidden>
+          <div class="weekly-summary" id="monthly-summary"></div>
+          <div class="weekly-bars" id="monthly-bars" role="img" aria-label="Graphique barres 30 jours"></div>
+          <button id="monthly-share" type="button" class="secondary compact" data-i18n="monthlyShare">📤 Partager ces 30 jours</button>
         </section>
 
         <details class="dashboard-log" id="dashboard-log" hidden>

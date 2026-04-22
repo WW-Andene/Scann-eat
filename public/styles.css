@@ -27,6 +27,10 @@
   --accent:        #FF6B45;   /* orange button */
   --accent-dim:    #D15637;
   --accent-ink:    #1B1B1F;   /* text color on accent button */
+  /* Warm accent used by informational chips (life-stage, etc.). Sits
+     between --accent (call-to-action) and --muted (tertiary text) —
+     reads as "noteworthy but not urgent". */
+  --accent-warm:   #E8B76B;
 
   /* utility */
   --border:        rgba(245, 240, 232, 0.10);
@@ -82,6 +86,9 @@
   --accent:        #B0431F;
   --accent-dim:    #8A3316;
   --accent-ink:    #FFFFFF;
+  /* Light-theme warm accent — a touch darker than the dark-theme one so
+     it stays AA-readable on #FAF5E9. */
+  --accent-warm:   #B0761E;
   --border:        rgba(27, 27, 31, 0.08);
   --border-strong: rgba(27, 27, 31, 0.20);
   --input-bg:      #FFFFFF;
@@ -2129,6 +2136,14 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   height: 120px;
   padding-top: var(--sp-2);
 }
+/* 30-day variant: same grid, more columns, thinner bars, no labels. */
+.weekly-bars.wbars-30 {
+  grid-template-columns: repeat(30, 1fr);
+  gap: 2px;
+  height: 96px;
+}
+.wbar-thin { gap: 0; }
+.wbar-thin .wbar-col { max-width: 100%; border-radius: 2px 2px 0 0; }
 .wbar {
   display: flex;
   flex-direction: column;

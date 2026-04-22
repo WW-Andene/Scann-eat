@@ -155,12 +155,24 @@ export function parseVoiceQuickAdd(transcript) {
   if (Number.isFinite(fat))     out.fat_g = fat;
   if (Number.isFinite(grams))   out.grams = grams;
 
+  // Meal slot — users commonly say "petit-déjeuner bananes" or
+  // "dinner chicken". Snap to the canonical meal key when the transcript
+  // starts with one of the known labels. Callers decide whether to
+  // override qa-meal.
+  if (/\b(petit[- ]d[eé]jeuner|breakfast|brunch)\b/i.test(text)) out.meal = 'breakfast';
+  else if (/\b(d[eé]jeuner|lunch|midi)\b/i.test(text))           out.meal = 'lunch';
+  else if (/\b(d[iî]ner|dinner|soir)\b/i.test(text))             out.meal = 'dinner';
+  else if (/\b(snack|en[- ]cas|go[uû]ter|collation)\b/i.test(text)) out.meal = 'snack';
+
   // Name: strip out the unit-number blocks we consumed. Whatever's left is
   // the food name. Trim punctuation + whitespace.
   let name = text
     .replace(new RegExp(`${num}\\s*(?:kcal|calories?|cal|kilocalories?)\\b`, 'gi'), ' ')
     .replace(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:prot[eé]ines?|protein|glucides?|carbs?|carbohydrates?|lipides?|fat|mati[eè]res? grasses?)\\b`, 'gi'), ' ')
     .replace(new RegExp(`${num}\\s*(?:g(?:rammes?)?|ml|millilitres?)(?![a-zà-ÿ])`, 'gi'), ' ')
+    // Meal labels handled separately into out.meal; strip from name so
+    // the food-name field doesn't contain the meal word.
+    .replace(/\b(petit[- ]d[eé]jeuner|breakfast|brunch|d[eé]jeuner|lunch|midi|d[iî]ner|dinner|soir|snack|en[- ]cas|go[uû]ter|collation)\b/gi, ' ')
     .replace(/[,;.]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -390,6 +402,46 @@ export function formatWeeklyShare(rollup, opts = {}) {
       lines.push(`${dayStr}  ${r(d.kcal)} kcal  ${r(d.protein_g)} prot · ${r(d.carbs_g)} gluc · ${r(d.fat_g)} lip`);
     }
   }
+  return lines.join('\n');
+}
+
+/**
+ * formatMonthlyShare — serialises a monthlyRollup into a compact share
+ * block. Unlike formatWeeklyShare, we skip the per-day lines (30 rows
+ * is too much for a share target) and instead surface avg / total /
+ * days-logged with a count of "on-goal" days.
+ *
+ * Returns '' when the rollup has no logged days.
+ */
+export function formatMonthlyShare(rollup, opts = {}) {
+  if (!rollup || !Array.isArray(rollup.days) || rollup.days_logged === 0) return '';
+  const { lang = 'fr', kcalTarget = 0 } = opts;
+  const isFr = lang !== 'en';
+  const r = (n) => Math.round(Number(n) || 0);
+  const firstDate = rollup.days[0]?.date;
+  const lastDate = rollup.days[rollup.days.length - 1]?.date;
+  const range = firstDate && lastDate
+    ? (isFr ? `du ${firstDate} au ${lastDate}` : `${firstDate} → ${lastDate}`)
+    : '';
+  const onGoal = kcalTarget > 0
+    ? rollup.days.filter((d) => d.count > 0 && Math.abs(d.kcal - kcalTarget) <= kcalTarget * 0.1).length
+    : 0;
+  const lines = [];
+  lines.push(isFr
+    ? `📅 30 jours ${range} — ${rollup.days_logged} jour(s) enregistré(s)`
+    : `📅 30 days ${range} — ${rollup.days_logged} day(s) logged`);
+  lines.push(isFr
+    ? `Moy/jour : ${r(rollup.avg.kcal)} kcal · ${r(rollup.avg.protein_g)} g prot · ${r(rollup.avg.carbs_g)} g gluc · ${r(rollup.avg.fat_g)} g lip`
+    : `Avg/day: ${r(rollup.avg.kcal)} kcal · ${r(rollup.avg.protein_g)} g prot · ${r(rollup.avg.carbs_g)} g carbs · ${r(rollup.avg.fat_g)} g fat`);
+  lines.push(isFr
+    ? `Total : ${r(rollup.total.kcal)} kcal`
+    : `Total: ${r(rollup.total.kcal)} kcal`);
+  if (kcalTarget > 0) {
+    lines.push(isFr
+      ? `Jours dans ±10% de la cible : ${onGoal}/${rollup.days_logged}`
+      : `Days within ±10% of target: ${onGoal}/${rollup.days_logged}`);
+  }
+  lines.push('— Scann-eat');
   return lines.join('\n');
 }
 

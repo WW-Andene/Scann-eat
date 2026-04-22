@@ -6,7 +6,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS
-import { weeklyRollup, monthlyRollup, formatWeeklyShare, formatPairingsShare, formatDailySummary } from './public/core/presenters.js';
+import { weeklyRollup, monthlyRollup, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary } from './public/core/presenters.js';
 
 const entries = [
   { date: '2026-04-22', kcal: 400, protein_g: 20, carbs_g: 50, fat_g: 10, sat_fat_g: 3, sugars_g: 5, salt_g: 1 },
@@ -170,5 +170,44 @@ describe('monthlyRollup', () => {
     assert.equal(r.days_logged, 0);
     assert.equal(r.total.kcal, 0);
     assert.equal(r.avg.kcal, 0);
+  });
+});
+
+describe('formatMonthlyShare', () => {
+  it('returns "" when no day is logged', () => {
+    const r = monthlyRollup([], '2026-04-22');
+    assert.equal(formatMonthlyShare(r), '');
+  });
+
+  it('produces a FR summary with avg + total + days-logged', () => {
+    const r = monthlyRollup([
+      { date: '2026-04-22', kcal: 2000, protein_g: 80, carbs_g: 250, fat_g: 60, sat_fat_g: 12, sugars_g: 30, salt_g: 3 },
+      { date: '2026-04-15', kcal: 1800, protein_g: 70, carbs_g: 220, fat_g: 55, sat_fat_g: 10, sugars_g: 25, salt_g: 2.5 },
+    ], '2026-04-22');
+    const out = formatMonthlyShare(r, { lang: 'fr' });
+    assert.ok(out.includes('30 jours'));
+    assert.ok(out.includes('2 jour(s) enregistré(s)'));
+    assert.ok(out.includes('Moy/jour'));
+    assert.ok(out.includes('Total'));
+  });
+
+  it('adds the "within ±10% of target" line when kcalTarget > 0', () => {
+    const r = monthlyRollup([
+      { date: '2026-04-22', kcal: 2000, protein_g: 80, carbs_g: 250, fat_g: 60, sat_fat_g: 12, sugars_g: 30, salt_g: 3 },
+      { date: '2026-04-15', kcal: 2100, protein_g: 80, carbs_g: 250, fat_g: 60, sat_fat_g: 12, sugars_g: 30, salt_g: 3 },
+      { date: '2026-04-01', kcal: 3500, protein_g: 80, carbs_g: 250, fat_g: 60, sat_fat_g: 12, sugars_g: 30, salt_g: 3 }, // way over
+    ], '2026-04-22');
+    const out = formatMonthlyShare(r, { lang: 'en', kcalTarget: 2000 });
+    assert.match(out, /Days within .*: 2\/3/);
+  });
+
+  it('English variant reads naturally', () => {
+    const r = monthlyRollup([
+      { date: '2026-04-22', kcal: 1800, protein_g: 70, carbs_g: 220, fat_g: 55, sat_fat_g: 10, sugars_g: 25, salt_g: 2.5 },
+    ], '2026-04-22');
+    const out = formatMonthlyShare(r, { lang: 'en' });
+    assert.ok(out.includes('30 days'));
+    assert.ok(out.includes('Avg/day'));
+    assert.ok(out.includes('Total'));
   });
 });

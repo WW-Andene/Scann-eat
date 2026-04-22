@@ -132,6 +132,21 @@ describe('reconcileWithFoodDB', () => {
     assert.equal(r.confidence, 'low');
   });
 
+  it('R6.8: when estimated_grams is 0/missing, returns LLM values unchanged (not 0)', () => {
+    // The LLM sometimes returns a name without a portion estimate — e.g.
+    // for a mixed plate. Scaling per-100 g DB values by (0 / 100) would
+    // zero out everything. Guard: reconcile is a no-op when grams<=0.
+    const r = reconcileWithFoodDB({
+      name: 'pomme',
+      estimated_grams: 0,
+      kcal: 120, protein_g: 1, carbs_g: 30, fat_g: 1,
+      confidence: 'medium',
+    });
+    assert.equal(r.source, 'llm');
+    assert.equal(r.kcal, 120);
+    assert.equal(r.carbs_g, 30);
+  });
+
   it('handles missing/invalid input gracefully', () => {
     assert.equal(reconcileWithFoodDB(null), null);
     assert.equal(reconcileWithFoodDB(undefined), undefined);
@@ -139,13 +154,17 @@ describe('reconcileWithFoodDB', () => {
     assert.equal(r.source, 'llm');
   });
 
-  it('0 grams yields 0 macros even on DB hit', () => {
+  it('0 grams is a reconcile no-op — see R6.8: returns LLM values, not zero', () => {
+    // Contract changed in R6.8: previously 0 grams → 0 macros with
+    // source='db' (because f = 0/100 = 0). That silently erased the
+    // LLM's own kcal estimate whenever it didn't emit a portion. New
+    // behaviour: skip reconcile when grams <= 0.
     const r = reconcileWithFoodDB({
       name: 'banane', estimated_grams: 0,
       kcal: 500, protein_g: 50, carbs_g: 50, fat_g: 50,
     });
-    assert.equal(r.source, 'db');
-    assert.equal(r.kcal, 0);
-    assert.equal(r.carbs_g, 0);
+    assert.equal(r.source, 'llm');
+    assert.equal(r.kcal, 500);
+    assert.equal(r.carbs_g, 50);
   });
 });

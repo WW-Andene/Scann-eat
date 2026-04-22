@@ -21,6 +21,7 @@ import { shareOrCopy } from '/core/share.js';
 import { initRecipeIdeas, openRecipeIdeas, openPantryIdeas } from '/features/recipe-ideas.js';
 import { initSettingsDialog } from '/features/settings-dialog.js';
 import { initKeybindings } from '/features/keybindings.js';
+import { initProfileDialog } from '/features/profile-dialog.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -39,7 +40,7 @@ import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/re
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatPairingsShare, formatDailySummary } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
@@ -1596,216 +1597,10 @@ function renderPersonalScore(audit, product) {
   show(personalAdjustmentsEl);
 }
 
-// ============================================================================
-// Profile dialog
-// ============================================================================
+// Profile dialog extracted to /features/profile-dialog.js — init in
+// the boot block below. Element refs, per-field listeners, macro-sum
+// validation, life-stage gate, and save pipeline live inside the module.
 
-const profileBtn = $('profile-btn');
-const profileDialog = $('profile-dialog');
-const profileSex = $('profile-sex');
-const profileAge = $('profile-age');
-const profileHeight = $('profile-height');
-const profileWeight = $('profile-weight');
-const profileActivity = $('profile-activity');
-const profileDiet = $('profile-diet');
-const profileCustomForbidden = $('profile-custom-forbidden');
-const profileCustomPreferred = $('profile-custom-preferred');
-const profileCustomWrap = $('custom-diet-wrap');
-const profileDerivedEl = $('profile-derived');
-const profileDerivedList = $('profile-derived-list');
-const profileSave = $('profile-save');
-const profileCancel = $('profile-cancel');
-
-function openProfileDialog() {
-  const p = getProfile();
-  profileSex.value = p.sex || '';
-  profileAge.value = p.age_years ?? '';
-  profileHeight.value = p.height_cm ?? '';
-  profileWeight.value = p.weight_kg ?? '';
-  $('profile-goal-weight').value = p.goal_weight_kg ?? '';
-  $('profile-water-goal').value = p.water_goal_ml ?? '';
-  profileActivity.value = p.activity || '';
-  const lifeStageEl = $('profile-life-stage');
-  if (lifeStageEl) lifeStageEl.value = p.life_stage || '';
-  toggleLifeStageVisibility();
-  profileDiet.value = p.diet || 'none';
-  profileCustomForbidden.value = (p.custom_diet?.forbidden || []).join('\n');
-  profileCustomPreferred.value = (p.custom_diet?.preferred || []).join('\n');
-  const m = p.modifiers || {};
-  $('mod-lowsugar').checked = !!m.lowSugar;
-  $('mod-lowsalt').checked = !!m.lowSalt;
-  $('mod-highprotein').checked = !!m.highProtein;
-  $('mod-organic').checked = !!m.organic;
-  $('profile-macro-split').value = p.macro_split || 'balanced';
-  const c = p.macro_split_custom || { carbs: 50, protein: 20, fat: 30 };
-  $('macro-custom-carbs').value = c.carbs;
-  $('macro-custom-protein').value = c.protein;
-  $('macro-custom-fat').value = c.fat;
-  toggleCustomDietWrap();
-  toggleMacroCustomWrap();
-  renderDerived();
-  profileDialog.showModal();
-}
-
-function toggleMacroCustomWrap() {
-  const wrap = $('macro-custom-wrap');
-  const sel = $('profile-macro-split');
-  if (!wrap || !sel) return;
-  if (sel.value === 'custom') show(wrap);
-  else hide(wrap);
-  renderMacroSum();
-}
-
-function renderMacroSum() {
-  const el = $('macro-custom-sum');
-  if (!el) return;
-  const c = Number($('macro-custom-carbs')?.value) || 0;
-  const p = Number($('macro-custom-protein')?.value) || 0;
-  const f = Number($('macro-custom-fat')?.value) || 0;
-  const sum = c + p + f;
-  const ok = Math.abs(sum - 100) <= 3;
-  if (ok) {
-    el.textContent = t('macroSumOk');
-    el.dataset.state = 'ok';
-  } else {
-    // Hint which direction to adjust so the user isn't stuck at "Total 97 %"
-    // without knowing whether to bump one macro up or down.
-    const delta = Math.round(100 - sum);
-    const hint = delta > 0
-      ? t('macroSumAddHint', { n: delta })
-      : t('macroSumRemoveHint', { n: -delta });
-    el.textContent = t('macroSumOff', { v: sum }) + ' · ' + hint;
-    el.dataset.state = 'off';
-  }
-  // Only apply the custom-split lockout when the "custom" split is selected.
-  // Other splits are preset and need no validation.
-  const split = $('profile-macro-split')?.value;
-  if (profileSave) {
-    profileSave.disabled = split === 'custom' && !ok;
-    profileSave.title = profileSave.disabled ? t('macroSumBlocksSave') : '';
-  }
-}
-
-function toggleCustomDietWrap() {
-  if (profileDiet.value === 'custom') show(profileCustomWrap);
-  else hide(profileCustomWrap);
-}
-
-// Life-stage (pregnancy / lactation) only applies to female users per
-// EFSA DRVs. The selector stays visible — just auto-cleared and hidden
-// — when sex is male / other / unset so it doesn't clutter the form
-// for users it doesn't apply to.
-function toggleLifeStageVisibility() {
-  const wrap = $('profile-life-stage-wrap');
-  const sel = $('profile-life-stage');
-  if (!wrap) return;
-  if (profileSex?.value === 'female') {
-    show(wrap);
-  } else {
-    hide(wrap);
-    if (sel) sel.value = ''; // no stale pregnancy on a male profile
-  }
-}
-
-function readProfileFromForm() {
-  const toNum = (v) => {
-    const n = parseFloat(String(v).replace(',', '.'));
-    return Number.isFinite(n) && n > 0 ? n : null;
-  };
-  return {
-    sex: profileSex.value || null,
-    age_years: toNum(profileAge.value),
-    height_cm: toNum(profileHeight.value),
-    weight_kg: toNum(profileWeight.value),
-    activity: profileActivity.value || null,
-    life_stage: $('profile-life-stage')?.value || null,
-    diet: profileDiet.value || 'none',
-    custom_diet: profileDiet.value === 'custom'
-      ? {
-          forbidden: profileCustomForbidden.value.split('\n').map((s) => s.trim()).filter(Boolean),
-          preferred: profileCustomPreferred.value.split('\n').map((s) => s.trim()).filter(Boolean),
-        }
-      : null,
-    modifiers: {
-      lowSugar: !!$('mod-lowsugar')?.checked,
-      lowSalt: !!$('mod-lowsalt')?.checked,
-      highProtein: !!$('mod-highprotein')?.checked,
-      organic: !!$('mod-organic')?.checked,
-    },
-    goal_weight_kg: toNum($('profile-goal-weight')?.value),
-    water_goal_ml: toNum($('profile-water-goal')?.value),
-    macro_split: $('profile-macro-split')?.value || 'balanced',
-    macro_split_custom: {
-      carbs: Number($('macro-custom-carbs')?.value) || 50,
-      protein: Number($('macro-custom-protein')?.value) || 20,
-      fat: Number($('macro-custom-fat')?.value) || 30,
-    },
-  };
-}
-
-function renderDerived() {
-  const p = readProfileFromForm();
-  if (!hasMinimalProfile(p)) {
-    hide(profileDerivedEl);
-    return;
-  }
-  const rows = [];
-  const bmiVal = bmi(p);
-  const bmiCat = bmiCategory(bmiVal);
-  const bmiLabel = bmiCat ? t(({
-    underweight: 'bmiUnderweight',
-    normal: 'bmiNormal',
-    overweight: 'bmiOverweight',
-    obese_1: 'bmiObese1',
-    obese_2: 'bmiObese2',
-    obese_3: 'bmiObese3',
-  })[bmiCat] || 'bmiNormal') : '';
-  rows.push([t('bmi'), `${bmiVal} (${bmiLabel})`]);
-  const bmr = bmrMifflinStJeor(p);
-  rows.push([t('bmr'), `${bmr} kcal/j`]);
-  const tdee = tdeeKcal(p);
-  rows.push([t('tdee'), `${tdee} kcal/j`]);
-  const targets = dailyTargets(p);
-  if (targets) {
-    rows.push([t('proteinTarget'), `${targets.protein_g_target} g`]);
-    rows.push([t('satfatMax'), `${targets.sat_fat_g_max} g`]);
-    rows.push([t('freeSugarMax'), `${targets.free_sugars_g_max} g (idéal ${targets.free_sugars_g_ideal} g)`]);
-  }
-  profileDerivedList.innerHTML = '';
-  for (const [k, v] of rows) {
-    const li = document.createElement('li');
-    const span = document.createElement('span');
-    span.textContent = String(k);
-    const strong = document.createElement('strong');
-    strong.textContent = String(v);
-    li.appendChild(span);
-    li.appendChild(strong);
-    profileDerivedList.appendChild(li);
-  }
-  show(profileDerivedEl);
-}
-
-profileBtn?.addEventListener('click', openProfileDialog);
-profileSex?.addEventListener('change', () => { toggleLifeStageVisibility(); renderDerived(); });
-profileDiet?.addEventListener('change', () => { toggleCustomDietWrap(); renderDerived(); });
-$('profile-macro-split')?.addEventListener('change', () => { toggleMacroCustomWrap(); renderDerived(); });
-for (const id of ['macro-custom-carbs', 'macro-custom-protein', 'macro-custom-fat']) {
-  $(id)?.addEventListener('input', () => { renderMacroSum(); renderDerived(); });
-}
-[profileSex, profileAge, profileHeight, profileWeight, profileActivity].forEach((el) => {
-  el?.addEventListener('input', renderDerived);
-  el?.addEventListener('change', renderDerived);
-});
-profileSave?.addEventListener('click', (e) => {
-  e.preventDefault();
-  setProfile(readProfileFromForm());
-  profileDialog.close();
-  // Re-render the currently open result, if any, with the new profile.
-  if (lastData && !resultEl.hidden) {
-    renderAudit(lastData);
-  }
-});
-profileCancel?.addEventListener('click', (e) => { e.preventDefault(); profileDialog.close(); });
 
 // ============================================================================
 // Scan history
@@ -3257,6 +3052,18 @@ initSettingsDialog({
   getKey,
   onLangChange: () => renderDashboard(),
 });
+initProfileDialog({
+  t, show, hide,
+  getProfile, setProfile, hasMinimalProfile,
+  bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets,
+  onAfterSave: () => {
+    // Re-render the currently open scan result (personal score may have
+    // flipped) + refresh the dashboard so the life-stage chip appears
+    // / disappears immediately after a life_stage change.
+    if (lastData && !resultEl.hidden) renderAudit(lastData);
+    renderDashboard();
+  },
+});
 initFasting({
   t,
   currentLang: () => currentLang,
@@ -3307,10 +3114,12 @@ $('day-note-input')?.addEventListener('input', (e) => {
 // ============================================================================
 
 const LS_DASHBOARD_VIEW = 'scanneat.dashboard.view';
-let dashboardView = localStorage.getItem(LS_DASHBOARD_VIEW) === 'week' ? 'week' : 'day';
+const DASHBOARD_VIEWS = new Set(['day', 'week', 'month']);
+const _storedView = localStorage.getItem(LS_DASHBOARD_VIEW);
+let dashboardView = DASHBOARD_VIEWS.has(_storedView) ? _storedView : 'day';
 
 function applyViewToggle(view) {
-  dashboardView = view === 'week' ? 'week' : 'day';
+  dashboardView = DASHBOARD_VIEWS.has(view) ? view : 'day';
   try { localStorage.setItem(LS_DASHBOARD_VIEW, dashboardView); } catch { /* quota */ }
   for (const btn of document.querySelectorAll('.view-tab')) {
     const isActive = btn.dataset.view === dashboardView;
@@ -3318,15 +3127,19 @@ function applyViewToggle(view) {
     btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
   }
   const weeklyEl = $('weekly-view');
+  const monthlyEl = $('monthly-view');
   const rowsEl = $('dashboard-rows');
   const logEl = $('dashboard-log');
   if (dashboardView === 'week') {
-    hide(rowsEl);
-    hide(logEl);
+    hide(rowsEl); hide(logEl); hide(monthlyEl);
     renderWeeklyView();
     show(weeklyEl);
+  } else if (dashboardView === 'month') {
+    hide(rowsEl); hide(logEl); hide(weeklyEl);
+    renderMonthlyView();
+    show(monthlyEl);
   } else {
-    hide(weeklyEl);
+    hide(weeklyEl); hide(monthlyEl);
     show(rowsEl);
     // Keep log visibility driven by renderDashboard; re-run it to refresh.
     renderDashboard();
@@ -3419,6 +3232,69 @@ async function renderWeeklyView() {
   }
 }
 
+// 30-day view — same look as the 7-day bars, sourced from monthlyRollup.
+// Day labels omitted (too crowded at 30 columns); fall back to a dot
+// under each bar and the full date lives in title / aria-label.
+async function renderMonthlyView() {
+  const root = $('monthly-view');
+  const bars = $('monthly-bars');
+  const summary = $('monthly-summary');
+  if (!root || !bars || !summary) return;
+
+  const all = await listAllEntries().catch(() => []);
+  const roll = monthlyRollup(all, todayISO());
+  const profile = getProfile();
+  const targets = dailyTargets(profile);
+  const kcalTarget = targets?.kcal ?? 0;
+  const peak = Math.max(kcalTarget, ...roll.days.map((d) => d.kcal), 1);
+
+  summary.textContent = '';
+  const mkChip = (labelKey, value) => {
+    const d = document.createElement('div');
+    d.className = 'ws-item';
+    const l = document.createElement('span');
+    l.className = 'ws-label';
+    l.textContent = t(labelKey);
+    const v = document.createElement('span');
+    v.className = 'ws-value';
+    v.textContent = value;
+    d.appendChild(l); d.appendChild(v);
+    return d;
+  };
+  summary.appendChild(mkChip('weeklyAvgKcal', `${Math.round(roll.avg.kcal)} kcal`));
+  summary.appendChild(mkChip('weeklyTotalKcal', `${Math.round(roll.total.kcal)} kcal`));
+  summary.appendChild(mkChip('monthlyDaysLogged', t('monthlyDaysLogged', { n: roll.days_logged })));
+
+  bars.textContent = '';
+  bars.classList.add('wbars-30');
+  for (const d of roll.days) {
+    const wrap = document.createElement('div');
+    wrap.className = 'wbar wbar-thin';
+    const isEmpty = d.count === 0;
+    const isOver = kcalTarget > 0 && d.kcal > kcalTarget;
+    if (isEmpty) wrap.dataset.empty = 'true';
+    if (isOver) wrap.dataset.over = 'true';
+    const date = new Date(d.date + 'T12:00:00Z');
+    const dateFull = date.toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    });
+    const tooltip = isEmpty
+      ? `${dateFull} — ${t('weekViewTooltipEmpty')}`
+      : t('weekViewTooltip', {
+          date: dateFull, kcal: Math.round(d.kcal),
+          prot: Math.round(d.protein_g), carb: Math.round(d.carbs_g), fat: Math.round(d.fat_g),
+        });
+    wrap.title = tooltip;
+    wrap.setAttribute('aria-label', tooltip);
+    wrap.tabIndex = 0;
+    const col = document.createElement('span');
+    col.className = 'wbar-col';
+    col.style.height = `${Math.max(2, (d.kcal / peak) * 100)}%`;
+    wrap.appendChild(col);
+    bars.appendChild(wrap);
+  }
+}
+
 // Share button wiring — hidden when navigator.share is unavailable (desktop
 // browsers without Web Share). Falls back to clipboard copy so the action
 // isn't a dead end even without native share.
@@ -3450,6 +3326,20 @@ $('weekly-share')?.addEventListener('click', async () => {
     title: t('weeklyShareTitle'),
     text,
     toasts: { copied: t('weeklyShareCopied'), failed: t('weeklyShareFailed') },
+    toast,
+  });
+});
+
+$('monthly-share')?.addEventListener('click', async () => {
+  const entries = await listAllEntries().catch(() => []);
+  const roll = monthlyRollup(entries, todayISO());
+  const kcalTarget = dailyTargets(getProfile())?.kcal ?? 0;
+  const text = formatMonthlyShare(roll, { lang: currentLang, kcalTarget });
+  if (!text) { toast(t('monthlyShareEmpty'), 'warn'); return; }
+  await shareOrCopy({
+    title: t('monthlyShareTitle'),
+    text,
+    toasts: { copied: t('monthlyShareCopied'), failed: t('monthlyShareFailed') },
     toast,
   });
 });

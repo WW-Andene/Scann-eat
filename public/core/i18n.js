@@ -4,7 +4,9 @@
  * in English — we only translate the UI chrome around it.
  */
 
-const STRINGS = {
+// Exposed for the plural-variant contract test in i18n-tests.ts.
+// Internal consumers in this file still access the local binding.
+export const STRINGS = {
   fr: {
     tagline: 'Photographie une étiquette → note de 0 à 100',
     addPhoto: 'Prendre / choisir une photo',
@@ -374,6 +376,15 @@ const STRINGS = {
     reminderBody: 'Ne pas oublier de logger ton {meal} 🍽',
     viewDay: 'Jour',
     viewWeek: '7 jours',
+    viewMonth: '30 jours',
+    monthlyDaysLogged: '{n}/30 jours',
+    monthlyDaysLogged_one: '{n}/30 jour',
+    monthlyDaysLogged_other: '{n}/30 jours',
+    monthlyShare: '📤 Partager ces 30 jours',
+    monthlyShareTitle: 'Résumé du mois',
+    monthlyShareEmpty: 'Aucune entrée ce mois-ci.',
+    monthlyShareCopied: 'Résumé mensuel copié',
+    monthlyShareFailed: 'Partage impossible',
     weeklyAvgKcal: 'Moy. / jour loggé',
     weeklyStreakLabel: 'Série',
     weeklyTotalKcal: 'Total 7 j',
@@ -920,6 +931,15 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     reminderBody: 'Don\'t forget to log your {meal} 🍽',
     viewDay: 'Day',
     viewWeek: '7 days',
+    viewMonth: '30 days',
+    monthlyDaysLogged: '{n}/30 days',
+    monthlyDaysLogged_one: '{n}/30 day',
+    monthlyDaysLogged_other: '{n}/30 days',
+    monthlyShare: '📤 Share these 30 days',
+    monthlyShareTitle: 'Monthly summary',
+    monthlyShareEmpty: 'Nothing logged in this period.',
+    monthlyShareCopied: 'Monthly summary copied',
+    monthlyShareFailed: 'Sharing failed',
     weeklyAvgKcal: 'Avg / logged day',
     weeklyStreakLabel: 'Streak',
     weeklyTotalKcal: '7-day total',

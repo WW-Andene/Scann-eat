@@ -121,6 +121,12 @@ export function reconcileWithFoodDB(identified, extraFoods = []) {
   const grams = Number(identified.estimated_grams) || 0;
   const name = String(identified.name ?? '').trim();
 
+  // When the LLM didn't produce a portion estimate, scaling per-100 g DB
+  // values by (0 / 100) would zero out all macros — worse than keeping
+  // the LLM's own guess. Return it unchanged with source='llm' so the
+  // caller knows no reconcile happened.
+  if (grams <= 0) return { ...identified, source: 'llm' };
+
   const tryMatch = (q) => {
     const hits = searchFoodDB(q, 1, extraFoods);
     return hits[0] || null;

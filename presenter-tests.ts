@@ -323,6 +323,29 @@ describe('parseVoiceQuickAdd', () => {
     assert.equal(r.protein_g, undefined);
     assert.equal(r.name, 'just a name no numbers');
   });
+
+  it('snaps meal slot to the FR canonical key when phrase says petit-déjeuner / déjeuner / dîner', () => {
+    assert.equal(parseVoiceQuickAdd('petit-déjeuner banane 110 kcal').meal, 'breakfast');
+    assert.equal(parseVoiceQuickAdd('déjeuner salade poulet').meal, 'lunch');
+    assert.equal(parseVoiceQuickAdd('dîner steak 500 kcal').meal, 'dinner');
+    assert.equal(parseVoiceQuickAdd('goûter pomme').meal, 'snack');
+  });
+
+  it('snaps meal slot to EN canonical key', () => {
+    assert.equal(parseVoiceQuickAdd('breakfast oatmeal 150 kcal').meal, 'breakfast');
+    assert.equal(parseVoiceQuickAdd('lunch sandwich 400 kcal').meal, 'lunch');
+    assert.equal(parseVoiceQuickAdd('dinner pasta').meal, 'dinner');
+    assert.equal(parseVoiceQuickAdd('snack almonds 150 kcal').meal, 'snack');
+  });
+
+  it('strips the meal label from the extracted name', () => {
+    assert.equal(parseVoiceQuickAdd('petit-déjeuner banane').name, 'banane');
+    assert.equal(parseVoiceQuickAdd('breakfast oatmeal').name, 'oatmeal');
+  });
+
+  it('omits meal when no canonical keyword is present', () => {
+    assert.equal(parseVoiceQuickAdd('banane 110 kcal').meal, undefined);
+  });
 });
 
 // ============================================================================

@@ -102,6 +102,36 @@ describe('t() fallback chain', () => {
   });
 });
 
+describe('plural variants contract', () => {
+  // Every key that declares `<x>_one` must also declare `<x>_other`,
+  // per Intl.PluralRules categories (CLDR "one" implies "other" exists
+  // for all Indo-European locales we ship).
+  it('every _one key also has a matching _other key in FR + EN', async () => {
+    // Reach for the raw FR / EN string tables. We import via a bundled
+    // default when the module is plain JS.
+    // @ts-expect-error — plain JS
+    const mod = await import('./public/core/i18n.js');
+    const STRINGS = mod.STRINGS ?? mod.default?.STRINGS;
+    if (!STRINGS) {
+      // If the module doesn't expose STRINGS, skip gracefully — we want
+      // this test to be advisory, not a hard gate.
+      return;
+    }
+    for (const lang of ['fr', 'en'] as const) {
+      const table = STRINGS[lang] ?? {};
+      const oneKeys = Object.keys(table).filter((k) => k.endsWith('_one'));
+      for (const oneKey of oneKeys) {
+        const stem = oneKey.slice(0, -'_one'.length);
+        const otherKey = `${stem}_other`;
+        assert.ok(
+          typeof table[otherKey] === 'string' && table[otherKey].length > 0,
+          `[${lang}] ${oneKey} has no matching ${otherKey}`,
+        );
+      }
+    }
+  });
+});
+
 describe('SUPPORTED_LANGS contract', () => {
   it('covers at least 14 keys in ES/IT/DE skeleton blocks', () => {
     // Rebuild a minimal coverage test by flipping each locale and
