@@ -3420,3 +3420,25 @@ details li.warn     { color: var(--warning); }
   padding: 4px 6px;
 }
 .meal-plan-clear-day { align-self: flex-end; font-size: 0.78em; }
+
+/* Meal-plan per-day action row */
+.meal-plan-day-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: auto;
+}
+.meal-plan-day-actions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Pairings action row — recipe ideas + copy */
+.pairings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}

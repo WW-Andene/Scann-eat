@@ -123,14 +123,41 @@ const RULES = [
 ];
 
 /**
- * Authoritative key list — the 14 entries in Annex II of EU 1169/2011.
- * Pinned as an exported constant so a structural test can fail loudly
- * if a future edit accidentally drops or renames one.
+ * Authoritative key list — the 14 entries in Annex II of EU 1169/2011
+ * in the REGULATION'S own numbering order. Pinned as an exported
+ * constant so a structural test can fail loudly if a future edit
+ * accidentally drops or renames one.
+ *
+ *   1  Cereals containing gluten
+ *   2  Crustaceans
+ *   3  Eggs
+ *   4  Fish
+ *   5  Peanuts
+ *   6  Soybeans
+ *   7  Milk (including lactose)
+ *   8  Nuts (tree nuts)
+ *   9  Celery
+ *   10 Mustard
+ *   11 Sesame seeds
+ *   12 Sulphur dioxide and sulphites (>10 mg/kg or 10 mg/L)
+ *   13 Lupin
+ *   14 Molluscs
  */
 export const ANNEX_II_KEYS = Object.freeze([
-  'gluten', 'crustaceans', 'eggs', 'fish', 'peanuts', 'soy',
-  'lactose', 'nuts', 'celery', 'mustard', 'sesame', 'sulfites',
-  'lupin', 'molluscs',
+  'gluten',       //  1
+  'crustaceans',  //  2
+  'eggs',         //  3
+  'fish',         //  4
+  'peanuts',      //  5
+  'soy',          //  6
+  'lactose',      //  7 (we shorten "Milk / Lactose" to the tighter label)
+  'nuts',         //  8
+  'celery',       //  9
+  'mustard',      // 10
+  'sesame',       // 11
+  'sulfites',     // 12
+  'lupin',        // 13
+  'molluscs',     // 14
 ]);
 
 /**

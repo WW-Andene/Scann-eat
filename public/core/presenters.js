@@ -281,6 +281,57 @@ export function weeklyRollup(entries, endIso) {
 }
 
 /**
+ * Human-readable one-screen summary of a weekly rollup — for
+ * navigator.share or copy-paste into a notes app. Pure.
+ *
+ * Example output:
+ *   Semaine du 15 au 21 avril 2026 — 6 jours enregistrés
+ *   Moy/jour : 1870 kcal · 55 g prot · 220 g gluc · 75 g lip
+ *   Total : 11220 kcal
+ *
+ *   lun. 15  1900 kcal  56 prot · 220 gluc · 80 lip
+ *   mar. 16  …
+ */
+export function formatWeeklyShare(rollup, opts = {}) {
+  if (!rollup || !Array.isArray(rollup.days) || rollup.days.length === 0) return '';
+  const { lang = 'fr' } = opts;
+  const isFr = lang !== 'en';
+  const locale = isFr ? 'fr-FR' : 'en-GB';
+
+  const firstDay = new Date(rollup.days[0].date + 'T12:00:00');
+  const lastDay = new Date(rollup.days[rollup.days.length - 1].date + 'T12:00:00');
+  const sameMonth = firstDay.getUTCMonth() === lastDay.getUTCMonth();
+  const firstStr = firstDay.toLocaleDateString(locale, sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'short' });
+  const lastStr = lastDay.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  const range = isFr ? `Semaine du ${firstStr} au ${lastStr}` : `Week of ${firstStr} to ${lastStr}`;
+
+  const r = (n) => Math.round(n);
+  const avg = rollup.avg || {};
+  const total = rollup.total || {};
+  const daysLogged = rollup.days_logged ?? 0;
+
+  const lines = [];
+  lines.push(isFr
+    ? `${range} — ${daysLogged} jour(s) enregistré(s)`
+    : `${range} — ${daysLogged} day(s) logged`);
+  lines.push(isFr
+    ? `Moy/jour : ${r(avg.kcal)} kcal · ${r(avg.protein_g)} g prot · ${r(avg.carbs_g)} g gluc · ${r(avg.fat_g)} g lip`
+    : `Avg/day: ${r(avg.kcal)} kcal · ${r(avg.protein_g)} g prot · ${r(avg.carbs_g)} g carbs · ${r(avg.fat_g)} g fat`);
+  lines.push(isFr ? `Total : ${r(total.kcal)} kcal` : `Total: ${r(total.kcal)} kcal`);
+  lines.push('');
+  for (const d of rollup.days) {
+    const date = new Date(d.date + 'T12:00:00');
+    const dayStr = date.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' });
+    if (d.count === 0) {
+      lines.push(isFr ? `${dayStr}  —` : `${dayStr}  —`);
+    } else {
+      lines.push(`${dayStr}  ${r(d.kcal)} kcal  ${r(d.protein_g)} prot · ${r(d.carbs_g)} gluc · ${r(d.fat_g)} lip`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/**
  * State of an intermittent-fasting window given its start time, the current
  * time, and a target duration in hours (default 16 for a classic 16:8).
  *

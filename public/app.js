@@ -8,6 +8,7 @@ import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEv
 import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
 import { initActivity, renderActivity } from '/features/activity.js';
+import { initWeight, renderWeightSummary } from '/features/weight.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -24,9 +25,9 @@ import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, week
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/data/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/recipes.js';
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
-import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS } from '/features/meal-plan.js';
+import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
@@ -868,6 +869,23 @@ $('recipe-ideas-btn')?.addEventListener('click', () => {
   if (!pairedIngredientName) return;
   openRecipeIdeas(pairedIngredientName);
 });
+
+// Pair-list "Copy" — useful for dropping into a shopping-list or a chat.
+// Builds a single line from the currently-rendered chips so the text
+// stays in sync with what the user is actually looking at.
+$('pairings-copy-btn')?.addEventListener('click', async () => {
+  const chips = document.querySelectorAll('#pairings-list .pairing-chip');
+  if (chips.length === 0) return;
+  const names = Array.from(chips).map((c) => c.textContent?.trim() || '').filter(Boolean);
+  const header = pairedIngredientName
+    ? `${t('pairingsTitle', { name: pairedIngredientName })}: `
+    : '';
+  const text = header + names.join(' · ');
+  try {
+    await navigator.clipboard?.writeText(text);
+    toast(t('pairingsCopied'));
+  } catch { toast(t('pairingsCopyFailed'), 'error'); }
+});
 $('recipe-ideas-close')?.addEventListener('click', (e) => {
   e.preventDefault();
   recipeIdeasDialog?.close();
@@ -1038,8 +1056,12 @@ async function renderMealPlan() {
           const text = window.prompt(t('mealPlanNotePrompt'));
           if (text && text.trim()) setSlot(date, meal, { kind: 'note', text: text.trim() });
         } else if (v === 'note:current') {
-          // Keep as-is — user can blank with — to clear.
-          return;
+          // Open prompt pre-filled with the existing text so users can
+          // edit, not just replace blindly. Empty input clears the slot.
+          const text = window.prompt(t('mealPlanNotePrompt'), slot?.text ?? '');
+          if (text === null) { renderMealPlan(); return; } // user cancelled
+          if (!text.trim()) setSlot(date, meal, null);
+          else setSlot(date, meal, { kind: 'note', text: text.trim() });
         }
         renderMealPlan();
       });
@@ -1048,14 +1070,75 @@ async function renderMealPlan() {
       card.appendChild(row);
     }
 
+    // Per-day action row: "Apply to log" + "Clear". Apply materialises
+    // every recipe/template slot of THIS date into real consumption
+    // entries, so the forward plan becomes today's log in one tap. Only
+    // enabled for today / future days — applying a past day would confuse
+    // the history.
+    const actions = document.createElement('div');
+    actions.className = 'meal-plan-day-actions';
+
+    const today = isoToday();
+    const isTodayOrFuture = date >= today;
+    const hasSlots = Object.keys(day).length > 0;
+
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'chip-btn accent compact';
+    applyBtn.textContent = t('mealPlanApplyDay');
+    applyBtn.disabled = !isTodayOrFuture || !hasSlots;
+    applyBtn.addEventListener('click', async () => {
+      await applyPlanDayToLog(date, day, recipes, templates);
+      await renderDashboard();
+      toast(t('mealPlanApplyToast', { count: Object.keys(day).length, date }));
+    });
+    actions.appendChild(applyBtn);
+
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
     clearBtn.className = 'secondary compact meal-plan-clear-day';
     clearBtn.textContent = t('mealPlanClearDay');
     clearBtn.addEventListener('click', () => { clearDay(date); renderMealPlan(); });
-    card.appendChild(clearBtn);
+    actions.appendChild(clearBtn);
 
+    card.appendChild(actions);
     grid.appendChild(card);
+  }
+}
+
+/**
+ * Materialise a single day of the meal plan into consumption entries.
+ * Recipe slots aggregate their components like `recipeApply` does; template
+ * slots expand via `expandTemplate`; note slots are ignored (they're not
+ * loggable).
+ */
+async function applyPlanDayToLog(date, day, recipes, templates) {
+  const timestamp = new Date(`${date}T12:00:00`).getTime();
+  for (const meal of MEAL_PLAN_MEALS) {
+    const slot = day[meal];
+    if (!slot) continue;
+    if (slot.kind === 'recipe') {
+      const r = recipes.find((x) => x.id === slot.id);
+      if (!r) continue;
+      const agg = aggregateRecipe(r, r.servings || 1);
+      try {
+        await putEntry({
+          id: globalThis.crypto?.randomUUID?.() ?? `p${timestamp}${Math.random().toString(36).slice(2)}`,
+          date,
+          timestamp,
+          meal,
+          ...agg,
+        });
+      } catch { /* skip bad */ }
+    } else if (slot.kind === 'template') {
+      const tpl = templates.find((x) => x.id === slot.id);
+      if (!tpl) continue;
+      const entries = expandTemplate(tpl, { date, meal, timestamp });
+      for (const entry of entries) {
+        try { await putEntry(entry); } catch { /* skip */ }
+      }
+    }
+    // note slots are intentionally skipped
   }
 }
 
@@ -1780,12 +1863,26 @@ function renderMacroSum() {
   const p = Number($('macro-custom-protein')?.value) || 0;
   const f = Number($('macro-custom-fat')?.value) || 0;
   const sum = c + p + f;
-  if (Math.abs(sum - 100) <= 3) {
+  const ok = Math.abs(sum - 100) <= 3;
+  if (ok) {
     el.textContent = t('macroSumOk');
     el.dataset.state = 'ok';
   } else {
-    el.textContent = t('macroSumOff', { v: sum });
+    // Hint which direction to adjust so the user isn't stuck at "Total 97 %"
+    // without knowing whether to bump one macro up or down.
+    const delta = Math.round(100 - sum);
+    const hint = delta > 0
+      ? t('macroSumAddHint', { n: delta })
+      : t('macroSumRemoveHint', { n: -delta });
+    el.textContent = t('macroSumOff', { v: sum }) + ' · ' + hint;
     el.dataset.state = 'off';
+  }
+  // Only apply the custom-split lockout when the "custom" split is selected.
+  // Other splits are preset and need no validation.
+  const split = $('profile-macro-split')?.value;
+  if (profileSave) {
+    profileSave.disabled = split === 'custom' && !ok;
+    profileSave.title = profileSave.disabled ? t('macroSumBlocksSave') : '';
   }
 }
 
@@ -3002,68 +3099,9 @@ qaNameInput?.addEventListener('focus', (e) => {
   if (e.target.value) renderFoodSuggestions(e.target.value);
 });
 
-// ----- Weight tracking -----
-const weightBtn = $('weight-btn');
-const weightDialog = $('weight-dialog');
-const wSave = $('w-save');
-const wClose = $('w-close');
-
-weightBtn?.addEventListener('click', () => {
-  $('w-kg').value = '';
-  $('w-date').value = todayISO();
-  $('w-notes').value = '';
-  renderWeightHistory();
-  weightDialog.showModal();
-});
-wClose?.addEventListener('click', (e) => { e.preventDefault(); weightDialog.close(); });
-wSave?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  const kg = Number($('w-kg').value);
-  if (!Number.isFinite(kg) || kg <= 0) { $('w-kg').focus(); return; }
-  try {
-    await logWeight(kg, $('w-notes').value || '', $('w-date').value || todayISO());
-    // Update the current profile weight to match latest entry.
-    const p = getProfile();
-    p.weight_kg = kg;
-    setProfile(p);
-    await renderWeightHistory();
-    await renderDashboard();
-    weightDialog.close();
-  } catch (err) { console.error('[weight]', err); }
-});
-
-async function renderWeightHistory() {
-  const ul = $('w-history');
-  if (!ul) return;
-  const all = await listWeight().catch(() => []);
-  ul.innerHTML = '';
-  if (all.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'dash-entry-empty';
-    li.textContent = t('weightNoData');
-    ul.appendChild(li);
-    return;
-  }
-  for (const w of all.slice().reverse()) {
-    const li = document.createElement('li');
-    li.className = 'dash-entry';
-    const d = document.createElement('span');
-    d.textContent = `${w.date} · ${w.weight_kg} kg${w.notes ? ' · ' + w.notes : ''}`;
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'dash-entry-del';
-    del.textContent = '×';
-    del.setAttribute('aria-label', t('deleteWeightEntry'));
-    del.addEventListener('click', async () => {
-      await deleteWeight(w.id);
-      await renderWeightHistory();
-      await renderDashboard();
-    });
-    li.appendChild(d);
-    li.appendChild(del);
-    ul.appendChild(li);
-  }
-}
+// Weight UI is extracted to /features/weight.js. renderWeightSummary is
+// imported and called from the dashboard render loop; initWeight wires
+// up the dialog at boot.
 
 // ----- Meal templates -----
 const templatesBtn = $('templates-btn');
@@ -3549,6 +3587,14 @@ initActivity({
   buildActivityEntry, estimateKcalBurned, sumBurned,
   renderDashboard,
 });
+initWeight({
+  t,
+  currentLang: () => currentLang,
+  getProfile, setProfile,
+  listWeight, logWeight, deleteWeight,
+  summarizeWeight, weeklyTrend, weightForecast,
+  renderDashboard, todayISO, round1,
+});
 
 // ============================================================================
 // PWA install prompt — we catch `beforeinstallprompt` and reveal a small
@@ -3834,11 +3880,31 @@ async function renderWeeklyView() {
     const isOver = kcalTarget > 0 && d.kcal > kcalTarget;
     if (isEmpty) wrap.dataset.empty = 'true';
     if (isOver) wrap.dataset.over = 'true';
+
+    // Tooltip + aria-label: the actual per-day macro breakdown. Native
+    // `title` works for mouse hover + touch long-press on most mobile
+    // browsers; aria-label covers screen readers regardless.
+    const date = new Date(d.date + 'T12:00:00Z');
+    const dateFull = date.toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    });
+    const tooltip = isEmpty
+      ? `${dateFull} — ${t('weekViewTooltipEmpty')}`
+      : t('weekViewTooltip', {
+          date: dateFull,
+          kcal: Math.round(d.kcal),
+          prot: Math.round(d.protein_g),
+          carb: Math.round(d.carbs_g),
+          fat: Math.round(d.fat_g),
+        });
+    wrap.title = tooltip;
+    wrap.setAttribute('aria-label', tooltip);
+    wrap.tabIndex = 0; // focusable for keyboard users → screen reader reads aria-label
+
     const col = document.createElement('span');
     col.className = 'wbar-col';
     const heightPct = Math.max(2, (d.kcal / peak) * 100);
     col.style.height = `${heightPct}%`;
-    const date = new Date(d.date + 'T12:00:00Z');
     const dayLabel = document.createElement('span');
     dayLabel.className = 'wbar-label';
     dayLabel.textContent = dayFmt.format(date);
@@ -3851,6 +3917,24 @@ async function renderWeeklyView() {
     bars.appendChild(wrap);
   }
 }
+
+// Share button wiring — hidden when navigator.share is unavailable (desktop
+// browsers without Web Share). Falls back to clipboard copy so the action
+// isn't a dead end even without native share.
+$('weekly-share')?.addEventListener('click', async () => {
+  const entries = await listAllEntries().catch(() => []);
+  const roll = weeklyRollup(entries, todayISO());
+  const text = formatWeeklyShare(roll, { lang: currentLang });
+  if (!text) { toast(t('weeklyShareEmpty'), 'warn'); return; }
+  if (typeof navigator.share === 'function') {
+    try { await navigator.share({ title: t('weeklyShareTitle'), text }); return; }
+    catch { /* user cancelled or unsupported; fall through to clipboard */ }
+  }
+  try {
+    await navigator.clipboard?.writeText(text);
+    toast(t('weeklyShareCopied'));
+  } catch { toast(t('weeklyShareFailed'), 'error'); }
+});
 
 document.querySelectorAll('.view-tab').forEach((btn) =>
   btn.addEventListener('click', () => applyViewToggle(btn.dataset.view)));
@@ -4081,11 +4165,20 @@ function renderGapCloser(totals, targets) {
     item.appendChild(head);
     const chips = document.createElement('ul');
     chips.className = 'gap-closer-chips';
+    // Units per nutrient for the hover tooltip. Keeps the chip label
+    // tight ("amandes · 38 g") while the `title` attr spells out exactly
+    // why this food was picked + how much it delivers.
+    const unitFor = { protein: 'g', fiber: 'g', iron: 'mg', calcium: 'mg', vit_d: 'µg', b12: 'µg' }[g.nutrient] || '';
     for (const s of g.suggestions) {
       const li = document.createElement('li');
       li.className = 'gap-closer-chip';
       li.textContent = `${s.name} · ${s.grams} g`;
-      li.title = t('gapCloserContribution', { value: s.contribution });
+      // Tooltip sequence: "[nutrient delivered] — [density per 100 g]"
+      li.title = t('gapCloserTooltip', {
+        value: s.contribution, unit: unitFor,
+        deficit: g.deficit, nutrient: t(`gapCloserNutrient_${g.nutrient}`),
+      });
+      li.setAttribute('aria-label', li.title);
       chips.appendChild(li);
     }
     item.appendChild(chips);
@@ -4219,57 +4312,7 @@ $('progress-close')?.addEventListener('click', (e) => {
   $('progress-dialog')?.close();
 });
 
-async function renderWeightSummary(profile) {
-  const el = $('weight-summary');
-  if (!el) return;
-  const entries = await listWeight().catch(() => []);
-  if (entries.length === 0) { hide(el); return; }
-  const s = summarizeWeight(entries, 30);
-  const trend = weeklyTrend(entries.slice(-10));
-  el.innerHTML = '';
-
-  const appendSpan = (nodes) => {
-    const span = document.createElement('span');
-    for (const n of nodes) span.appendChild(n);
-    if (el.childNodes.length > 0) el.appendChild(document.createTextNode(' · '));
-    el.appendChild(span);
-  };
-  const strong = (txt) => {
-    const s2 = document.createElement('strong');
-    s2.textContent = String(txt);
-    return s2;
-  };
-  const text = (txt) => document.createTextNode(String(txt));
-
-  appendSpan([strong(`${s.latest_kg} kg`), text(` · ${t('weightCurrent')}`)]);
-  if (profile?.goal_weight_kg) {
-    const toGo = round1(s.latest_kg - profile.goal_weight_kg);
-    appendSpan([text(`🎯 ${profile.goal_weight_kg} kg (${toGo > 0 ? '+' : ''}${toGo} kg)`)]);
-  }
-  if (s.recent_count >= 2) {
-    const sign = s.delta_kg > 0 ? '+' : '';
-    appendSpan([text(`Δ 30 j : ${sign}${s.delta_kg} kg`)]);
-  }
-  if (trend !== 0 && Number.isFinite(trend)) {
-    const sign = trend > 0 ? '+' : '';
-    appendSpan([text(`${t('weightTrend')} : ${sign}${trend} kg/sem`)]);
-  }
-  // At-this-rate forecast: only when a goal weight is set AND the trend
-  // actually points toward it. Shown as a soft, non-committal line so
-  // users treat it as extrapolation, not a promise.
-  if (profile?.goal_weight_kg && s.recent_count >= 2) {
-    const f = weightForecast(s.latest_kg, profile.goal_weight_kg, trend);
-    if (f.status === 'ok') {
-      const locale = currentLang === 'en' ? 'en-GB' : 'fr-FR';
-      const d = new Date(f.targetISO + 'T00:00:00');
-      const datePretty = d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
-      appendSpan([text(t('weightForecastOk', { date: datePretty, weeks: f.weeks }))]);
-    } else if (f.status === 'wrong-direction') {
-      appendSpan([text(t('weightForecastWrongDir'))]);
-    }
-  }
-  show(el);
-}
+// renderWeightSummary extracted to /features/weight.js — imported at top.
 
 // ============================================================================
 // Meal reminders — local, in-page only.
