@@ -1845,6 +1845,7 @@ async function renderTemplatesList() {
     del.type = 'button';
     del.className = 'chip-btn';
     del.textContent = '🗑';
+    del.setAttribute('aria-label', t('deleteTemplate'));
     del.addEventListener('click', async () => {
       await deleteTemplate(tpl.id);
       await renderTemplatesList();
