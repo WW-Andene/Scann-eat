@@ -1,73 +1,377 @@
+/* ==========================================================================
+   Scann-eat · Coral Clarity design system
+   Built for fast, calm reading. Big type, high contrast, soft corners.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Lexend:wght@400;500;600;700&display=swap');
+
+/* ========== TOKENS ========================================================
+   Coral background · near-black cards · cream text · orange action.
+   Grade colors kept — they carry meaning.
+   ========================================================================== */
 :root,
 [data-theme="dark"] {
-  --bg: #0f1a14;
-  --panel: #162220;
-  --panel-2: #1b2a25;
-  --border: #2a3d37;
-  --accent: #9be3a6;
-  --text: #e7efe9;
-  --muted: #89968f;
-  --danger: #ff7a7a;
-  --grade-aplus: #39e06a;
-  --grade-a: #69d96a;
-  --grade-b: #c9d96a;
-  --grade-c: #f0c74a;
-  --grade-d: #ee8a4a;
-  --grade-f: #ee4a4a;
+  /* surfaces */
+  --bg:            #F54B5E;   /* vibrant coral */
+  --panel:         #1B1B1F;   /* near-black card */
+  --panel-2:       #2A2A30;
+  --panel-3:       #3A3A42;
+
+  /* text */
+  --text:          #F5F0E8;   /* cream on dark card */
+  --text-on-bg:    #1B1B1F;   /* dark on coral */
+  --muted:         #9A948B;
+  --muted-on-bg:   rgba(27, 27, 31, 0.65);
+
+  /* action */
+  --accent:        #FF6B45;   /* orange button */
+  --accent-dim:    #D15637;
+  --accent-ink:    #1B1B1F;   /* text color on accent button */
+
+  /* utility */
+  --border:        rgba(245, 240, 232, 0.10);
+  --border-strong: rgba(245, 240, 232, 0.22);
+  --danger:        #E54B5E;
+  --success:       #6BE584;
+  --warning:       #F5A64B;
+
+  /* grade colors */
+  --grade-aplus: #6BE584;
+  --grade-a:     #A3E067;
+  --grade-b:     #F5D651;
+  --grade-c:     #F5A64B;
+  --grade-d:     #F56E4B;
+  --grade-f:     #E54B5E;
+
+  /* radii — soft, not round */
+  --r-xs:   8px;
+  --r-sm:  12px;
+  --r-md:  18px;
+  --r-lg:  24px;
+  --r-xl:  32px;
+  --r-pill: 999px;
+
+  /* spacing scale (tight → generous) */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 48px;
+
   color-scheme: dark;
 }
 
 [data-theme="light"] {
-  --bg: #f4f7f5;
-  --panel: #ffffff;
-  --panel-2: #eaf1ec;
-  --border: #d0dbd4;
-  --accent: #2f9d4f;
-  --text: #13241a;
-  --muted: #5b6b61;
-  --danger: #c5434b;
-  --grade-aplus: #2f9d4f;
-  --grade-a: #4fb663;
-  --grade-b: #a9c23c;
-  --grade-c: #c9a53b;
-  --grade-d: #cb6b35;
-  --grade-f: #b8363c;
+  --bg:            #F8C8CF;      /* pale coral paper */
+  --panel:         #FFFFFF;
+  --panel-2:       #FAF5E9;
+  --panel-3:       #EFE9DB;
+  --text:          #1B1B1F;
+  --text-on-bg:    #1B1B1F;
+  --muted:         #5B564A;
+  --muted-on-bg:   rgba(27, 27, 31, 0.65);
+  --accent:        #E0552F;
+  --accent-dim:    #B0431F;
+  --accent-ink:    #FFFFFF;
+  --border:        rgba(27, 27, 31, 0.08);
+  --border-strong: rgba(27, 27, 31, 0.20);
   color-scheme: light;
 }
 
+/* ========== RESET =========================================================
+   ========================================================================== */
 * { box-sizing: border-box; }
+*, *::before, *::after { min-width: 0; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
 
 [hidden] { display: none !important; }
 
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
 }
 
-header {
-  padding: 1.5rem 1rem 0.5rem;
-  text-align: center;
-  position: relative;
+button { cursor: pointer; }
+
+img { max-width: 100%; display: block; }
+
+/* ========== TYPOGRAPHY ====================================================
+   Atkinson Hyperlegible by default (designed for low vision / dyslexia).
+   Body 18 px minimum. Large line-height. No all-caps body, no mono digits.
+   ========================================================================== */
+body {
+  font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 18px;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  background: var(--bg);
+  color: var(--text-on-bg);
+  min-height: 100vh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+h1 { font-size: 1.55em; }
+h2 { font-size: 1.25em; }
+h3 { font-size: 1.05em; }
+h4 { font-size: 1em; }
+p  { margin: 0; }
+
+strong { font-weight: 700; }
+
+/* ========== ACCESSIBILITY CLASSES =========================================
+   Applied on <body> via Me → Lecture settings.
+   ========================================================================== */
+
+/* font family variants */
+body.font-lexend {
+  font-family: 'Lexend', system-ui, sans-serif;
+}
+body.font-system {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* size variants — applied to root so rem values scale everywhere */
+body.font-size-large  { font-size: 20px; }
+body.font-size-xlarge { font-size: 22px; }
+
+/* motion preference — disables every transition/animation */
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* system-level preference — respect user's OS setting too */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ========== LAYOUT ========================================================
+   ========================================================================== */
+main {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/* ========== HEADER ========================================================
+   Clean, no gimmicks. App name only + corner buttons for profile / settings.
+   ========================================================================== */
+header {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-4) var(--sp-3);
+  position: relative;
+  text-align: left;
+}
+header h1 {
+  margin: 0;
+  font-size: 1.45em;
+  font-weight: 700;
+  color: var(--text-on-bg);
+  letter-spacing: -0.02em;
+}
+.tagline {
+  color: var(--muted-on-bg);
+  margin-top: var(--sp-1);
+  font-size: 0.95em;
+  line-height: 1.35;
+}
+
 .settings-btn {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 2.25rem;
-  height: 2.25rem;
+  top: var(--sp-5);
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--panel);
   color: var(--text);
-  font-size: 1.1rem;
-  border: 1px solid #2a3d37;
-  cursor: pointer;
+  font-size: 1.15em;
+  border: none;
+  display: grid;
+  place-items: center;
+  transition: transform 140ms ease, background 140ms ease;
 }
-.settings-btn:hover { background: #1b2a25; }
+.settings-btn:active { transform: scale(0.94); }
+.settings-btn:hover  { background: var(--panel-2); }
+.settings-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+#settings-btn { right: var(--sp-4); }
+.profile-btn  { right: calc(var(--sp-4) + 52px); }
+
+/* ========== BUTTONS =======================================================
+   Big tap targets. Soft radius. Orange accent for primary actions.
+   ========================================================================== */
+button {
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.2;
+  border: none;
+  border-radius: var(--r-md);
+  padding: 14px 20px;
+  min-height: 56px;   /* large tap target */
+  background: var(--accent);
+  color: var(--accent-ink);
+  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+button:active { transform: scale(0.98); }
+button:hover:not(:disabled) { filter: brightness(1.05); }
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--panel-3);
+  color: var(--muted);
+}
+button:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* Secondary button — outline style */
+.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+  font-weight: 600;
+}
+.secondary:hover:not(:disabled) {
+  background: var(--panel-2);
+  filter: none;
+}
+
+/* Compact button (for header / dashboard row actions) */
+.compact {
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 0.92em;
+  border-radius: var(--r-sm);
+}
+
+/* Chip button — pill-shaped tag */
+.chip-btn {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  padding: 10px 16px;
+  font-size: 0.9em;
+  min-height: 40px;
+  font-weight: 500;
+}
+.chip-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+.chip-btn.accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.chip-btn.accent:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* ========== BANNERS (update / pending / offline) =========================
+   ========================================================================== */
+.update-banner,
+.pending-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  font-size: 0.92em;
+  font-weight: 500;
+  border-bottom: 2px solid var(--text-on-bg);
+}
+
+.update-banner {
+  background: var(--panel);
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.update-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.update-install {
+  text-decoration: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 0.9em;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+.update-dismiss {
+  background: transparent;
+  color: var(--text);
+  border: none;
+  font-size: 1.2em;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  min-height: auto;
+  border-radius: var(--r-pill);
+}
+.update-dismiss:hover { background: var(--panel-2); }
+
+.pending-banner {
+  background: var(--panel);
+  color: var(--warning);
+  border-bottom-color: var(--warning);
+}
+.pending-text { flex: 1; color: var(--warning); font-weight: 600; }
+.pending-retry {
+  background: var(--warning);
+  color: #1B1B1F;
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  font-size: 0.88em;
+  font-weight: 700;
+  min-height: 36px;
+  border: none;
+}
 
 .settings-dialog {
   border: none;
@@ -132,76 +436,129 @@ main {
   gap: 1.25rem;
 }
 
+/* ========== CAPTURE (scan entry point) ===================================
+   The BIG card. This is usually the first thing you tap.
+   ========================================================================== */
 .capture {
-  text-align: center;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.capture-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
 }
 .capture-btn {
-  display: inline-flex;
-  flex-direction: column;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: var(--sp-4);
   width: 100%;
-  padding: 2rem 1rem;
-  background: var(--panel);
-  border: 2px dashed #2a3d37;
-  border-radius: 18px;
+  padding: var(--sp-5) var(--sp-5);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: none;
+  border-radius: var(--r-lg);
+  min-height: 72px;
+  font-weight: 700;
+  text-align: left;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: transform 120ms ease;
 }
-.capture-btn:hover { border-color: var(--accent); }
-.capture-btn .icon { font-size: 2rem; }
-.capture-btn .label { font-size: 1rem; font-weight: 500; }
-.hint { color: var(--muted); font-size: 0.85rem; }
+.capture-btn:active { transform: scale(0.985); }
+.capture-btn:hover:not(:disabled) { filter: brightness(1.05); }
+.capture-btn .icon {
+  font-size: 1.8em;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.capture-btn .label {
+  font-size: 1.05em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.capture-btn-secondary {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+}
+.capture-btn-secondary:hover:not(:disabled) { background: var(--panel-3); }
 
+.hint {
+  color: var(--muted);
+  font-size: 0.92em;
+  line-height: 1.45;
+  margin: 0;
+}
+.settings-profile-hint {
+  color: var(--muted);
+  font-size: 0.92em;
+  margin: var(--sp-3) 0;
+}
+
+#scan-btn {
+  min-height: 64px;
+  font-size: 1.1em;
+  font-weight: 700;
+  border-radius: var(--r-lg);
+}
+
+/* ========== PHOTO QUEUE ==================================================
+   Compressed image thumbs before sending. Larger than before, clearer
+   remove button, accent border when a barcode was detected.
+   ========================================================================== */
 .queue {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 0.5rem;
-  margin-bottom: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: var(--sp-3);
 }
 .queue-item {
   position: relative;
   aspect-ratio: 1 / 1;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   overflow: hidden;
   background: #000;
-  border: 1px solid #2a3d37;
+  border: 2px solid transparent;
 }
+.queue-item.has-barcode { border-color: var(--accent); }
 .queue-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 .queue-remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border-radius: 50%;
+  border-radius: var(--r-pill);
   border: none;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.82);
   color: #fff;
-  font-size: 1rem;
+  font-size: 1.1em;
   line-height: 1;
-  cursor: pointer;
+  min-height: auto;
+  display: grid;
+  place-items: center;
 }
-.queue-remove:hover { background: rgba(0, 0, 0, 0.9); }
+.queue-remove:hover { background: rgba(0, 0, 0, 0.95); }
 .queue-barcode {
   position: absolute;
-  left: 4px;
-  bottom: 4px;
-  padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.75);
+  left: 6px;
+  bottom: 6px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.82);
   color: var(--accent);
-  font-size: 0.65rem;
-  border-radius: 6px;
-  font-weight: 500;
+  font-size: 0.72em;
+  border-radius: var(--r-sm);
+  font-weight: 700;
 }
-.queue-item.has-barcode { border-color: var(--accent); }
 
 .result-actions {
   display: flex;
@@ -1389,88 +1746,238 @@ button {
 button:hover { opacity: 0.92; }
 button:active { transform: scale(0.98); }
 
+/* ========== STATUS / LOADING ==============================================
+   Skeleton loader on scan. The spinner stays for the small status text.
+   ========================================================================== */
 .status {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: var(--sp-3);
   background: var(--panel);
-  padding: 0.9rem 1rem;
-  border-radius: 12px;
+  color: var(--text);
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+}
+.status-text-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
   justify-content: center;
+  padding-top: var(--sp-2);
+  color: var(--muted);
+  font-size: 0.92em;
 }
 .spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid #2a3d37;
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--border-strong);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
+  flex-shrink: 0;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ========== ERROR CARD ====================================================
+   ========================================================================== */
 .error {
-  background: #2a1616;
-  color: var(--danger);
-  padding: 1rem;
-  border-radius: 12px;
-  border-left: 4px solid var(--danger);
-}
-
-.result { display: flex; flex-direction: column; gap: 1rem; }
-
-.score-card {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  gap: 0.25rem 1rem;
-  align-items: center;
   background: var(--panel);
-  padding: 1.25rem;
-  border-radius: 16px;
+  color: var(--danger);
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  border-left: 5px solid var(--danger);
+  font-size: 1em;
+  font-weight: 500;
 }
+
+/* ========== RESULT (wrapper for score card + flags + ingredients) ========
+   ========================================================================== */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/* ========== SCORE CARD ====================================================
+   The hero piece after every scan. BIG grade chip, big score, short verdict.
+   One clear thing to read.
+   ========================================================================== */
+.score-card {
+  background: var(--panel);
+  color: var(--text);
+  padding: var(--sp-6) var(--sp-5);
+  border-radius: var(--r-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  text-align: center;
+}
+.score-card.dual {
+  padding: var(--sp-5);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+  align-items: stretch;
+}
+.score-card.dual:has(#personal-slot:not([hidden])) {
+  grid-template-columns: 1fr 1fr;
+}
+.score-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  background: var(--panel-2);
+  border-radius: var(--r-lg);
+  text-align: center;
+}
+.score-kind {
+  font-size: 0.78em;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
 .grade {
-  grid-row: 1 / span 2;
-  font-size: 3rem;
+  font-size: 3.2em;
   font-weight: 700;
   line-height: 1;
   background: var(--muted);
-  color: #0f1a14;
-  width: 3.2rem;
-  height: 3.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
+  color: #1B1B1F;
+  width: 4rem;
+  height: 4rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  flex-shrink: 0;
+}
+.score-card:not(.dual) .grade {
+  width: 5.5rem;
+  height: 5.5rem;
+  font-size: 3.4em;
 }
 .grade[data-grade="A+"] { background: var(--grade-aplus); }
-.grade[data-grade="A"] { background: var(--grade-a); }
-.grade[data-grade="B"] { background: var(--grade-b); }
-.grade[data-grade="C"] { background: var(--grade-c); }
-.grade[data-grade="D"] { background: var(--grade-d); }
-.grade[data-grade="F"] { background: var(--grade-f); }
-.score strong { font-size: 1.8rem; }
-.score small { color: var(--muted); margin-left: 0.25rem; }
-.verdict { color: var(--muted); font-size: 0.9rem; }
+.grade[data-grade="A"]  { background: var(--grade-a); }
+.grade[data-grade="B"]  { background: var(--grade-b); }
+.grade[data-grade="C"]  { background: var(--grade-c); }
+.grade[data-grade="D"]  { background: var(--grade-d); }
+.grade[data-grade="F"]  { background: var(--grade-f); }
 
-.product h2 { margin: 0 0 0.2rem; font-size: 1.2rem; }
-.category { color: var(--muted); margin: 0; text-transform: capitalize; font-size: 0.9rem; }
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.score strong {
+  font-size: 2.4em;
+  font-weight: 700;
+  color: var(--text);
+}
+.score small {
+  color: var(--muted);
+  font-size: 1em;
+}
 
+.verdict {
+  color: var(--muted);
+  font-size: 1em;
+  line-height: 1.4;
+}
+
+.personal-delta {
+  font-weight: 700;
+  margin-left: var(--sp-1);
+  font-size: 0.92em;
+}
+.personal-delta[data-sign="pos"] { color: var(--grade-a); }
+.personal-delta[data-sign="neg"] { color: var(--grade-d); }
+
+@media (max-width: 540px) {
+  .score-card.dual:has(#personal-slot:not([hidden])) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========== PRODUCT HEADER ================================================
+   ========================================================================== */
+.product {
+  background: var(--panel);
+  color: var(--text);
+  padding: var(--sp-5);
+  border-radius: var(--r-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.product h2 {
+  margin: 0;
+  font-size: 1.35em;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.category {
+  color: var(--muted);
+  margin: 0;
+  text-transform: capitalize;
+  font-size: 0.95em;
+}
+.meta-chips {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-2);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  font-size: 0.88em;
+  font-weight: 500;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.chip[data-level="high"]   { border-color: var(--grade-a); color: var(--grade-a); }
+.chip[data-level="medium"] { border-color: var(--grade-c); color: var(--grade-c); }
+.chip[data-level="low"]    { border-color: var(--danger);  color: var(--danger); }
+.source {
+  color: var(--muted);
+  font-size: 0.92em;
+  margin: 0;
+}
+
+/* ========== FLAGS (red / green lists) =====================================
+   ========================================================================== */
 .flags {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: var(--sp-3);
 }
 .flag-col {
   background: var(--panel);
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
+  color: var(--text);
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
 }
 .flag-col h3 {
-  margin: 0 0 0.5rem;
-  font-size: 0.85rem;
+  margin: 0 0 var(--sp-3);
+  font-size: 0.82em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--muted);
+  font-weight: 700;
+}
+@media (max-width: 520px) {
+  .flags { grid-template-columns: 1fr; }
 }
 .flag-col ul {
   margin: 0; padding-left: 1rem;
