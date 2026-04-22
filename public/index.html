@@ -651,6 +651,25 @@
               </select>
             </label>
           </div>
+          <details class="share-details">
+            <summary data-i18n="shareSummary">Partager avec quelqu'un ?</summary>
+            <div class="share-row">
+              <label class="portion-input">
+                <span data-i18n="shareLabel">Ma part</span>
+                <span class="portion-row">
+                  <input id="portion-share-pct" type="number" min="1" max="100" step="5" inputmode="numeric" value="100" />
+                  <span>%</span>
+                </span>
+              </label>
+              <div class="share-presets">
+                <button type="button" class="chip-btn compact" data-share="50">½</button>
+                <button type="button" class="chip-btn compact" data-share="33">⅓</button>
+                <button type="button" class="chip-btn compact" data-share="25">¼</button>
+                <button type="button" class="chip-btn compact" data-share="100">Tout</button>
+              </div>
+            </div>
+            <p class="hint" data-i18n="shareHint">Ton apport réel = macros × ta part.</p>
+          </details>
           <div class="portion-presets">
             <button type="button" class="chip-btn" data-portion="50">50 g</button>
             <button type="button" class="chip-btn" data-portion="100">100 g</button>

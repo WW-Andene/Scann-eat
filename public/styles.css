@@ -2382,6 +2382,32 @@ body.reduce-motion .hyd-fill { transition: none; }
   box-sizing: border-box;
 }
 
+.share-details {
+  background: var(--panel-2);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2) var(--sp-3);
+}
+.share-details summary {
+  cursor: pointer;
+  font-size: 0.9em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.share-details[open] summary { margin-bottom: var(--sp-2); }
+.share-row {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: end;
+  flex-wrap: wrap;
+}
+.share-row .portion-input { flex: 0 0 auto; }
+.share-presets {
+  display: flex;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+  flex: 1;
+}
+
 .portion-presets {
   display: flex;
   gap: var(--sp-2);

@@ -1750,14 +1750,28 @@ logBtn?.addEventListener('click', async () => {
   const grams = Math.max(0, Number(portionInput.value) || 0);
   if (grams <= 0) return;
   const meal = portionMealSelect?.value || 'snack';
+  // Shared-meal scaling: if the user says they only ate e.g. 50% of the
+  // portion, downscale grams before logging. buildEntry() multiplies per-
+  // 100g macros by grams/100, so scaling grams scales the whole entry.
+  const sharePct = Math.max(1, Math.min(100, Number($('portion-share-pct')?.value) || 100));
+  const effectiveGrams = Math.round(grams * (sharePct / 100));
   try {
-    const entry = await logEntry(lastData.product, grams, meal);
-    logToast.textContent = t('logged', { grams, kcal: Math.round(entry.kcal) });
+    const entry = await logEntry(lastData.product, effectiveGrams, meal);
+    logToast.textContent = t('logged', { grams: effectiveGrams, kcal: Math.round(entry.kcal) });
     show(logToast);
     await renderDashboard();
   } catch (err) {
     console.error('[log]', err);
   }
+});
+
+// Share-preset chips — write the selected % into the input.
+document.querySelectorAll('.share-presets [data-share]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const v = Number(btn.dataset.share);
+    const input = $('portion-share-pct');
+    if (input) input.value = String(v);
+  });
 });
 
 // ----- Quick Add -----
