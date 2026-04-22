@@ -6,7 +6,7 @@
  */
 
 const DB_NAME = 'scanneat';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const STORE = 'weight';
 
 function openDB() {
@@ -41,6 +41,9 @@ export function ensureStores(db) {
   }
   if (!db.objectStoreNames.contains('meal_templates')) {
     db.createObjectStore('meal_templates', { keyPath: 'id' });
+  }
+  if (!db.objectStoreNames.contains('recipes')) {
+    db.createObjectStore('recipes', { keyPath: 'id' });
   }
 }
 

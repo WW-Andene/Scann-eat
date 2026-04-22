@@ -6,8 +6,9 @@
 
 const DB_NAME = 'scanneat';
 // Must stay in lockstep with queue-store.js / consumption.js / weight-log.js /
-// meal-templates.js. Every upgrade handler declares ALL stores defensively.
-const DB_VERSION = 4;
+// meal-templates.js / recipes.js. Every upgrade handler declares ALL stores
+// defensively.
+const DB_VERSION = 5;
 const STORE = 'history';
 const MAX_ITEMS = 30;
 
@@ -33,6 +34,9 @@ function openDB() {
       }
       if (!db.objectStoreNames.contains('meal_templates')) {
         db.createObjectStore('meal_templates', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('recipes')) {
+        db.createObjectStore('recipes', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => {
