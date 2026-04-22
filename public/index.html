@@ -485,6 +485,15 @@
           <summary data-i18n="todayEntries">Aliments loggés</summary>
           <div id="dashboard-entries" class="dashboard-entries"></div>
         </details>
+
+        <details class="day-note-wrap" id="day-note-wrap">
+          <summary data-i18n="dayNoteTitle">Note du jour</summary>
+          <label class="day-note-label">
+            <span class="day-note-hint" data-i18n="dayNoteHint">Contexte libre : humeur, training, cycle, médicaments, etc. Reste sur l'appareil.</span>
+            <textarea id="day-note-input" class="day-note-input" maxlength="500" rows="3" aria-describedby="day-note-counter"></textarea>
+          </label>
+          <span id="day-note-counter" class="day-note-counter" aria-live="polite">0 / 500</span>
+        </details>
       </section>
 
       <dialog id="activity-dialog" class="settings-dialog" aria-labelledby="activity-dialog-title">

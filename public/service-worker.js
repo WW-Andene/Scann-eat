@@ -24,6 +24,7 @@ const SHELL = [
   '/core/app-settings.js',
   '/features/hydration.js',
   '/features/fasting-history.js',
+  '/features/day-notes.js',
   '/core/presenters.js',
   '/engine.bundle.js',
   '/styles.css',

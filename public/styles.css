@@ -2139,6 +2139,48 @@ body.reduce-motion .wbar-col { transition: none; }
   overflow-y: auto;
 }
 
+.day-note-wrap {
+  background: var(--panel-2);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 0.95em;
+}
+.day-note-wrap summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+}
+.day-note-label {
+  display: block;
+  margin-top: var(--sp-2);
+}
+.day-note-hint {
+  display: block;
+  color: var(--muted);
+  font-size: 0.88em;
+  margin-bottom: var(--sp-2);
+}
+.day-note-input {
+  width: 100%;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: var(--sp-2);
+  font-family: inherit;
+  font-size: 0.95em;
+  resize: vertical;
+  min-height: 68px;
+}
+.day-note-counter {
+  display: block;
+  text-align: right;
+  color: var(--muted);
+  font-size: 0.82em;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ========== HYDRATION TILE ==============================================
    ========================================================================== */
 .hydration-tile {

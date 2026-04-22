@@ -8,6 +8,7 @@ import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEv
 import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
+import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
 import { buildCustomFood, listCustomFoods, saveCustomFood, deleteCustomFood } from '/data/custom-food-db.js';
 import { detectAllergens } from '/core/allergens.js';
@@ -2941,6 +2942,25 @@ function stopFasting() {
   localStorage.removeItem(LS_FASTING_TARGET);
 }
 
+function renderDayNote() {
+  const input = $('day-note-input');
+  const counter = $('day-note-counter');
+  if (!input) return;
+  const current = getDayNote(todayISO());
+  // Avoid stomping the user's caret position on every re-render. Only
+  // repopulate when what's on screen differs from storage (initial load
+  // or another tab updated it).
+  if (input.value !== current) input.value = current;
+  if (counter) counter.textContent = `${input.value.length} / ${DAY_NOTE_MAX_CHARS}`;
+}
+
+$('day-note-input')?.addEventListener('input', (e) => {
+  const text = e.target.value || '';
+  setDayNote(todayISO(), text);
+  const counter = $('day-note-counter');
+  if (counter) counter.textContent = `${text.length} / ${DAY_NOTE_MAX_CHARS}`;
+});
+
 function renderFastStreak() {
   const streakEl = $('fasting-streak');
   const wrap = $('fasting-history-wrap');
@@ -3257,6 +3277,7 @@ async function renderDashboard() {
   if (totals.count === 0 && !targets) { hide(dashboardEl); return; }
   renderHydration();
   renderFasting();
+  renderDayNote();
   const burned = await renderActivity();
 
   dashboardDateEl.textContent = new Date().toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
