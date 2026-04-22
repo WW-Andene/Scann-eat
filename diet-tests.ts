@@ -75,3 +75,70 @@ describe('checkDiet: vegetarian', () => {
     assert.equal(r.compliant, false);
   });
 });
+
+// ============================================================================
+// Vegan — superset of vegetarian + dairy + eggs + honey + animal additives
+// ============================================================================
+
+describe('checkDiet: vegan', () => {
+  it('compliant for a plain-vegetable product', () => {
+    const p = product('Soupe légumes', ['carotte', 'pomme de terre', 'eau']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, true);
+  });
+
+  it('REJECTS "crème" (accented e — the é-form must fire)', () => {
+    const p = product('Dessert', ['lait', 'sucre', 'crème']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS "caséine" (accented trigger)', () => {
+    const p = product('', ['protéine', 'caséine']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS eggs via œuf glyph', () => {
+    const p = product('', ['œuf entier', 'farine']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS honey', () => {
+    const p = product('', ['sucre', 'miel']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS carmine (E120)', () => {
+    const p = product('Yaourt rose', ['lait', 'E120']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, false);
+  });
+
+  it('REJECTS bone phosphate (E542)', () => {
+    const p = product('', ['maltodextrine', 'E542']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, false);
+  });
+
+  it('"lait de coco" is allowed (negative lookahead exclusion)', () => {
+    const p = product('Curry', ['lait de coco', 'curry', 'riz']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, true);
+  });
+
+  it('"beurre de cacahuète" is allowed (negative lookahead exclusion)', () => {
+    const p = product('', ['beurre de cacahuète', 'sel']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.compliant, true);
+  });
+
+  it('V-Label certification earns the preferred bonus', () => {
+    const p = product('Burger V-Label', ['protéine de soja', 'avoine']);
+    const r = checkDiet(p, 'vegan');
+    assert.equal(r.preferredHits.length > 0, true);
+    assert.equal(r.certified, true);
+  });
+});
