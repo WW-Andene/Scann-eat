@@ -3075,16 +3075,39 @@ async function renderDashboard() {
       header.appendChild(name);
       header.appendChild(kcal);
       section.appendChild(header);
+      if (bucket.totals.protein_g + bucket.totals.carbs_g + bucket.totals.fat_g > 0) {
+        const macroLine = document.createElement('p');
+        macroLine.className = 'meal-macros';
+        macroLine.textContent = t('mealMacros', {
+          prot: Math.round(bucket.totals.protein_g),
+          carb: Math.round(bucket.totals.carbs_g),
+          fat: Math.round(bucket.totals.fat_g),
+        });
+        section.appendChild(macroLine);
+      }
       const ul = document.createElement('ul');
       ul.className = 'meal-entries';
       for (const e of bucket.entries.slice().sort((a, b) => b.timestamp - a.timestamp)) {
         const li = document.createElement('li');
         li.className = 'dash-entry';
+        const info = document.createElement('div');
+        info.className = 'dash-entry-info';
         const nm = document.createElement('span');
         nm.className = 'dash-entry-name';
         nm.textContent = e.quickAdd
           ? `${e.product_name} · ${t('quickAdd')}`
           : `${e.product_name} · ${e.grams} g`;
+        info.appendChild(nm);
+        if ((e.protein_g || 0) + (e.carbs_g || 0) + (e.fat_g || 0) > 0) {
+          const macros = document.createElement('span');
+          macros.className = 'dash-entry-macros';
+          macros.textContent = t('entryMacros', {
+            prot: Math.round(e.protein_g || 0),
+            carb: Math.round(e.carbs_g || 0),
+            fat: Math.round(e.fat_g || 0),
+          });
+          info.appendChild(macros);
+        }
         const k = document.createElement('strong');
         k.textContent = `${Math.round(e.kcal)} kcal`;
         const del = document.createElement('button');
@@ -3096,7 +3119,7 @@ async function renderDashboard() {
           await deleteEntry(e.id);
           await renderDashboard();
         });
-        li.appendChild(nm);
+        li.appendChild(info);
         li.appendChild(k);
         li.appendChild(del);
         ul.appendChild(li);
