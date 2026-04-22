@@ -6,6 +6,7 @@ import { buildBackup, restoreBackup } from '/backup.js';
 import { listProfiles, activeProfile, saveProfile, switchProfile, deleteProfile } from '/profiles.js';
 import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEvent as telemetryLog, clearEvents as telemetryClear, formatEvents as telemetryFormat } from '/telemetry.js';
 import { getSetting, setSetting } from '/app-settings.js';
+import { initHydration, renderHydration } from '/features/hydration.js';
 import { searchFoodDB } from '/food-db.js';
 import { detectAllergens } from '/allergens.js';
 import {
@@ -2775,49 +2776,10 @@ function pctClass(pct) {
   return 'ok';
 }
 
-// ============================================================================
-// Hydration — daily glass counter, stored in localStorage keyed by ISO date.
-// Each glass is 250 ml (EFSA reference glass). Counter resets naturally at
-// midnight because the key changes with the date.
-// ============================================================================
-
-const HYD_GLASS_ML = 250;
-const hydKey = (date) => `scanneat.hydration.${date}`;
-
-function getHydrationMl(date = todayISO()) {
-  const raw = localStorage.getItem(hydKey(date));
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? n : 0;
-}
-function setHydrationMl(ml, date = todayISO()) {
-  const clamped = Math.max(0, Math.round(ml));
-  localStorage.setItem(hydKey(date), String(clamped));
-}
-
-function renderHydration() {
-  const tile = $('hydration-tile');
-  const amt = $('hydration-amount');
-  const fill = $('hydration-fill');
-  if (!tile || !amt || !fill) return;
-  const profile = getProfile();
-  const goal = waterGoalMl(profile);
-  const ml = getHydrationMl();
-  amt.textContent = t('hydrationAmount', { ml, goal });
-  const pct = goal > 0 ? Math.min(120, (ml / goal) * 100) : 0;
-  fill.style.width = `${Math.min(100, pct)}%`;
-  if (pct >= 100 && pct < 110) fill.dataset.state = 'done';
-  else if (pct >= 110) fill.dataset.state = 'over';
-  else delete fill.dataset.state;
-}
-
-$('hydration-plus')?.addEventListener('click', () => {
-  setHydrationMl(getHydrationMl() + HYD_GLASS_ML);
-  renderHydration();
-});
-$('hydration-minus')?.addEventListener('click', () => {
-  setHydrationMl(Math.max(0, getHydrationMl() - HYD_GLASS_ML));
-  renderHydration();
-});
+// Hydration feature is now self-contained in public/features/hydration.js.
+// Inject its runtime dependencies (i18n lookup, profile getter, goal calc,
+// date helper) at boot so the module stays isolated from app.js internals.
+initHydration({ t, getProfile, waterGoalMl, todayISO });
 
 // ============================================================================
 // Fasting timer — intermittent-fasting countdown.
