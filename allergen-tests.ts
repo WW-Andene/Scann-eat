@@ -14,7 +14,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { detectAllergens } from './public/allergens.js';
+import { detectAllergens } from './public/core/allergens.js';
 
 function product(names: string[]) {
   return { ingredients: names.map((name) => ({ name, category: 'food' })) };

@@ -8,7 +8,7 @@ import { isEnabled as telemetryEnabled, setEnabled as telemetrySetEnabled, logEv
 import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
 import { searchFoodDB } from '/data/food-db.js';
-import { detectAllergens } from '/allergens.js';
+import { detectAllergens } from '/core/allergens.js';
 import {
   getProfile, setProfile, hasMinimalProfile,
   bmrMifflinStJeor, tdeeKcal, bmi, bmiCategory, dailyTargets,

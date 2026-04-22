@@ -7,7 +7,7 @@ const SHELL = [
   '/core/explanations.js',
   '/data/queue-store.js',
   '/data/scan-history.js',
-  '/allergens.js',
+  '/core/allergens.js',
   '/data/profile.js',
   '/diets.js',
   '/personal-score.js',
