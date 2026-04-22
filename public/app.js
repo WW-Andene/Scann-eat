@@ -1356,6 +1356,14 @@ async function renderRecentScans() {
     li.addEventListener('click', () => reopenScan(item));
     recentListEl.appendChild(li);
   }
+  // Hint about hidden entries — users otherwise can't tell the export
+  // includes items not shown in the list.
+  if (items.length > 12) {
+    const hint = document.createElement('li');
+    hint.className = 'recent-overflow';
+    hint.textContent = t('recentOverflow', { shown: 12, total: items.length });
+    recentListEl.appendChild(hint);
+  }
   show(recentScansEl);
 }
 

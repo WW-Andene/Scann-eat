@@ -1292,6 +1292,14 @@ main {
   padding: 1rem 0;
   list-style: none;
 }
+.recent-overflow {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--sp-3) 0 var(--sp-2);
+  font-size: 0.85em;
+  list-style: none;
+  font-style: italic;
+}
 
 /* ==========================================================================
    Onboarding
