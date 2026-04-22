@@ -181,6 +181,38 @@ function categoryFromOFF(tags: unknown): ProductCategory {
   return 'other';
 }
 
+/**
+ * Inverse of the CATEGORY_MAP: given our narrow ProductCategory enum,
+ * return the best OFF `categories_tags` search term. Used by the "similar
+ * but better" suggestion feature to query the OFF catalog for alternatives
+ * in the same category as the scanned product.
+ *
+ * Returns null for 'other' — we shouldn't surface random suggestions when
+ * we couldn't place the product.
+ */
+const CATEGORY_TO_OFF_TAG: Record<string, string> = {
+  sandwich:          'en:sandwiches',
+  ready_meal:        'en:prepared-meals',
+  breakfast_cereal:  'en:breakfast-cereals',
+  bread:             'en:breads',
+  yogurt:            'en:yogurts',
+  cheese:            'en:cheeses',
+  processed_meat:    'en:processed-meats',
+  fresh_meat:        'en:meats',
+  fish:              'en:fishes',
+  snack_sweet:       'en:sweet-snacks',
+  snack_salty:       'en:salty-snacks',
+  beverage_soft:     'en:sodas',
+  beverage_juice:    'en:fruit-juices',
+  beverage_water:    'en:waters',
+  condiment:         'en:condiments',
+  oil_fat:           'en:fats',
+};
+
+export function suggestionTagFor(category: ProductCategory): string | null {
+  return CATEGORY_TO_OFF_TAG[category] ?? null;
+}
+
 function novaFromOFF(v: unknown): NovaClass {
   const n = typeof v === 'number' ? v : parseInt(String(v ?? ''), 10);
   if (n === 1 || n === 2 || n === 3 || n === 4) return n as NovaClass;

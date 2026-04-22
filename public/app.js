@@ -12,6 +12,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays } from '/presenters.js';
+import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
 // (getItem returns null silently, but setItem/removeItem throw). Shim the
@@ -463,6 +464,11 @@ function renderAudit(data) {
 
   renderPersonalScore(audit, data.product);
 
+  // Suggest "similar but better" alternatives for mediocre scans or veto'd
+  // products. Fire-and-forget — never block the main render on a network
+  // call; the section reveals itself when ready.
+  maybeRenderAlternatives(data).catch(() => { /* non-critical */ });
+
   if (data.source === 'openfoodfacts') {
     resultSourceEl.textContent = t('sourceOFF');
     show(resultSourceEl);
@@ -565,6 +571,67 @@ function renderSparseHint(data) {
     el.textContent = t('sparseData');
     show(el);
   } else hide(el);
+}
+
+/**
+ * "Similar but better" alternatives. Surfaces compliant + higher-scoring
+ * products from the same OFF category when the current scan is either:
+ *   - graded C/D/F (mediocre)
+ *   - veto'd by the user's diet
+ *
+ * Silently no-ops on any failure path (no category tag available, network
+ * failure, no alternatives found) — the suggestion section is decorative.
+ */
+async function maybeRenderAlternatives(data) {
+  const section = $('alternatives');
+  const list = $('alternatives-list');
+  if (!section || !list) return;
+  hide(section);
+  list.textContent = '';
+
+  const { audit, product } = data;
+  const profile = getProfile();
+  const isVeto = computePersonalScore(audit, product, profile, currentLang)?.veto;
+  const poor = ['C', 'D', 'F'].includes(audit.grade);
+  if (!poor && !isVeto) return;
+
+  try {
+    const { searchOFFByCategory, rankAlternatives, suggestionTagFor } = await loadEngine();
+    const tag = suggestionTagFor(audit.category);
+    if (!tag) return;
+
+    const candidates = await searchOFFByCategory([tag], { pageSize: 20 });
+    if (candidates.length === 0) return;
+
+    const dietFilter = profile?.diet && profile.diet !== 'none'
+      ? (p) => checkDiet(p, profile.diet, profile.custom_diet, currentLang).compliant
+      : undefined;
+    const alts = rankAlternatives(product, candidates, { max: 3, dietFilter });
+    if (alts.length === 0) return;
+
+    for (const { product: alt, audit: altAudit } of alts) {
+      const li = document.createElement('li');
+      li.className = 'alt-item';
+      const grade = document.createElement('span');
+      grade.className = 'alt-grade';
+      grade.dataset.grade = altAudit.grade;
+      grade.textContent = altAudit.grade;
+      const meta = document.createElement('div');
+      meta.className = 'alt-meta';
+      const name = document.createElement('strong');
+      name.className = 'alt-name';
+      name.textContent = alt.name;
+      const score = document.createElement('small');
+      score.className = 'alt-score';
+      score.textContent = `${altAudit.score} / 100`;
+      meta.appendChild(name);
+      meta.appendChild(score);
+      li.appendChild(grade);
+      li.appendChild(meta);
+      list.appendChild(li);
+    }
+    show(section);
+  } catch { /* no-op */ }
 }
 
 // Lightweight additives index populated lazily from the bundle.
