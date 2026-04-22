@@ -456,6 +456,16 @@
             <span class="hyd-hint" data-i18n="hydrationGlassHint">1 verre = 250 ml</span>
           </div>
         </div>
+        <div id="activity-tile" class="activity-tile" role="group" aria-labelledby="activity-label">
+          <div class="act-head">
+            <span id="activity-label" class="act-label" data-i18n="activityLabel">Exercice</span>
+            <strong id="activity-summary" class="act-summary">—</strong>
+          </div>
+          <ul id="activity-entries" class="act-entries" hidden></ul>
+          <div class="act-actions">
+            <button id="activity-add" type="button" class="chip-btn accent compact" data-i18n="activityAdd">Ajouter</button>
+          </div>
+        </div>
         <ul id="dashboard-rows" class="dashboard-rows"></ul>
 
         <section id="weekly-view" class="weekly-view" hidden>
@@ -468,6 +478,43 @@
           <div id="dashboard-entries" class="dashboard-entries"></div>
         </details>
       </section>
+
+      <dialog id="activity-dialog" class="settings-dialog" aria-labelledby="activity-dialog-title">
+        <form method="dialog">
+          <h2 id="activity-dialog-title" data-i18n="activityTitle">Ajouter un exercice</h2>
+          <p class="hint" data-i18n="activityIntro">Les calories brûlées sont estimées via MET × poids × durée (Ainsworth 2011). Personnalise la valeur si tu as un cardio ou une montre.</p>
+          <label>
+            <span data-i18n="activityType">Type</span>
+            <select id="a-type">
+              <option value="walking_brisk" data-i18n="activityTypeWalking">Marche rapide</option>
+              <option value="running" data-i18n="activityTypeRunning">Course</option>
+              <option value="cycling" data-i18n="activityTypeCycling">Vélo</option>
+              <option value="swimming" data-i18n="activityTypeSwimming">Natation</option>
+              <option value="strength" data-i18n="activityTypeStrength">Musculation</option>
+              <option value="yoga" data-i18n="activityTypeYoga">Yoga / étirements</option>
+              <option value="hiit" data-i18n="activityTypeHiit">HIIT / intervalles</option>
+              <option value="other" data-i18n="activityTypeOther">Autre</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="activityMinutes">Durée (min)</span>
+            <input id="a-minutes" type="number" min="1" max="600" step="1" inputmode="numeric" />
+          </label>
+          <label>
+            <span data-i18n="activityKcal">Calories brûlées (kcal, optionnel)</span>
+            <input id="a-kcal" type="number" min="0" max="5000" step="1" inputmode="numeric" placeholder="Auto" />
+          </label>
+          <p id="a-estimate" class="hint" aria-live="polite"></p>
+          <label>
+            <span data-i18n="activityNote">Notes (optionnel)</span>
+            <input id="a-note" type="text" maxlength="80" autocomplete="off" />
+          </label>
+          <button id="a-save" type="submit" class="log-btn" data-i18n="activitySave">Logger l'exercice</button>
+          <div class="dialog-actions">
+            <button id="a-close" type="button" class="secondary" data-i18n="close">Fermer</button>
+          </div>
+        </form>
+      </dialog>
 
       <dialog id="weight-dialog" class="settings-dialog" aria-labelledby="weight-dialog-title">
         <form method="dialog">
