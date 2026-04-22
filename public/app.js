@@ -1123,6 +1123,20 @@ async function openCameraScanner() {
   cameraDialog.showModal();
   cameraStatus.textContent = t('cameraReady');
 
+  // Torch button appears only when the active video track reports
+  // capabilities.torch — Chrome Android exposes it on most phones, iOS
+  // Safari never does. Hidden = feature not available.
+  const torchBtn = $('camera-torch');
+  const track = cameraStream.getVideoTracks()[0];
+  const caps = track?.getCapabilities?.() || {};
+  if (torchBtn && caps.torch) {
+    torchBtn.dataset.on = '0';
+    torchBtn.setAttribute('aria-pressed', 'false');
+    show(torchBtn);
+  } else if (torchBtn) {
+    hide(torchBtn);
+  }
+
   const detector = getBarcodeDetector();
   const scan = async () => {
     if (!cameraDialog.open) return;
@@ -1131,6 +1145,10 @@ async function openCameraScanner() {
       for (const c of codes) {
         const d = (c.rawValue || '').replace(/\D/g, '');
         if (d.length === 8 || d.length === 12 || d.length === 13) {
+          // Small haptic blip so users holding the phone know it caught it
+          // even before the overlay closes. 50 ms stays under the reduce-
+          // motion threshold most users set via vibration-strength settings.
+          try { navigator.vibrate?.(50); } catch { /* not supported */ }
           closeCameraScanner();
           addBarcodeOnly(d);
           await scanImage();
@@ -1145,10 +1163,32 @@ async function openCameraScanner() {
 function closeCameraScanner() {
   if (cameraLoopHandle) clearTimeout(cameraLoopHandle);
   cameraLoopHandle = null;
-  if (cameraStream) { cameraStream.getTracks().forEach((t) => t.stop()); cameraStream = null; }
+  if (cameraStream) {
+    // Make sure torch is off before releasing the track, so the LED doesn't
+    // linger when the user closes the scanner without capturing.
+    try {
+      const track = cameraStream.getVideoTracks()[0];
+      track?.applyConstraints?.({ advanced: [{ torch: false }] });
+    } catch { /* ignore */ }
+    cameraStream.getTracks().forEach((t) => t.stop()); cameraStream = null;
+  }
+  const torchBtn = $('camera-torch');
+  if (torchBtn) { torchBtn.dataset.on = '0'; torchBtn.setAttribute('aria-pressed', 'false'); }
   cameraVideo.srcObject = null;
   if (cameraDialog.open) cameraDialog.close();
 }
+$('camera-torch')?.addEventListener('click', async () => {
+  if (!cameraStream) return;
+  const btn = $('camera-torch');
+  const track = cameraStream.getVideoTracks()[0];
+  if (!track?.applyConstraints) return;
+  const on = btn.dataset.on !== '1';
+  try {
+    await track.applyConstraints({ advanced: [{ torch: on }] });
+    btn.dataset.on = on ? '1' : '0';
+    btn.setAttribute('aria-pressed', String(on));
+  } catch { /* torch failed; leave state unchanged */ }
+});
 
 // ============================================================================
 // Personal score

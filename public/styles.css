@@ -940,6 +940,28 @@ body.returning-user main > .capture         { order: 1; }
   min-height: 52px;
 }
 .camera-close:hover { background: var(--panel-2); }
+.camera-torch {
+  position: absolute;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  color: var(--text);
+  border: none;
+  font-size: 1.4em;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0.9;
+}
+.camera-torch[data-on="1"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.camera-torch:hover { opacity: 1; }
 
 /* ========== RECENT SCANS ==================================================
    ========================================================================== */
