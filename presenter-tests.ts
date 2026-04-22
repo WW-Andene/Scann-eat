@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd } from './public/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl } from './public/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -322,5 +322,54 @@ describe('parseVoiceQuickAdd', () => {
     assert.equal(r.kcal, undefined);
     assert.equal(r.protein_g, undefined);
     assert.equal(r.name, 'just a name no numbers');
+  });
+});
+
+// ============================================================================
+// waterGoalMl — hydration goal derivation
+// ============================================================================
+
+describe('waterGoalMl', () => {
+  it('defaults to 2000 ml when no profile / no weight / no sex', () => {
+    assert.equal(waterGoalMl({}), 2000);
+    assert.equal(waterGoalMl(null), 2000);
+    assert.equal(waterGoalMl(undefined), 2000);
+  });
+
+  it('scales by weight (33 ml/kg) when available', () => {
+    // 60 kg → 1980 → rounded to 2000
+    assert.equal(waterGoalMl({ weight_kg: 60 }), 2000);
+    // 80 kg → 2640 → rounded to 2600
+    assert.equal(waterGoalMl({ weight_kg: 80 }), 2600);
+    // 100 kg → 3300 → 3300
+    assert.equal(waterGoalMl({ weight_kg: 100 }), 3300);
+  });
+
+  it('female baseline without weight = 1500', () => {
+    assert.equal(waterGoalMl({ sex: 'female' }), 1500);
+  });
+
+  it('male baseline without weight = 2000', () => {
+    assert.equal(waterGoalMl({ sex: 'male' }), 2000);
+  });
+
+  it('active profile earns +500 ml', () => {
+    // 80 kg → 2640 → 2600, + 500 = 3100
+    assert.equal(waterGoalMl({ weight_kg: 80, activity: 'active' }), 3100);
+  });
+
+  it('very_active profile earns +500 ml', () => {
+    assert.equal(waterGoalMl({ weight_kg: 80, activity: 'very_active' }), 3100);
+  });
+
+  it('sedentary profile earns no bonus', () => {
+    assert.equal(waterGoalMl({ weight_kg: 80, activity: 'sedentary' }), 2600);
+  });
+
+  it('always returns a multiple of 100 for readability', () => {
+    for (const w of [55, 62, 68, 73, 77, 81, 89, 95]) {
+      const g = waterGoalMl({ weight_kg: w });
+      assert.equal(g % 100, 0, `goal ${g} for ${w}kg should be divisible by 100`);
+    }
   });
 });

@@ -163,6 +163,43 @@ export function parseVoiceQuickAdd(transcript) {
   return out;
 }
 
+/**
+ * Recommended daily water intake in millilitres.
+ *
+ * Baseline: EFSA 2010 adequate intake for water (NDA panel) — 2 000 ml/d
+ * for women, 2 500 ml/d for men, from ALL sources (food + drinks). We use
+ * the drink-only ~75 % portion of that: 1500 / 2000 ml/day as a soft goal
+ * the app can nudge toward. Scaled by body weight when available.
+ *
+ * Returns a millilitre integer (rounded to nearest 100 for readability).
+ *
+ * Edge cases:
+ *   - No profile         → 2000 ml (unisex default)
+ *   - Weight but no sex  → 33 ml/kg (common clinical shortcut, Holliday-
+ *                          Segar adult derivation; same anchor as EFSA)
+ *   - High activity      → +500 ml (WHO training heuristic)
+ */
+export function waterGoalMl(profile) {
+  const weight = Number(profile?.weight_kg);
+  const sex = profile?.sex;
+  const activity = profile?.activity;
+
+  let base;
+  if (Number.isFinite(weight) && weight > 0) {
+    base = weight * 33;
+  } else if (sex === 'female') {
+    base = 1500;
+  } else if (sex === 'male' || sex === 'other') {
+    base = 2000;
+  } else {
+    base = 2000;
+  }
+
+  if (activity === 'active' || activity === 'very_active') base += 500;
+
+  return Math.round(base / 100) * 100;
+}
+
 export function logStreakDays(entries, todayIso) {
   if (!entries || entries.length === 0) return 0;
   const days = new Set(entries.map((e) => e.date));
