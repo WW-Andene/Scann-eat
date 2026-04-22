@@ -1765,6 +1765,104 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 }
 
 /* ---- Progress rows ---- */
+/* ========== DAY / WEEK VIEW TOGGLE + WEEKLY BARS =========================
+   ========================================================================== */
+.view-toggle {
+  display: inline-flex;
+  background: var(--panel-2);
+  border-radius: var(--r-pill);
+  padding: 3px;
+  gap: 3px;
+  align-self: flex-start;
+  margin-top: var(--sp-2);
+}
+.view-tab {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 0.88em;
+  cursor: pointer;
+  min-height: auto;
+}
+.view-tab.active {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.weekly-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  background: var(--panel-2);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+}
+.weekly-summary {
+  display: flex;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  font-size: 0.92em;
+}
+.weekly-summary .ws-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.weekly-summary .ws-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.75em;
+  font-weight: 700;
+}
+.weekly-summary .ws-value {
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.weekly-bars {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--sp-1);
+  align-items: end;
+  height: 120px;
+  padding-top: var(--sp-2);
+}
+.wbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.wbar-col {
+  flex: 1;
+  width: 100%;
+  max-width: 36px;
+  background: var(--accent);
+  border-radius: var(--r-xs) var(--r-xs) 0 0;
+  min-height: 2px;
+  transition: height 240ms ease;
+}
+body.reduce-motion .wbar-col { transition: none; }
+.wbar[data-over="true"] .wbar-col { background: var(--warning); }
+.wbar[data-empty="true"] .wbar-col { background: var(--panel-3); }
+.wbar-label {
+  font-size: 0.7em;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+.wbar-val {
+  font-size: 0.72em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ========== HYDRATION TILE ==============================================
    ========================================================================== */
 .hydration-tile {

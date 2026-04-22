@@ -334,6 +334,10 @@
       <section id="daily-dashboard" class="daily-dashboard" hidden>
         <div class="dashboard-header">
           <h2><span data-i18n="todayTitle">Aujourd'hui</span> · <span id="dashboard-date"></span></h2>
+          <div class="view-toggle" role="tablist" aria-label="Vue">
+            <button id="view-day" type="button" role="tab" aria-selected="true" class="view-tab active" data-view="day" data-i18n="viewDay">Jour</button>
+            <button id="view-week" type="button" role="tab" aria-selected="false" class="view-tab" data-view="week" data-i18n="viewWeek">7 jours</button>
+          </div>
           <p id="dashboard-streak" class="dashboard-streak" hidden></p>
           <div class="dashboard-actions">
             <button id="quick-add-btn" class="compact chip-btn accent" type="button" data-i18n="quickAdd">Quick Add</button>
@@ -358,6 +362,12 @@
           </div>
         </div>
         <ul id="dashboard-rows" class="dashboard-rows"></ul>
+
+        <section id="weekly-view" class="weekly-view" hidden>
+          <div class="weekly-summary" id="weekly-summary"></div>
+          <div class="weekly-bars" id="weekly-bars" role="img" aria-label="Graphique barres 7 jours"></div>
+        </section>
+
         <details class="dashboard-log" id="dashboard-log" hidden>
           <summary data-i18n="todayEntries">Aliments loggés</summary>
           <div id="dashboard-entries" class="dashboard-entries"></div>

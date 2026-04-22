@@ -12,7 +12,7 @@ import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDa
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/meal-templates.js';
 import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/recipes.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl } from '/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup } from '/presenters.js';
 import { checkDiet } from '/diets.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
@@ -2367,6 +2367,98 @@ $('hydration-minus')?.addEventListener('click', () => {
   setHydrationMl(Math.max(0, getHydrationMl() - HYD_GLASS_ML));
   renderHydration();
 });
+
+// ============================================================================
+// Day / Week view toggle — flips between daily dashboard and weekly rollup.
+// Stored in-memory only (resets on reload).
+// ============================================================================
+
+let dashboardView = 'day'; // 'day' | 'week'
+
+function applyViewToggle(view) {
+  dashboardView = view;
+  for (const btn of document.querySelectorAll('.view-tab')) {
+    const isActive = btn.dataset.view === view;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  }
+  const weeklyEl = $('weekly-view');
+  const rowsEl = $('dashboard-rows');
+  const logEl = $('dashboard-log');
+  if (view === 'week') {
+    hide(rowsEl);
+    hide(logEl);
+    renderWeeklyView();
+    show(weeklyEl);
+  } else {
+    hide(weeklyEl);
+    show(rowsEl);
+    // Keep log visibility driven by renderDashboard; re-run it to refresh.
+    renderDashboard();
+  }
+}
+
+async function renderWeeklyView() {
+  const root = $('weekly-view');
+  const bars = $('weekly-bars');
+  const summary = $('weekly-summary');
+  if (!root || !bars || !summary) return;
+
+  const all = await listAllEntries().catch(() => []);
+  const roll = weeklyRollup(all, todayISO());
+  const profile = getProfile();
+  const targets = dailyTargets(profile);
+  const kcalTarget = targets?.kcal ?? 0;
+  const peak = Math.max(kcalTarget, ...roll.days.map((d) => d.kcal), 1);
+
+  // Summary line — avg / total / days logged
+  summary.textContent = '';
+  const mkChip = (labelKey, value) => {
+    const d = document.createElement('div');
+    d.className = 'ws-item';
+    const l = document.createElement('span');
+    l.className = 'ws-label';
+    l.textContent = t(labelKey);
+    const v = document.createElement('span');
+    v.className = 'ws-value';
+    v.textContent = value;
+    d.appendChild(l); d.appendChild(v);
+    return d;
+  };
+  summary.appendChild(mkChip('weeklyAvgKcal', `${Math.round(roll.avg.kcal)} kcal`));
+  summary.appendChild(mkChip('weeklyTotalKcal', `${Math.round(roll.total.kcal)} kcal`));
+  summary.appendChild(mkChip('weeklyDaysLogged', t('weeklyDaysLogged', { n: roll.days_logged })));
+
+  // Bar chart — one column per day
+  bars.textContent = '';
+  const dayFmt = new Intl.DateTimeFormat(currentLang === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'narrow' });
+  for (const d of roll.days) {
+    const wrap = document.createElement('div');
+    wrap.className = 'wbar';
+    const isEmpty = d.count === 0;
+    const isOver = kcalTarget > 0 && d.kcal > kcalTarget;
+    if (isEmpty) wrap.dataset.empty = 'true';
+    if (isOver) wrap.dataset.over = 'true';
+    const col = document.createElement('span');
+    col.className = 'wbar-col';
+    const heightPct = Math.max(2, (d.kcal / peak) * 100);
+    col.style.height = `${heightPct}%`;
+    const date = new Date(d.date + 'T12:00:00Z');
+    const dayLabel = document.createElement('span');
+    dayLabel.className = 'wbar-label';
+    dayLabel.textContent = dayFmt.format(date);
+    const valLabel = document.createElement('span');
+    valLabel.className = 'wbar-val';
+    valLabel.textContent = isEmpty ? '—' : Math.round(d.kcal);
+    wrap.appendChild(col);
+    wrap.appendChild(dayLabel);
+    wrap.appendChild(valLabel);
+    bars.appendChild(wrap);
+  }
+}
+
+document.querySelectorAll('.view-tab').forEach((btn) =>
+  btn.addEventListener('click', () => applyViewToggle(btn.dataset.view)));
 
 async function renderDashboard() {
   const profile = getProfile();
