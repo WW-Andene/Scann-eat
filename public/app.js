@@ -1583,6 +1583,28 @@ aboutBtn?.addEventListener('click', () => {
 if ('serviceWorker' in navigator && !isCapacitor) {
   navigator.serviceWorker.register('/service-worker.js').catch(() => {});
 }
+
+// ---------- PWA share_target receiver ----------
+// The manifest declares Scann-eat as a share target for image/*. When the
+// user picks "Share → Scann-eat" from another app, the SW receives the POST,
+// stashes the files, and redirects us here with ?shared=1. Pull the files
+// from the SW via a MessageChannel and feed them straight into the capture
+// queue — zero-click scan from the gallery.
+(async () => {
+  if (!new URLSearchParams(location.search).has('shared')) return;
+  history.replaceState({}, '', '/'); // clean the URL immediately
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    if (!reg?.active) return;
+    const files = await new Promise((resolve) => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (ev) => resolve(ev.data);
+      reg.active.postMessage('shared-files?', [channel.port2]);
+      setTimeout(() => resolve(null), 1500); // don't hang forever
+    });
+    if (files && files.length > 0) await addFiles(files);
+  } catch { /* non-critical */ }
+})();
 if (compareArmed()) {
   compareNextBtn?.setAttribute('disabled', 'true');
   if (compareNextBtn) compareNextBtn.textContent = t('compareWaiting');
