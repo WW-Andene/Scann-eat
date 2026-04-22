@@ -49,6 +49,17 @@ function sendJSON(res: ServerResponse, status: number, body: unknown) {
   res.end(payload);
 }
 
+// Map a Groq/LLM error to an HTTP response. Returns true if the error was
+// rate-limit (429) and a response was sent; callers should early-return.
+function sendIfRateLimit(err: unknown, res: ServerResponse): boolean {
+  const status = (err as { status?: number } | null)?.status;
+  if (status === 429) {
+    sendJSON(res, 429, { error: 'rate_limit' });
+    return true;
+  }
+  return false;
+}
+
 async function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -133,6 +144,7 @@ async function handleScore(req: IncomingMessage, res: ServerResponse) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/score]', message);
+    if (sendIfRateLimit(err, res)) return;
     const publicMessage =
       /body too large/i.test(message) ? 'Request body too large'
       : /JSON/i.test(message) ? 'Invalid JSON body'
@@ -181,6 +193,7 @@ async function handleIdentifyMulti(req: IncomingMessage, res: ServerResponse) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/identify-multi]', message);
+    if (sendIfRateLimit(err, res)) return;
     const publicMessage =
       /body too large/i.test(message) ? 'Request body too large'
       : /JSON/i.test(message) ? 'Invalid JSON body'
@@ -204,6 +217,7 @@ async function handleIdentifyMenu(req: IncomingMessage, res: ServerResponse) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/identify-menu]', message);
+    if (sendIfRateLimit(err, res)) return;
     const publicMessage =
       /body too large/i.test(message) ? 'Request body too large'
       : /JSON/i.test(message) ? 'Invalid JSON body'
@@ -225,6 +239,7 @@ async function handleSuggestFromPantry(req: IncomingMessage, res: ServerResponse
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/suggest-from-pantry]', message);
+    if (sendIfRateLimit(err, res)) return;
     const publicMessage =
       /body too large/i.test(message) ? 'Request body too large'
       : /JSON/i.test(message) ? 'Invalid JSON body'
@@ -244,6 +259,7 @@ async function handleSuggestRecipes(req: IncomingMessage, res: ServerResponse) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/suggest-recipes]', message);
+    if (sendIfRateLimit(err, res)) return;
     const publicMessage =
       /body too large/i.test(message) ? 'Request body too large'
       : /JSON/i.test(message) ? 'Invalid JSON body'
@@ -267,6 +283,7 @@ async function handleIdentify(req: IncomingMessage, res: ServerResponse) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[/api/identify]', message);
+    if (sendIfRateLimit(err, res)) return;
     const publicMessage =
       /body too large/i.test(message) ? 'Request body too large'
       : /JSON/i.test(message) ? 'Invalid JSON body'

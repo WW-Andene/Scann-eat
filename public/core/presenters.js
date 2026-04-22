@@ -332,6 +332,41 @@ export function formatWeeklyShare(rollup, opts = {}) {
 }
 
 /**
+ * formatPairingsShare — turns a matchPairings() hit into a shareable
+ * plain-text "recipe card". Used by the pairings section's Share button
+ * and by navigator.share on mobile (WhatsApp, Messages, Mail). Pure
+ * presenter — takes raw data, no DOM.
+ *
+ * Shape matches matchPairings() output: { name, pairs: [{ b, fr, cooccur }] }.
+ * lang defaults to 'fr'. Empty/invalid input → ''.
+ */
+export function formatPairingsShare(hit, opts = {}) {
+  if (!hit || !hit.name || !Array.isArray(hit.pairs) || hit.pairs.length === 0) return '';
+  const { lang = 'fr' } = opts;
+  const isFr = lang !== 'en';
+  const header = isFr
+    ? `🍳 Accords pour "${hit.name}"`
+    : `🍳 Pairings for "${hit.name}"`;
+  const sub = isFr ? 'Associations les plus fréquentes :' : 'Most common matches:';
+  const lines = [header, '', sub];
+  for (const p of hit.pairs.slice(0, 6)) {
+    const label = p.fr ?? p.b.replace(/_/g, ' ');
+    const tail = Number.isFinite(p.cooccur)
+      ? (isFr ? ` (partagé dans ${p.cooccur} recettes)` : ` (shared in ${p.cooccur} recipes)`)
+      : '';
+    lines.push(`• ${label}${tail}`);
+  }
+  lines.push('');
+  lines.push(isFr
+    ? `Idée : commence avec ${hit.name}, ajoute 2–3 éléments ci-dessus, assaisonne.`
+    : `Idea: start with ${hit.name}, add 2–3 items above, season to taste.`);
+  lines.push(isFr
+    ? '— Scann-eat (corpus Ahn et al. 2011)'
+    : '— Scann-eat (Ahn et al. 2011 recipe corpus)');
+  return lines.join('\n');
+}
+
+/**
  * State of an intermittent-fasting window given its start time, the current
  * time, and a target duration in hours (default 16 for a classic 16:8).
  *

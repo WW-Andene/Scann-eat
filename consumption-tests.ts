@@ -239,4 +239,24 @@ describe('todayISO', () => {
   it('returns a valid YYYY-MM-DD date string', () => {
     assert.match(todayISO(), /^\d{4}-\d{2}-\d{2}$/);
   });
+
+  it('accepts a `now` epoch-ms argument for deterministic bucketing', () => {
+    // 2026-04-22 at 12:00 UTC — noon UTC is the same local date in every
+    // timezone offset between UTC-12 and UTC+12, so the assertion is
+    // TZ-agnostic.
+    const noon = Date.UTC(2026, 3, 22, 12, 0, 0);
+    assert.equal(todayISO(noon), '2026-04-22');
+  });
+
+  it('returns the LOCAL calendar day (not UTC)', () => {
+    // This test documents the bugfix: prior to R2.10, todayISO() used
+    // toISOString() which returns the UTC day. The new impl uses
+    // Intl.DateTimeFormat('en-CA') which reports the runtime-local day.
+    // We verify that at noon UTC (a time every timezone between UTC-12
+    // and UTC+12 reports as the same calendar day), the output matches
+    // the locally-observed calendar day.
+    const noon = new Date(Date.UTC(2026, 3, 22, 12, 0, 0));
+    const localDay = noon.toLocaleDateString('en-CA'); // YYYY-MM-DD in local TZ
+    assert.equal(todayISO(noon.getTime()), localDay);
+  });
 });

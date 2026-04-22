@@ -263,6 +263,14 @@
             <span data-i18n="profileWaterGoal">Hydratation cible (ml, optionnel)</span>
             <input id="profile-water-goal" type="number" min="500" max="6000" step="50" inputmode="numeric" placeholder="Auto (EFSA)" />
           </label>
+          <label class="full" id="profile-life-stage-wrap">
+            <span data-i18n="profileLifeStage">Période de vie (optionnel)</span>
+            <select id="profile-life-stage">
+              <option value="" data-i18n="profileLifeStageNone">—</option>
+              <option value="pregnancy" data-i18n="profileLifeStagePregnancy">Grossesse</option>
+              <option value="lactation" data-i18n="profileLifeStageLactation">Allaitement</option>
+            </select>
+          </label>
           <label class="full">
             <span data-i18n="profileActivity">Niveau d'activité</span>
             <select id="profile-activity">
@@ -937,6 +945,7 @@
             <div class="pairings-actions">
               <button id="recipe-ideas-btn" type="button" class="secondary compact recipe-ideas-btn" data-i18n="recipeIdeasBtn">💡 Idées de recettes</button>
               <button id="pairings-copy-btn" type="button" class="secondary compact" data-i18n="pairingsCopyBtn">📋 Copier</button>
+              <button id="pairings-share-btn" type="button" class="secondary compact" data-i18n="pairingsShareBtn">📤 Partager</button>
             </div>
           </section>
         </div>

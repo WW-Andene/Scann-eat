@@ -6,7 +6,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS
-import { weeklyRollup, formatWeeklyShare } from './public/core/presenters.js';
+import { weeklyRollup, formatWeeklyShare, formatPairingsShare } from './public/core/presenters.js';
 
 const entries = [
   { date: '2026-04-22', kcal: 400, protein_g: 20, carbs_g: 50, fat_g: 10, sat_fat_g: 3, sugars_g: 5, salt_g: 1 },
@@ -39,5 +39,44 @@ describe('formatWeeklyShare', () => {
     const dashLines = out.split('\n').filter((l) => l.endsWith(' —'));
     // 6 days with no entries should appear as "<day>  —"
     assert.equal(dashLines.length, 6);
+  });
+});
+
+describe('formatPairingsShare', () => {
+  const hit = {
+    name: 'tomate',
+    en: 'tomato',
+    pairs: [
+      { b: 'basil', fr: 'basilic', cooccur: 577 },
+      { b: 'garlic', fr: 'ail', cooccur: 420 },
+      { b: 'olive_oil', fr: null, cooccur: 300 },
+    ],
+  };
+
+  it('produces a French recipe card with header + co-occurrence counts', () => {
+    const out = formatPairingsShare(hit, { lang: 'fr' });
+    assert.ok(out.includes('🍳'));
+    assert.ok(out.includes('tomate'));
+    assert.ok(out.includes('basilic'));
+    assert.ok(out.includes('577 recettes'));
+    assert.ok(out.includes('Ahn'));
+  });
+
+  it('supports English', () => {
+    const out = formatPairingsShare(hit, { lang: 'en' });
+    assert.ok(out.includes('Pairings for'));
+    assert.ok(out.includes('577 recipes'));
+    assert.ok(out.includes('Idea:'));
+  });
+
+  it('falls back to English ID with underscores replaced when fr is null', () => {
+    const out = formatPairingsShare(hit, { lang: 'fr' });
+    assert.ok(out.includes('olive oil'));
+  });
+
+  it('returns empty string for missing / invalid hits', () => {
+    assert.equal(formatPairingsShare(null as unknown as { name: string; pairs: never[] }), '');
+    assert.equal(formatPairingsShare({ name: '', pairs: [] } as { name: string; pairs: never[] }), '');
+    assert.equal(formatPairingsShare({ name: 'x', pairs: [] } as { name: string; pairs: never[] }), '');
   });
 });

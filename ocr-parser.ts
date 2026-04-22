@@ -212,7 +212,13 @@ async function callGroqVision(
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`Groq API ${res.status}: ${text.slice(0, 500)}`);
+    const err = new Error(`Groq API ${res.status}: ${text.slice(0, 500)}`);
+    // Tag the status so callers can distinguish rate-limit from other failures.
+    // Groq returns 429 when the shared key is saturated; surfacing it lets the
+    // UI suggest retry-later / switch-to-direct mode instead of a generic
+    // "Scoring failed".
+    (err as Error & { status?: number }).status = res.status;
+    throw err;
   }
 
   const json = (await res.json()) as {

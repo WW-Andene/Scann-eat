@@ -172,12 +172,37 @@ export function bmiCategory(value) {
 /**
  * Protein Population Reference Intake (PRI).
  * EFSA 2012: 0.83 g/kg bw/day for adults. ≥65y: 1.0 g/kg/day (sarcopenia prevention).
- * During growth or pregnancy: higher values — outside this app's scope.
+ * Pregnancy / lactation deltas applied via life_stage in dailyTargets().
  */
 export function proteinPRI_g(p) {
   if (!p.weight_kg || !p.age_years) return null;
   const per_kg = p.age_years >= 65 ? 1.0 : 0.83;
   return Math.round(p.weight_kg * per_kg);
+}
+
+/**
+ * Life-stage adjustments applied on top of the baseline adult targets.
+ * EFSA DRV Summary 2017 (EFSA Journal; Scientific Opinion on DRVs).
+ *   Pregnancy: kcal +300 (avg across trimesters; EFSA 2013),
+ *              protein +15 g/day (EFSA 2012 PRI delta),
+ *              iron 27 mg/day (IOM; EFSA 16 mg + supplementation alternative),
+ *              calcium 1000 mg/day (EFSA AI 2015),
+ *              vit D 15 µg/day (unchanged), B12 4.5 µg/day.
+ *   Lactation: kcal +500 (EFSA 2013), protein +19 g (EFSA 2012 first 6 mo),
+ *              iron 10 mg (non-menstruating), calcium 1000 mg,
+ *              vit D 15 µg, B12 5 µg.
+ *
+ * Returned deltas are APPLIED, not replacements — caller composes them on
+ * top of the baseline.
+ */
+export function lifeStageAdjust(stage) {
+  if (stage === 'pregnancy') {
+    return { kcal: 300, protein_g: 15, iron_mg: 27, calcium_mg: 1000, vit_d_ug: 15, b12_ug: 4.5 };
+  }
+  if (stage === 'lactation') {
+    return { kcal: 500, protein_g: 19, iron_mg: 10, calcium_mg: 1000, vit_d_ug: 15, b12_ug: 5 };
+  }
+  return null;
 }
 
 /**
@@ -197,14 +222,20 @@ export function proteinPRI_g(p) {
  * Vitamin B12: EFSA AI 4 µg/d.
  */
 export function dailyTargets(p) {
-  const tdee = tdeeKcal(p);
-  if (tdee == null) return null;
+  const baseTdee = tdeeKcal(p);
+  if (baseTdee == null) return null;
+  const stage = p?.life_stage === 'pregnancy' || p?.life_stage === 'lactation'
+    ? p.life_stage : null;
+  const delta = lifeStageAdjust(stage) || { kcal: 0, protein_g: 0 };
+  const tdee = baseTdee + (delta.kcal || 0);
   const split = resolveMacroSplit(p);
-  // protein target = max(EFSA PRI, macro-split percentage) — prevents sub-PRI
-  // targets when the user picks a low-protein macro split.
-  const pri = proteinPRI_g(p) ?? 0;
+  // protein target = max(EFSA PRI + stage delta, macro-split percentage) —
+  // prevents sub-PRI targets when the user picks a low-protein macro split.
+  const pri = (proteinPRI_g(p) ?? 0) + (delta.protein_g || 0);
   const pctProtein = Math.round(((split.protein / 100) * tdee) / 4);
   const isMenstruating = p?.sex === 'female' && (p?.age_years ?? 0) >= 11 && (p?.age_years ?? 0) < 51;
+  // Micronutrient iron baseline; stage override takes precedence.
+  const iron_baseline = isMenstruating ? 16 : 11;
   return {
     kcal: tdee,
     carbs_g_target: Math.round(((split.carbs / 100) * tdee) / 4),
@@ -215,10 +246,11 @@ export function dailyTargets(p) {
     free_sugars_g_ideal: Math.round((0.05 * tdee) / 4),
     salt_g_max: 5,                                          // WHO 2012 fixed
     fiber_g_target: 25,                                     // EFSA DRV 2010
-    iron_mg_target: isMenstruating ? 16 : 11,               // EFSA PRI 2015
-    calcium_mg_target: 950,                                 // EFSA PRI 2015
-    vit_d_ug_target: 15,                                    // EFSA AI 2016
-    b12_ug_target: 4,                                       // EFSA AI 2015
+    iron_mg_target: delta.iron_mg ?? iron_baseline,         // EFSA PRI 2015 + stage
+    calcium_mg_target: delta.calcium_mg ?? 950,             // EFSA PRI 2015 + stage
+    vit_d_ug_target: delta.vit_d_ug ?? 15,                  // EFSA AI 2016
+    b12_ug_target: delta.b12_ug ?? 4,                       // EFSA AI 2015
     macro_split_key: p?.macro_split || 'balanced',
+    life_stage: stage,
   };
 }

@@ -9,6 +9,9 @@ import { getSetting, setSetting } from '/core/app-settings.js';
 import { initHydration, renderHydration } from '/features/hydration.js';
 import { initActivity, renderActivity } from '/features/activity.js';
 import { initWeight, renderWeightSummary } from '/features/weight.js';
+import { initReminders, scheduleReminders } from '/features/reminders.js';
+import { initVoiceDictate } from '/features/voice-dictate.js';
+import { initScanner, openCameraScanner, closeCameraScanner } from '/features/scanner.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -27,7 +30,7 @@ import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/re
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatPairingsShare } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
@@ -375,6 +378,9 @@ async function scanViaServer() {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (res.status === 429 || body.error === 'rate_limit') {
+      throw new Error(t('errRateLimit'));
+    }
     throw new Error(body.error || `HTTP ${res.status}`);
   }
   return res.json();
@@ -390,7 +396,16 @@ async function scanViaDirect() {
   const payload = queuePayload();
   if (payload.length === 0) throw new Error(t('errNoPhotos'));
   if (!key) throw new Error(t('errMissingKey'));
-  const parsed = await parseLabel(payload, { apiKey: key });
+  let parsed;
+  try {
+    parsed = await parseLabel(payload, { apiKey: key });
+  } catch (err) {
+    // ocr-parser tags the thrown Error with .status — 429 means the user's
+    // own Groq quota is saturated. Surface a translated message instead of
+    // the raw "Groq API 429: …" string.
+    if (err?.status === 429) throw new Error(t('errRateLimit'));
+    throw err;
+  }
   return {
     product: parsed.product,
     audit: scoreProduct(parsed.product),
@@ -684,8 +699,11 @@ function renderSparseHint(data) {
  */
 // Stashes the canonical ingredient name from the last successful
 // renderPairings() call so the recipe-ideas button has something to send
-// to the LLM without having to re-derive it on click.
+// to the LLM without having to re-derive it on click. pairedHit retains
+// the full match (name + pairs) for the Share button's recipe-card
+// formatter.
 let pairedIngredientName = null;
+let pairedHit = null;
 
 function renderPairings(data) {
   const section = $('pairings');
@@ -705,10 +723,12 @@ function renderPairings(data) {
   list.textContent = '';
   if (!hit) {
     pairedIngredientName = null;
+    pairedHit = null;
     hide(section);
     return;
   }
   pairedIngredientName = hit.name;
+  pairedHit = hit;
   title.textContent = t('pairingsTitle', { name: hit.name });
   for (const p of hit.pairs.slice(0, 6)) {
     const li = document.createElement('li');
@@ -885,6 +905,27 @@ $('pairings-copy-btn')?.addEventListener('click', async () => {
     await navigator.clipboard?.writeText(text);
     toast(t('pairingsCopied'));
   } catch { toast(t('pairingsCopyFailed'), 'error'); }
+});
+
+// Pair-list "Share" — richer than Copy: builds a recipe-card-shaped block
+// and hands it to navigator.share (Web Share API) on mobile, with a
+// clipboard fallback elsewhere. Uses the structured hit, not the chips'
+// textContent, so co-occurrence counts survive round-trip.
+$('pairings-share-btn')?.addEventListener('click', async () => {
+  if (!pairedHit) return;
+  const text = formatPairingsShare(pairedHit, { lang: currentLang });
+  const title = t('pairingsShareTitle', { name: pairedHit.name });
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text });
+      return;
+    }
+    await navigator.clipboard?.writeText(text);
+    toast(t('pairingsShareCopied'));
+  } catch (err) {
+    // AbortError = user dismissed the native sheet; not a real failure.
+    if (err?.name !== 'AbortError') toast(t('pairingsShareFailed'), 'error');
+  }
 });
 $('recipe-ideas-close')?.addEventListener('click', (e) => {
   e.preventDefault();
@@ -1652,90 +1693,10 @@ function armComparison(data) {
 // Live barcode scanner
 // ============================================================================
 
-let cameraStream = null;
-let cameraLoopHandle = null;
-
-async function openCameraScanner() {
-  if (!getBarcodeDetector()) {
-    errorEl.textContent = t('cameraUnsupported'); show(errorEl); return;
-  }
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } }, audio: false,
-    });
-  } catch (err) {
-    errorEl.textContent = t('cameraDenied'); show(errorEl); return;
-  }
-  cameraVideo.srcObject = cameraStream;
-  cameraDialog.showModal();
-  cameraStatus.textContent = t('cameraReady');
-
-  // Torch button appears only when the active video track reports
-  // capabilities.torch — Chrome Android exposes it on most phones, iOS
-  // Safari never does. Hidden = feature not available.
-  const torchBtn = $('camera-torch');
-  const track = cameraStream.getVideoTracks()[0];
-  const caps = track?.getCapabilities?.() || {};
-  if (torchBtn && caps.torch) {
-    torchBtn.dataset.on = '0';
-    torchBtn.setAttribute('aria-pressed', 'false');
-    show(torchBtn);
-  } else if (torchBtn) {
-    hide(torchBtn);
-  }
-
-  const detector = getBarcodeDetector();
-  const scan = async () => {
-    if (!cameraDialog.open) return;
-    try {
-      const codes = await detector.detect(cameraVideo);
-      for (const c of codes) {
-        const d = (c.rawValue || '').replace(/\D/g, '');
-        if (d.length === 8 || d.length === 12 || d.length === 13) {
-          // Small haptic blip so users holding the phone know it caught it
-          // even before the overlay closes. 50 ms stays under the reduce-
-          // motion threshold most users set via vibration-strength settings.
-          try { navigator.vibrate?.(50); } catch { /* not supported */ }
-          closeCameraScanner();
-          addBarcodeOnly(d);
-          await scanImage();
-          return;
-        }
-      }
-    } catch { /* ignore detection errors */ }
-    cameraLoopHandle = setTimeout(scan, 250);
-  };
-  scan();
-}
-function closeCameraScanner() {
-  if (cameraLoopHandle) clearTimeout(cameraLoopHandle);
-  cameraLoopHandle = null;
-  if (cameraStream) {
-    // Make sure torch is off before releasing the track, so the LED doesn't
-    // linger when the user closes the scanner without capturing.
-    try {
-      const track = cameraStream.getVideoTracks()[0];
-      track?.applyConstraints?.({ advanced: [{ torch: false }] });
-    } catch { /* ignore */ }
-    cameraStream.getTracks().forEach((t) => t.stop()); cameraStream = null;
-  }
-  const torchBtn = $('camera-torch');
-  if (torchBtn) { torchBtn.dataset.on = '0'; torchBtn.setAttribute('aria-pressed', 'false'); }
-  cameraVideo.srcObject = null;
-  if (cameraDialog.open) cameraDialog.close();
-}
-$('camera-torch')?.addEventListener('click', async () => {
-  if (!cameraStream) return;
-  const btn = $('camera-torch');
-  const track = cameraStream.getVideoTracks()[0];
-  if (!track?.applyConstraints) return;
-  const on = btn.dataset.on !== '1';
-  try {
-    await track.applyConstraints({ advanced: [{ torch: on }] });
-    btn.dataset.on = on ? '1' : '0';
-    btn.setAttribute('aria-pressed', String(on));
-  } catch { /* torch failed; leave state unchanged */ }
-});
+// Camera scanner extracted to /features/scanner.js — openCameraScanner /
+// closeCameraScanner are imported at the top of this file. initScanner()
+// below wires the torch button (the camera stream + dialog lifecycle live
+// inside the feature).
 
 // ============================================================================
 // Personal score
@@ -1828,6 +1789,8 @@ function openProfileDialog() {
   $('profile-goal-weight').value = p.goal_weight_kg ?? '';
   $('profile-water-goal').value = p.water_goal_ml ?? '';
   profileActivity.value = p.activity || '';
+  const lifeStageEl = $('profile-life-stage');
+  if (lifeStageEl) lifeStageEl.value = p.life_stage || '';
   profileDiet.value = p.diet || 'none';
   profileCustomForbidden.value = (p.custom_diet?.forbidden || []).join('\n');
   profileCustomPreferred.value = (p.custom_diet?.preferred || []).join('\n');
@@ -1902,6 +1865,7 @@ function readProfileFromForm() {
     height_cm: toNum(profileHeight.value),
     weight_kg: toNum(profileWeight.value),
     activity: profileActivity.value || null,
+    life_stage: $('profile-life-stage')?.value || null,
     diet: profileDiet.value || 'none',
     custom_diet: profileDiet.value === 'custom'
       ? {
@@ -2753,61 +2717,8 @@ quickAddBtn?.addEventListener('click', () => {
 });
 qaCancel?.addEventListener('click', (e) => { e.preventDefault(); quickAddDialog.close(); });
 
-// ----- Voice-dictate for Quick Add -----
-// Uses the Web Speech API. Desktop Safari/Chrome + Android Chrome are the
-// widely-supported targets; on Firefox the button stays hidden.
-const SpeechRecognitionImpl =
-  globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
-const qaVoiceBtn = $('qa-voice-btn');
-let qaRecognizer = null;
-
-if (SpeechRecognitionImpl && qaVoiceBtn) {
-  show(qaVoiceBtn);
-  qaVoiceBtn.addEventListener('click', () => {
-    // Toggle: if already listening, stop.
-    if (qaRecognizer) { try { qaRecognizer.stop(); } catch { /* ignore */ } return; }
-    try {
-      const rec = new SpeechRecognitionImpl();
-      rec.lang = currentLang === 'en' ? 'en-US' : 'fr-FR';
-      rec.interimResults = false;
-      rec.continuous = false;
-      rec.maxAlternatives = 1;
-
-      rec.onstart = () => {
-        qaVoiceBtn.dataset.state = 'listening';
-        qaVoiceBtn.querySelector('.label').textContent = t('voiceListening');
-      };
-      rec.onresult = (ev) => {
-        const transcript = Array.from(ev.results)
-          .map((r) => r[0]?.transcript || '')
-          .join(' ')
-          .trim();
-        if (!transcript) return;
-        // Parse the transcript into field candidates and only overwrite
-        // fields the parser actually recognized, so a partial utterance
-        // doesn't wipe values the user already typed.
-        const parsed = parseVoiceQuickAdd(transcript);
-        const setField = (id, v) => {
-          const el = $(id);
-          if (el && v != null) el.value = String(v);
-        };
-        setField('qa-name',    parsed.name);
-        setField('qa-kcal',    parsed.kcal);
-        setField('qa-protein', parsed.protein_g);
-        setField('qa-carbs',   parsed.carbs_g);
-        setField('qa-fat',     parsed.fat_g);
-      };
-      rec.onerror = () => { /* handled by onend */ };
-      rec.onend = () => {
-        delete qaVoiceBtn.dataset.state;
-        qaVoiceBtn.querySelector('.label').textContent = t('voiceDictate');
-        qaRecognizer = null;
-      };
-      qaRecognizer = rec;
-      rec.start();
-    } catch { qaRecognizer = null; }
-  });
-}
+// Voice-dictate extracted to /features/voice-dictate.js — initialized below
+// with initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }).
 
 // ----- Photo-to-food identification for Quick Add -----
 // Complements voice dictation with image recognition: the user snaps a
@@ -3595,6 +3506,9 @@ initWeight({
   summarizeWeight, weeklyTrend, weightForecast,
   renderDashboard, todayISO, round1,
 });
+initReminders({ t, toast, nextOccurrenceMs });
+initVoiceDictate({ t, currentLang: () => currentLang, parseVoiceQuickAdd });
+initScanner({ t, errorEl, show, getBarcodeDetector, scanImage, addBarcodeOnly });
 
 // ============================================================================
 // PWA install prompt — we catch `beforeinstallprompt` and reveal a small
@@ -4072,7 +3986,14 @@ async function renderDashboard() {
       name.textContent = mealLabels[m];
       const kcal = document.createElement('span');
       kcal.className = 'meal-kcal';
-      kcal.textContent = `${Math.round(bucket.totals.kcal)} kcal`;
+      // Append "(X% of day)" when the user has a kcal target set, so the
+      // meal's share of the day is visible without mental arithmetic.
+      // Uses the targets already fetched for the dashboard summary above.
+      const dailyKcal = targets?.kcal || 0;
+      const pct = dailyKcal > 0 ? Math.round((bucket.totals.kcal / dailyKcal) * 100) : 0;
+      kcal.textContent = pct > 0
+        ? `${Math.round(bucket.totals.kcal)} kcal · ${pct}% ${t('mealOfDayShort')}`
+        : `${Math.round(bucket.totals.kcal)} kcal`;
       header.appendChild(name);
       header.appendChild(kcal);
       section.appendChild(header);
@@ -4314,59 +4235,15 @@ $('progress-close')?.addEventListener('click', (e) => {
 
 // renderWeightSummary extracted to /features/weight.js — imported at top.
 
-// ============================================================================
-// Meal reminders — local, in-page only.
-// No service-worker push (would need a backend). Reminders fire only while
-// the tab is open, via setTimeout. Shows a Notification if permission was
-// granted, else falls back to an in-app toast.
-// ============================================================================
-
-const reminderTimers = [];
-
-function fireMealReminder(meal) {
-  const body = t('reminderBody', { meal: t(
-    meal === 'breakfast' ? 'mealBreakfast'
-    : meal === 'lunch' ? 'mealLunch'
-    : 'mealDinner',
-  ).toLowerCase() });
-  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try { new Notification('Scann-eat', { body, icon: '/icon.svg' }); }
-    catch { toast(body); }
-  } else {
-    toast(body);
-  }
-}
-
-function scheduleReminders() {
-  // Clear any pending timers first — called on boot + after settings save.
-  for (const id of reminderTimers) clearTimeout(id);
-  reminderTimers.length = 0;
-
-  for (const meal of ['breakfast', 'lunch', 'dinner']) {
-    const on = localStorage.getItem(`scanneat.reminder.${meal}.on`) === '1';
-    if (!on) continue;
-    const time = localStorage.getItem(`scanneat.reminder.${meal}.time`);
-    if (!time) continue;
-    const nextMs = nextOccurrenceMs(time, Date.now());
-    if (nextMs == null) continue;
-    // setTimeout accepts up to ~24.8 days — plenty for a 24h-max scheduling
-    // window.
-    const delay = Math.max(0, nextMs - Date.now());
-    const id = setTimeout(() => {
-      fireMealReminder(meal);
-      // Re-schedule for the next day by re-running the whole planner.
-      scheduleReminders();
-    }, delay);
-    reminderTimers.push(id);
-  }
-}
+// Meal reminders extracted to /features/reminders.js — initReminders()
+// wires scheduleReminders() + registers it on boot.
 
 renderQueue();
 updatePendingBanner();
 renderRecentScans();
 renderDashboard();
 maybeShowOnboarding();
-scheduleReminders();
+// scheduleReminders() is called inside initReminders() above.
 
 // ----- Dashboard-first for returning users -----
 // If the user logged anything in the last 3 days, they're in "daily use" mode

@@ -67,6 +67,41 @@ describe('Profile physiological formulas', () => {
     assert.equal(tg.free_sugars_g_max, Math.round((0.10 * tdee) / 4));
     assert.equal(tg.free_sugars_g_ideal, Math.round((0.05 * tdee) / 4));
     assert.equal(tg.salt_g_max, 5);
+    assert.equal(tg.life_stage, null);
+  });
+
+  it('life_stage=pregnancy adds +300 kcal, +15 g protein, iron=27 mg (EFSA)', () => {
+    const base = { sex: 'female', age_years: 30, height_cm: 165, weight_kg: 60, activity: 'moderate' };
+    const tg0 = dailyTargets(base)!;
+    const tg1 = dailyTargets({ ...base, life_stage: 'pregnancy' })!;
+    assert.equal(tg1.kcal - tg0.kcal, 300);
+    // Protein target must be at least PRI + 15 g.
+    const pri = Math.round(60 * 0.83);
+    assert.ok(tg1.protein_g_target >= pri + 15);
+    assert.equal(tg1.iron_mg_target, 27);
+    assert.equal(tg1.calcium_mg_target, 1000);
+    assert.equal(tg1.vit_d_ug_target, 15);
+    assert.equal(tg1.b12_ug_target, 4.5);
+    assert.equal(tg1.life_stage, 'pregnancy');
+  });
+
+  it('life_stage=lactation adds +500 kcal, +19 g protein, iron=10 mg (EFSA)', () => {
+    const base = { sex: 'female', age_years: 30, height_cm: 165, weight_kg: 60, activity: 'moderate' };
+    const tg0 = dailyTargets(base)!;
+    const tg1 = dailyTargets({ ...base, life_stage: 'lactation' })!;
+    assert.equal(tg1.kcal - tg0.kcal, 500);
+    assert.equal(tg1.iron_mg_target, 10); // non-menstruating + lactation
+    assert.equal(tg1.calcium_mg_target, 1000);
+    assert.equal(tg1.b12_ug_target, 5);
+    assert.equal(tg1.life_stage, 'lactation');
+  });
+
+  it('invalid life_stage value is ignored (no deltas applied)', () => {
+    const base = { sex: 'female', age_years: 30, height_cm: 165, weight_kg: 60, activity: 'moderate' };
+    const tg0 = dailyTargets(base)!;
+    const tg1 = dailyTargets({ ...base, life_stage: 'menopause' as 'pregnancy' })!;
+    assert.equal(tg1.kcal, tg0.kcal);
+    assert.equal(tg1.life_stage, null);
   });
 });
 
