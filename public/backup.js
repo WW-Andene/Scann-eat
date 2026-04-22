@@ -18,7 +18,7 @@ import {
 } from '/data/consumption.js';
 import { listWeight, logWeight, deleteWeight } from '/data/weight-log.js';
 import { listTemplates, saveTemplate, deleteTemplate } from '/data/meal-templates.js';
-import { listRecipes, saveRecipe, deleteRecipe } from '/recipes.js';
+import { listRecipes, saveRecipe, deleteRecipe } from '/data/recipes.js';
 
 const BACKUP_VERSION = 1;
 const LS_PREFIX = 'scanneat.';

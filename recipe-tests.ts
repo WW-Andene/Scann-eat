@@ -7,7 +7,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { aggregateRecipe } from './public/recipes.js';
+import { aggregateRecipe } from './public/data/recipes.js';
 
 const recipe = {
   id: 'r1',
