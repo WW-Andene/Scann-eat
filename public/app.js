@@ -374,7 +374,12 @@ async function scanImage() {
   } catch (err) {
     hide(statusEl);
     console.error('[scan] failed', err);
-    const isNet = !navigator.onLine || /network|failed to fetch|load failed/i.test(err.message);
+    // navigator.onLine is the primary signal. The regex is a secondary probe
+    // on the error message: cover EN phrasing (Chrome, Safari) + FR phrasing
+    // ("Échec du réseau", "Impossible de charger") so French users also hit
+    // the offline-queue fallback instead of a generic error.
+    const isNet = !navigator.onLine
+      || /network|failed to fetch|load failed|[eé]chec du r[eé]seau|impossible de charger/i.test(err.message);
     if (isNet) {
       await enqueueCurrent();
       errorEl.textContent = `${t('offline')} — ${err.message}`;
