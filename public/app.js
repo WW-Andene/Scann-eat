@@ -530,8 +530,8 @@ async function enqueueCurrent() {
 async function updatePendingBanner() {
   const n = await countPending().catch(() => 0);
   if (n === 0) { hide(pendingBanner); return; }
-  const key = n === 1 ? 'pendingScans' : 'pendingScansN';
-  pendingText.textContent = t(key, { n });
+  // Plural handled by t() via Intl.PluralRules — one key, two variants.
+  pendingText.textContent = t('pendingScans', { n });
   show(pendingBanner);
 }
 
