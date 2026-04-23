@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare, formatTemplateShare, filterScanHistory, summarizeScanHistory, topFoods } from './public/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare, formatTemplateShare, filterScanHistory, summarizeScanHistory, topFoods, weekOverWeekDelta } from './public/core/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -1076,5 +1076,44 @@ describe('topFoods', () => {
   it('limit=0 returns an empty list', () => {
     const out = topFoods([e('a', now, 1)], { limit: 0 });
     assert.deepEqual(out, []);
+  });
+});
+
+// ============================================================================
+// weekOverWeekDelta (gap fix #11)
+// ============================================================================
+
+describe('weekOverWeekDelta', () => {
+  const mk = (kcal: number, prot: number, carb: number, fat: number, daysLogged: number) => ({
+    avg: { kcal, protein_g: prot, carbs_g: carb, fat_g: fat },
+    days_logged: daysLogged,
+  });
+
+  it('computes percent change per macro', () => {
+    const out = weekOverWeekDelta(mk(2200, 120, 200, 80, 7), mk(2000, 100, 200, 80, 7));
+    assert.equal(out.kcal.pct, 10);
+    assert.equal(out.protein.pct, 20);
+    assert.equal(out.carbs.pct, 0);
+    assert.equal(out.fat.pct, 0);
+  });
+
+  it('returns null pct when prior is zero', () => {
+    const out = weekOverWeekDelta(mk(2000, 100, 200, 80, 5), mk(0, 0, 0, 0, 0));
+    assert.equal(out.kcal.pct, null);
+    assert.equal(out.protein.pct, null);
+  });
+
+  it('reports rounded cur/prev alongside pct', () => {
+    const out = weekOverWeekDelta(mk(2200.6, 0, 0, 0, 7), mk(2000.4, 0, 0, 0, 7));
+    assert.equal(out.kcal.cur, 2201);
+    assert.equal(out.kcal.prev, 2000);
+  });
+
+  it('is safe with missing / malformed inputs', () => {
+    const out = weekOverWeekDelta(null, undefined);
+    assert.equal(out.kcal.cur, 0);
+    assert.equal(out.kcal.prev, 0);
+    assert.equal(out.kcal.pct, null);
+    assert.equal(out.days_logged.cur, 0);
   });
 });

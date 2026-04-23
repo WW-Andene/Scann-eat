@@ -643,6 +643,41 @@ export function formatTemplateShare(template, opts = {}) {
 }
 
 /**
+ * Gap fix #11 — weekOverWeekDelta: compare this week's rollup to the
+ * prior week's rollup and emit a delta summary for the dashboard
+ * header chip. Pure; takes two rollup outputs from weeklyRollup.
+ *
+ *   current: weeklyRollup output for week ending today
+ *   prior:   weeklyRollup output for week ending 7 days before today
+ *   returns: { kcal: {cur, prev, pct}, protein: {...}, carbs: {...},
+ *              fat: {...}, days_logged: {cur, prev} }
+ *
+ * `pct` is the percent change from prior → current, rounded. null when
+ * prior was zero (can't divide).
+ */
+export function weekOverWeekDelta(current, prior) {
+  const safe = (v) => (v && typeof v === 'object') ? v : { avg: {}, days_logged: 0 };
+  const a = safe(current);
+  const b = safe(prior);
+  const pct = (cur, prev) => {
+    if (!prev || prev === 0) return null;
+    return Math.round(((cur - prev) / prev) * 100);
+  };
+  const field = (key) => ({
+    cur: Math.round(a.avg?.[key] || 0),
+    prev: Math.round(b.avg?.[key] || 0),
+    pct: pct(a.avg?.[key] || 0, b.avg?.[key] || 0),
+  });
+  return {
+    kcal:     field('kcal'),
+    protein:  field('protein_g'),
+    carbs:    field('carbs_g'),
+    fat:      field('fat_g'),
+    days_logged: { cur: a.days_logged || 0, prev: b.days_logged || 0 },
+  };
+}
+
+/**
  * Gap fix #7 + #12 — topFoods: most-logged product names from the
  * consumption entries. Pure. Used by Quick Add autocomplete to
  * surface the user's personal favourites on an empty query, and by

@@ -46,7 +46,7 @@ import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/re
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary, formatRecipeShare, formatTemplateShare, pctClass, dashboardRowsFrom, filterScanHistory, summarizeScanHistory, topFoods } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary, formatRecipeShare, formatTemplateShare, pctClass, dashboardRowsFrom, filterScanHistory, summarizeScanHistory, topFoods, weekOverWeekDelta } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
@@ -3119,6 +3119,24 @@ async function renderWeeklyView() {
   summary.appendChild(mkChip('weeklyAvgKcal', `${Math.round(roll.avg.kcal)} kcal`));
   summary.appendChild(mkChip('weeklyTotalKcal', `${Math.round(roll.total.kcal)} kcal`));
   summary.appendChild(mkChip('weeklyDaysLogged', t('weeklyDaysLogged', { n: roll.days_logged })));
+
+  // Gap fix #11: week-over-week delta chip. Compare this week's avg
+  // kcal / avg protein to last week's; surface up to two deltas so
+  // the user sees drift without scrolling to monthly view.
+  const priorEnd = localDateISO(Date.now() - 7 * 86_400_000);
+  const prior = weeklyRollup(all, priorEnd);
+  if (prior.days_logged > 0) {
+    const delta = weekOverWeekDelta(roll, prior);
+    const fmtPct = (p) => (p === null ? '—' : (p > 0 ? `+${p}%` : `${p}%`));
+    // Show kcal delta (primary) + protein delta (secondary, since
+    // macro balance is typically the user's goal axis).
+    const kcalChip = mkChip('weeklyVsPriorKcal', fmtPct(delta.kcal.pct));
+    if (delta.kcal.pct !== null) kcalChip.dataset.direction = delta.kcal.pct > 0 ? 'up' : delta.kcal.pct < 0 ? 'down' : 'flat';
+    summary.appendChild(kcalChip);
+    const protChip = mkChip('weeklyVsPriorProtein', fmtPct(delta.protein.pct));
+    if (delta.protein.pct !== null) protChip.dataset.direction = delta.protein.pct > 0 ? 'up' : delta.protein.pct < 0 ? 'down' : 'flat';
+    summary.appendChild(protChip);
+  }
 
   // Streak chip: consecutive days logged ending at today. Use the same
   // logStreakDays presenter the dashboard uses, so the two agree.

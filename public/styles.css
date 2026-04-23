@@ -2367,6 +2367,11 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   font-size: 0.75em;
   font-weight: 700;
 }
+/* Gap fix #11 — colour the week-over-week delta chip green if the
+   user is moving toward goal (down for kcal, up for protein), red
+   for the opposite direction. Neutral at flat or unknown. */
+.weekly-summary .ws-item[data-direction="down"] .ws-value { color: var(--success); }
+.weekly-summary .ws-item[data-direction="up"] .ws-value   { color: var(--warning); }
 .weekly-summary .ws-value {
   color: var(--text);
   font-weight: 700;
