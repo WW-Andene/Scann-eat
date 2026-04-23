@@ -2215,3 +2215,98 @@ disappear or blend into background. A single media block fixes it.
 2. **i18n `setLang` comment clarified** — noted in core/i18n.js
    that `applyStaticTranslations()` handles the `<html lang>`
    sync so future contributors don't add a redundant setter.
+
+---
+
+## Step 28 — closeout: stepwise audit complete
+
+### Coverage matrix — every skill chapter ran
+
+**`design-aesthetic-audit-SKILL.md`:**
+
+| Chapter | Sections | Steps |
+|---|---|---|
+| I. Style classification | §DS1, §DS2 | 1 |
+| II. Color science | §DC1-5 | 2, 3 |
+| III. Typography | §DT1-4 | 4, 26 |
+| IV. Motion | §DM1-5 | 5 |
+| V. Visual hierarchy | §DH1-4 | 6 |
+| VI. Surface & atmosphere | §DSA1-5 | 6, 10 |
+| VII. Iconography | §DI1-4 | 7, 11 |
+| VIII. Design-trend calibration | §DDT1-2 | 7, 11 |
+| IX. Brand identity | §DBI1-3 | 8 |
+| X. Competitive positioning | §DCP1-3 | 12 |
+| XI. Design-character system | §DP0-3 | 9, 13 |
+| XII. Source-material intelligence | §SR0-6 | **N/A** (no source IP) |
+| XIII. State design | §DST1-4 | 14 |
+| XIV. Responsive design character | §DRC1-3 | 15 |
+| XV. Component design character | §DCO1-6 | 16, 17, 18 |
+| XVI. Copy × visual alignment | §DCVW1-3 | 19 |
+| XVII. Illustration | §DIL1-3 | **N/A** (emoji-only) |
+| XVIII. Data viz character | §DDV1-3 | 20 |
+| XIX. Token architecture | §DTA1-2 | 21 |
+
+**`art-direction-engine-SKILL.md`:**
+
+| Chapter | Steps |
+|---|---|
+| §BRIEF canonical one-page brief | 22 (→ `docs/art-direction-brief.md`) |
+| §COLOR / §DEPTH / §TEXTURE craft | 23 |
+| §LIGHT / §SHAPE / §COMPOSITION / §ATMOSPHERE | 24 |
+| Part IV §DETECT anti-slop · §FIX | 25 |
+| Part II §PAIRING / §SCALE / §HIERARCHY / §MICRO | 26 |
+| §TOKENS architecture | covered in 21 (equivalent to §DTA) |
+| §SOURCE / §MOOD / §DERIVE / §EXTEND / §IMAGE | **N/A** (no source IP) |
+| Part V §BUTTONS / §CARDS / §INPUTS / §NAVIGATION / §EMPTY / §LOADING / §ERRORS | covered in 16-18 (overlap with §DCO) |
+| Typography sub-chapters §LIBRARY / §WEIGHT / §TRACKING / §OPENTYPE / §VARIABLE / §LOADING / §EVALUATE / §CULTURAL | covered in 4, 26 |
+
+**`app-audit-SKILL.md`:**
+
+| Part | Steps |
+|---|---|
+| P6 Visual Design · Polish · Design System | cross-referenced across Steps 1-26 + verified in 27 |
+| P7 UX · Information Architecture · Copy | cross-referenced + verified in 27 |
+| P8 Accessibility | systematic audit + forced-colors fix in 27 |
+| P1-P5 / P9+ (domain, state, security, performance, code quality, etc.) | **out of scope** — user requested UI/UX rework specifically |
+
+### Final scorecard (from Step 25 anti-slop run)
+
+**31/32 binary items pass.** The single "fail" is centered-column-only layout, deliberate for mobile-first PWA. Skill threshold "26+ = proceed" — Scann-eat in top tier.
+
+### Artifacts produced
+
+| File | Role |
+|---|---|
+| `public/styles.css` (5436 lines, +~825 since Step 0) | implementation |
+| `docs/design-system.md` (318 lines) | token + component vocabulary + character brief |
+| `docs/ui-ux-audit-stepwise.md` (this file, 2200+ lines) | step-by-step findings & fix log |
+| `docs/art-direction-brief.md` (252 lines) | canonical one-page Art Direction Brief (Step 22) |
+| `docs/ui-ux-audit-v2.md` (existing, pre-Step-1) | earlier v2-rework audit, preserved for history |
+
+### Quality gates maintained throughout
+
+- **618/618 tests passing** at every commit (no behaviour regressions)
+- **Zero `transition: all`** in the codebase (§DETECT check)
+- **Zero Tailwind-default accent hexes** (#3b82f6, #8b5cf6, etc.)
+- **Zero pure `#ffffff`** surface backgrounds (light panel = `#FFFDF7`)
+- **Zero rgba(0,0,0,...) default card shadows** (card elevation = `--elev-1-tonal` since Step 23)
+- **Every character-critical value tokenised** (Step 21 — focus ring, scrim, elevation, motion, radius, type, spacing, grade palette)
+
+### What "done" means here
+
+The stepwise audit covered every UI/UX-relevant section of the
+three skill files. Remaining skill content (§SR source IP, §DIL
+illustration, app-audit P1-P5/P9+) is either not applicable to
+Scann-eat's domain or outside the "UI/UX rework" scope the user
+requested.
+
+Further work, if prioritised later:
+- `0.92em` literal sweep across 10+ component rules (flagged in Step 26 — low ROI)
+- Stroke-width token migration across 30+ rules (flagged in Step 21 — low ROI)
+- Utility `.type-*` class vocabulary (flagged in Step 26 — additive, not needed today)
+- `aria-expanded` wiring on chip-btn triggers (flagged in Step 17 — HTML change, not CSS)
+
+### Step 28 fixes → shipping
+
+None — closeout-only. Coverage matrix + final scorecard captured
+in this audit doc.
