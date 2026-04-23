@@ -1181,12 +1181,31 @@ export function weightForecast(currentKg, goalKg, weeklySlopeKg, nowMs = Date.no
 //
 const GAP_NUTRIENTS = [
   // [totals key, target key, label key, target-share to close, max grams cap]
+  // Core (original set)
   ['protein_g', 'protein_g_target', 'protein', 0.5, 300],
   ['fiber_g',   'fiber_g_target',   'fiber',   0.5, 200],
   ['iron_mg',   'iron_mg_target',   'iron',    0.5, 200],
   ['calcium_mg','calcium_mg_target','calcium', 0.5, 300],
   ['vit_d_ug',  'vit_d_ug_target',  'vit_d',   0.5, 200],
   ['b12_ug',    'b12_ug_target',    'b12',     0.5, 200],
+  // Fix #10 — full micronutrient coverage. Added in this pass so a
+  // user short on magnesium / potassium / zinc / vitamin C also
+  // sees dense-food suggestions. Each row only fires when the
+  // user's profile actually has a target for the nutrient (set by
+  // dailyTargets at profile.js line 249+).
+  ['magnesium_mg','magnesium_mg_target','magnesium', 0.5, 200],
+  ['potassium_mg','potassium_mg_target','potassium', 0.5, 400],
+  ['zinc_mg',     'zinc_mg_target',     'zinc',      0.5, 200],
+  ['vit_a_ug',    'vit_a_ug_target',    'vit_a',     0.5, 200],
+  ['vit_c_mg',    'vit_c_mg_target',    'vit_c',     0.5, 400],
+  ['vit_e_mg',    'vit_e_mg_target',    'vit_e',     0.5, 200],
+  ['vit_k_ug',    'vit_k_ug_target',    'vit_k',     0.5, 300],
+  ['b1_mg',       'b1_mg_target',       'b1',        0.5, 200],
+  ['b2_mg',       'b2_mg_target',       'b2',        0.5, 200],
+  ['b3_mg',       'b3_mg_target',       'b3',        0.5, 200],
+  ['b6_mg',       'b6_mg_target',       'b6',        0.5, 200],
+  ['b9_ug',       'b9_ug_target',       'b9',        0.5, 300],
+  ['omega_3_g',   'omega_3_g_target',   'omega_3',   0.5, 200],
 ];
 
 export function closeTheGap(totals, targets, foodDB) {

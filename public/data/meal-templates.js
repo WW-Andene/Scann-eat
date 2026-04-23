@@ -118,6 +118,44 @@ export function templateKcal(t) {
 }
 
 /**
+ * Fix #4 — buildTemplateProductInput: synthesise a ProductInput so
+ * scoreProduct can grade saved meal templates. Templates store items
+ * already as totals (kcal + macros per item, grams optional). The
+ * recipe helper wants per-100 g, so we rebase on sum(grams) or a
+ * 100 g nominal basis when grams aren't declared.
+ */
+export function buildTemplateProductInput(template) {
+  const items = (template?.items || []).filter((i) => i && (i.product_name || i.kcal));
+  const totalGrams = items.reduce((acc, it) => acc + (Number(it?.grams) || 0), 0);
+  const basis = totalGrams > 0 ? totalGrams : 100;
+  const per100 = (key) => {
+    const total = items.reduce((acc, it) => acc + (Number(it?.[key]) || 0), 0);
+    return (total * 100) / basis;
+  };
+  const ingredients = items.map((it) => ({
+    name: String(it.product_name || '').trim() || '—',
+    percentage: totalGrams > 0 ? Math.round((Number(it.grams || 0) / totalGrams) * 1000) / 10 : null,
+    category: 'food',
+  }));
+  return {
+    name: template?.name || '',
+    category: 'other',
+    weight_g: totalGrams || null,
+    ingredients,
+    nutrition: {
+      energy_kcal: per100('kcal'),
+      fat_g: per100('fat_g'),
+      saturated_fat_g: per100('sat_fat_g'),
+      carbs_g: per100('carbs_g'),
+      sugars_g: per100('sugars_g'),
+      fiber_g: per100('fiber_g'),
+      protein_g: per100('protein_g'),
+      salt_g: per100('salt_g'),
+    },
+  };
+}
+
+/**
  * Build the concrete consumption entries a template would produce for a
  * given date + meal override. Returned entries still need to be persisted
  * via the consumption module's put path (caller responsibility; keeps

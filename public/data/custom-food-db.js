@@ -79,3 +79,35 @@ export function deleteCustomFood(id) {
 export function clearCustomFoods() {
   writeAll([]);
 }
+
+/**
+ * Fix #5 — buildCustomFoodProductInput: synthesise a ProductInput
+ * from a custom food so scoreProduct can grade it (and the
+ * autocomplete picker can surface a grade chip). Custom foods are
+ * per-100 g by contract, so nutrition maps 1:1.
+ */
+export function buildCustomFoodProductInput(food) {
+  return {
+    name: food?.name || '',
+    category: 'other',
+    weight_g: 100,
+    // Single-ingredient synthesis: the food IS the ingredient.
+    ingredients: [{
+      name: food?.name || '',
+      percentage: 100,
+      category: 'food',
+    }],
+    nutrition: {
+      energy_kcal: Number(food?.kcal) || 0,
+      protein_g:   Number(food?.protein_g) || 0,
+      carbs_g:     Number(food?.carbs_g) || 0,
+      fat_g:       Number(food?.fat_g) || 0,
+      // Custom foods currently don't capture these; zero is safer
+      // than omitting (scoring engine expects numbers).
+      saturated_fat_g: Number(food?.sat_fat_g) || 0,
+      sugars_g:    Number(food?.sugars_g) || 0,
+      fiber_g:     Number(food?.fiber_g) || 0,
+      salt_g:      Number(food?.salt_g) || 0,
+    },
+  };
+}

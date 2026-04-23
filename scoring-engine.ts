@@ -210,6 +210,11 @@ export interface ScoreAudit {
   red_flags: string[];
   green_flags: string[];
 
+  // Fix #2 — side-channel carrying ecoscore context so buildFlags
+  // can compose the red/green bullets without coupling to
+  // ProductInput. Not a scoring pillar; the numeric score ignores it.
+  eco?: { grade?: string; value?: number | null };
+
   // Meta
   engine_version: string;
   warnings: string[];
@@ -1319,6 +1324,50 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
     }
   }
 
+  // Fix #1 — quantitative nutrient-density bonus. Counts how many of
+  // the expanded micronutrient fields hit the EU regulation
+  // 1924/2006 "source of" threshold (≥15% of NRV per 100g). If 3+
+  // nutrients qualify, bump +1; if 6+ qualify (nutrient-rich food),
+  // bump +2 total. Overrides the "declared" heuristic because
+  // declared-count can overcount (OFF lists any declared nutrient
+  // even if the amount is trivial).
+  const NRV_15_PCT = {
+    vit_a_ug: 120, vit_c_mg: 12, vit_d_ug: 0.75, vit_e_mg: 1.8, vit_k_ug: 11.25,
+    b1_mg: 0.165, b2_mg: 0.21, b3_mg: 2.4, b6_mg: 0.21, b9_ug: 30, b12_ug: 0.375,
+    potassium_mg: 300, calcium_mg: 120, magnesium_mg: 56, iron_mg: 2.1, zinc_mg: 1.5,
+  };
+  let densityHits = 0;
+  const hitList: string[] = [];
+  for (const [key, threshold] of Object.entries(NRV_15_PCT)) {
+    const n = nutrition as unknown as Record<string, number | undefined>;
+    const v = Number(n[key] ?? 0);
+    if (v >= threshold) {
+      densityHits += 1;
+      hitList.push(key.replace(/_[mu]g$/, '').replace('_', ' '));
+    }
+  }
+  if (densityHits >= 6 && microScore < 5) {
+    const before = microScore;
+    microScore = Math.min(5, microScore + 2);
+    bonuses.push({
+      pillar: 'nutritional_density',
+      reason: `Nutrient-rich: 6+ vitamins/minerals at ≥15% NRV per 100g (${hitList.slice(0, 6).join(', ')}…)`,
+      points: microScore - before,
+      severity: 'info',
+    });
+  } else if (densityHits >= 3 && microScore < 5) {
+    const before = microScore;
+    microScore = Math.min(5, microScore + 1);
+    if (microScore > before) {
+      bonuses.push({
+        pillar: 'nutritional_density',
+        reason: `Source of ${densityHits} nutrients (≥15% NRV): ${hitList.slice(0, 4).join(', ')}`,
+        points: 1,
+        severity: 'info',
+      });
+    }
+  }
+
   if (microScore < 5) {
     const reason = declaredPcts.length > 0
       ? `Whole foods = ${declaredPcts.reduce((a, b) => a + b, 0).toFixed(1)}% of product (${microScore}/5)`
@@ -1970,6 +2019,27 @@ function buildFlags(audit: Omit<ScoreAudit, 'red_flags' | 'green_flags'>): {
   for (const b of allBonuses) {
     if (b.points >= 2) green.push(b.reason);
   }
+  // Fix #2 — surface ecoscore as a flag. Doesn't change the numeric
+  // score (keeps the 100-point contract stable and preserves the
+  // existing 5-pillar math), but ties environmental impact into the
+  // audit output so the flag list reflects it. Thresholds follow
+  // OFF's letter grades: A/B green, D/E red, C neutral.
+  // Fix #2 — surface ecoscore as a flag. Ecoscore fields are read
+  // via a typed side-channel (audit.eco) the caller writes in.
+  // Doesn't change the numeric score (preserves the 5-pillar 100-
+  // point contract), but folds environmental impact into the flag
+  // list so the user-facing audit reflects it. Thresholds follow
+  // OFF letter grades: A/B green, D/E red, C neutral.
+  type EcoSide = { eco?: { grade?: string; value?: number } };
+  const eco = (audit as unknown as EcoSide).eco;
+  if (eco?.grade) {
+    const g = String(eco.grade).toLowerCase();
+    if (g === 'a' || g === 'b') {
+      green.push(`Eco-score ${g.toUpperCase()} (${eco.value ?? '—'}/100) — low environmental impact`);
+    } else if (g === 'd' || g === 'e') {
+      red.push(`Eco-score ${g.toUpperCase()} (${eco.value ?? '—'}/100) — high environmental impact`);
+    }
+  }
 
   if (audit.veto.triggered) {
     red.unshift(`VETO: ${audit.veto.reason}`);
@@ -2035,7 +2105,7 @@ export function scoreProduct(product: ProductInput): ScoreAudit {
   score = Math.round(score);
   const grade = scoreToGrade(score);
 
-  const preAudit: Omit<ScoreAudit, 'red_flags' | 'green_flags'> = {
+  const preAudit: Omit<ScoreAudit, 'red_flags' | 'green_flags'> & { eco?: { grade?: string; value?: number } } = {
     product_name: product.name,
     category: product.category,
     score,
@@ -2053,6 +2123,12 @@ export function scoreProduct(product: ProductInput): ScoreAudit {
     veto,
     engine_version: ENGINE_VERSION,
     warnings: collectWarnings(product),
+    // Fix #2 — eco-score side-channel. buildFlags reads this to
+    // surface environmental impact as a red/green flag without
+    // disrupting the 5-pillar numeric score.
+    eco: product.ecoscore_grade
+      ? { grade: product.ecoscore_grade, value: product.ecoscore_value }
+      : undefined,
   };
 
   const { red, green } = buildFlags(preAudit);

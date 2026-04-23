@@ -425,12 +425,27 @@ export function initRecipesDialog(deps) {
         try {
           const aggregated = aggregateRecipe(r, r.servings || 1);
           const meal = defaultMealForHour(new Date().getHours());
+          // Fix #3: carry the computed recipe grade onto the applied
+          // entry so the dashboard / rollups / export can see it.
+          // Score is cheap; blocking on it isn't worth the wait so
+          // we fire-and-forget and fall back to an ungraded entry
+          // if the engine isn't loaded.
+          let grade = null;
+          let score = null;
+          try {
+            const audit = await scoreDraftRecipe(r);
+            if (audit?.grade) {
+              grade = audit.grade;
+              score = Math.round(audit.score);
+            }
+          } catch { /* best-effort */ }
           const entry = {
             id: globalThis.crypto?.randomUUID?.() ?? `a${Date.now()}${Math.random().toString(36).slice(2)}`,
             date: todayISO(),
             timestamp: Date.now(),
             meal,
             ...aggregated,
+            ...(grade ? { recipe_grade: grade, recipe_score: score } : {}),
           };
           await putEntry(entry);
           await renderDashboard();

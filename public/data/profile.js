@@ -250,6 +250,29 @@ export function dailyTargets(p) {
     calcium_mg_target: delta.calcium_mg ?? 950,             // EFSA PRI 2015 + stage
     vit_d_ug_target: delta.vit_d_ug ?? 15,                  // EFSA AI 2016
     b12_ug_target: delta.b12_ug ?? 4,                       // EFSA AI 2015
+    // Fix #6 — full EFSA PRI/AI micronutrient panel. Values are
+    // adult PRIs (pregnancy/lactation adjustments handled by the
+    // life-stage delta system if/when EFSA tables are added there).
+    // Sources: EFSA DRV Summary Report 2017, NNR 2023 where EFSA is
+    // silent. Stage-dependent fields fall through to `delta` first.
+    magnesium_mg_target: delta.magnesium_mg ?? (p?.sex === 'female' ? 300 : 350),
+    potassium_mg_target: delta.potassium_mg ?? 3500,
+    zinc_mg_target:      delta.zinc_mg ?? (p?.sex === 'female' ? 8 : 11),
+    sodium_mg_max:       delta.sodium_mg_max ?? 2000,       // WHO recommendation
+    vit_a_ug_target:     delta.vit_a_ug ?? (p?.sex === 'female' ? 650 : 750),
+    vit_c_mg_target:     delta.vit_c_mg ?? (p?.sex === 'female' ? 95 : 110),
+    vit_e_mg_target:     delta.vit_e_mg ?? (p?.sex === 'female' ? 11 : 13),
+    vit_k_ug_target:     delta.vit_k_ug ?? 70,
+    b1_mg_target:        delta.b1_mg ?? 0.1 * (tdee / 1000), // EFSA AI 0.1 mg/MJ
+    b2_mg_target:        delta.b2_mg ?? 1.6,                // EFSA PRI
+    b3_mg_target:        delta.b3_mg ?? (p?.sex === 'female' ? 14 : 16),
+    b6_mg_target:        delta.b6_mg ?? 1.7,
+    b9_ug_target:        delta.b9_ug ?? 330,                // folate equivalents
+    // Fat subdivisions have AI references but no PRI for most.
+    pufa_g_target:       delta.pufa_g ?? Math.round((0.04 * tdee) / 9),
+    mufa_g_target:       delta.mufa_g ?? Math.round((0.15 * tdee) / 9),
+    omega_3_g_target:    delta.omega_3_g ?? 2.5,            // EFSA 250 mg EPA+DHA + 2 g ALA
+    cholesterol_mg_max:  delta.cholesterol_mg_max ?? 300,   // DGA 2020
     macro_split_key: p?.macro_split || 'balanced',
     life_stage: stage,
   };

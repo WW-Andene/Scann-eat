@@ -1284,7 +1284,19 @@ async function maybeRenderAlternatives(data) {
     const tag = suggestionTagFor(audit.category);
     if (!tag) return;
 
-    const candidates = await searchOFFByCategory([tag], { pageSize: 20 });
+    const offCandidates = await searchOFFByCategory([tag], { pageSize: 20 });
+    // Fix #21: fold user's saved recipes into the candidate pool so
+    // the alternatives panel can surface a home-made recipe that
+    // out-scores the scanned packaged product. Recipes go through
+    // buildRecipeProductInput to produce a comparable ProductInput
+    // with per-100 g nutrition + ingredients + computed grade via
+    // scoreProduct (inside rankAlternatives itself).
+    const userRecipes = await listRecipes().catch(() => []);
+    const recipeCandidates = userRecipes
+      .filter((r) => (r.components?.length ?? 0) > 0)
+      .map((r) => buildRecipeProductInput(r))
+      .map((pi) => ({ ...pi, _userRecipe: true }));
+    const candidates = [...offCandidates, ...recipeCandidates];
     if (candidates.length === 0) return;
 
     const dietFilter = profile?.diet && profile.diet !== 'none'
@@ -1296,6 +1308,7 @@ async function maybeRenderAlternatives(data) {
     for (const { product: alt, audit: altAudit } of alts) {
       const li = document.createElement('li');
       li.className = 'alt-item';
+      if (alt._userRecipe) li.dataset.source = 'recipe';
       const grade = document.createElement('span');
       grade.className = 'alt-grade';
       grade.dataset.grade = altAudit.grade;
@@ -1304,7 +1317,8 @@ async function maybeRenderAlternatives(data) {
       meta.className = 'alt-meta';
       const name = document.createElement('strong');
       name.className = 'alt-name';
-      name.textContent = alt.name;
+      // Tag user recipes with 🍽 prefix so the source is obvious.
+      name.textContent = alt._userRecipe ? `🍽 ${alt.name}` : alt.name;
       const score = document.createElement('small');
       score.className = 'alt-score';
       score.textContent = `${altAudit.score} / 100`;
@@ -3666,6 +3680,17 @@ async function renderDashboard() {
           ? `${e.product_name} · ${t('quickAdd')}`
           : `${e.product_name} · ${e.grams} g`;
         info.appendChild(nm);
+        // Fix #3: entry's recipe grade (when the entry came from
+        // "Apply recipe") — same color-blind-safe pattern as the
+        // recipes-list grade chip.
+        if (e.recipe_grade) {
+          const g = document.createElement('span');
+          g.className = 'recipe-row-grade';
+          g.dataset.grade = e.recipe_grade;
+          g.textContent = e.recipe_grade;
+          g.title = `${e.recipe_grade} · ${e.recipe_score ?? ''} / 100`;
+          info.appendChild(g);
+        }
         if ((e.protein_g || 0) + (e.carbs_g || 0) + (e.fat_g || 0) > 0) {
           const macros = document.createElement('span');
           macros.className = 'dash-entry-macros';
