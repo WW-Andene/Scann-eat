@@ -1598,3 +1598,69 @@ needed; the existing value equals the token. Mark as
    `rgba(0,0,0,0.25)` with `--elev-2`. Token coherence; no
    visual change for the standard case, but now one knob to
    tune if the shadow family ever shifts.
+
+---
+
+## Step 19 — §DCVW copy × visual alignment (voice · microcopy · coherence)
+
+### §DCVW1. Voice-character alignment
+
+Voice dimensions extracted from the live i18n corpus
+(`public/core/i18n.js`, fr + en):
+
+| Dimension | Observed | Target per §DP2 | Gap |
+|---|---|---|---|
+| **Formality** | Casual (tutoiement "Photographie une étiquette") | Casual | ✓ |
+| **Length** | Terse ("Analyser", "Scanner") | Terse-balanced | ✓ |
+| **Personality presence** | Mixed — tagline is voiced, empty states are invisible ("Aucune X sauvegardée.") | Voiced | **gap in empty states** |
+| **User address** | Personal (tu-form throughout) | Personal | ✓ |
+| **Technical transparency** | Moderate — exposes "Groq", "serveur" | Transparent-but-softened | minor gap |
+
+### §DCVW2. Microcopy audit
+
+**Button labels** — ✓ verb-led ("Analyser", "Enregistrer",
+"Scanner", "Ajouter", "Fermer"). No "OK", no "Submit", no
+"Click here". Specific where needed.
+
+**Navigation (`.dashboard-actions` chips)** — ✓ feature-named
+nouns with single emoji ("📸 Scanner", "📅 Plan", "🥗 Repas").
+
+**Empty states** — **primary finding (§DCVW2 + §DST1)**: invisible
+voice contradicts the warm-consumer visual character. Examples:
+
+| Key | Before | After |
+|---|---|---|
+| `recipeEmpty` | "Aucune recette sauvegardée." | "Pas encore de recette — crée-en une, scanne une photo ou importe depuis un lien." |
+| `templateEmpty` | "Aucun repas sauvegardé." | "Pas encore de repas sauvegardé — enregistre un repas depuis le journal pour le retrouver ici." |
+| `customFoodsEmpty` | "Aucun aliment personnalisé pour le moment." | "Pas encore d'aliment personnalisé — ajoute-en un pour l'utiliser dans tes repas." |
+
+**Error messages** — generally transparent + action-oriented
+(✓); one soft gap: "Serveur indisponible, appel direct Groq…"
+exposes the provider name. Noted; not rewriting here because
+it's user-facing during a specific fallback that needs the
+detail.
+
+**Placeholder text** — placeholders exist on most input
+fields; they show example values ("80" for grams, "2026-04-23"
+for date) rather than generic "Enter value…". ✓
+
+### §DCVW3. Voice-visual coherence
+
+| Screen | Visual character | Copy voice | Coherence |
+|---|---|---|---|
+| Scan flow (capture → result) | warm, precise food ledger | voiced, personal tu-form, emoji-accented | **ALIGNED** |
+| Dashboard (cards + tiles) | same | terse-personal-helpful | **ALIGNED** |
+| Recipe dialog (before Step 19) | same | invisible on empty state | **MINOR GAP** — fixed this step |
+| Settings dialogs | same | terse-functional | **ALIGNED** |
+| Error toasts | warm severity (coral/--danger) | action-oriented, moderate transparency | **ALIGNED** |
+
+### Step 19 fixes → shipping
+
+1. **Rewrite 3 primary empty-state strings (fr + en)** — move
+   `recipeEmpty` / `templateEmpty` / `customFoodsEmpty` from
+   invisible voice to voiced CTA voice. Tied in tu-form on the
+   fr side; casual contractions on en. Each message explains
+   the value of filling the state AND names the next action.
+2. **No CSS changes this step** — the empty-tile treatment was
+   already in place (Step 4226 + Step 14). This closes the copy
+   half of that §DST1 fix.
