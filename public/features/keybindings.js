@@ -11,16 +11,20 @@
  *                  fires when the user isn't typing in a field and no
  *                  dialog is already open — so typing "r" into a text
  *                  input never hijacks focus into a dialog.
+ *   ?            — emits a toast cheat-sheet of the above (R10.2).
+ *                  Same typing/dialog guard as q/t/r.
  *
  * ADR-0004 feature-folder pattern. Single init; no render loop.
  *
  * Deps shape:
- *   { scanBtn, historySearchInput, quickAddBtn, templatesBtn, recipesBtn }
+ *   { scanBtn, historySearchInput, quickAddBtn, templatesBtn, recipesBtn,
+ *     t, toast }
  */
 
 export function initKeybindings({
   scanBtn, historySearchInput,
   quickAddBtn, templatesBtn, recipesBtn,
+  t, toast,
 }) {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -44,5 +48,12 @@ export function initKeybindings({
     if (e.key === 'q' && quickAddBtn) { e.preventDefault(); quickAddBtn.click(); return; }
     if (e.key === 't' && templatesBtn) { e.preventDefault(); templatesBtn.click(); return; }
     if (e.key === 'r' && recipesBtn) { e.preventDefault(); recipesBtn.click(); return; }
+    if (e.key === '?' && t && toast) {
+      e.preventDefault();
+      // 6-second display — long enough to read the sheet but not
+      // sticky; user can re-press '?' to re-open.
+      toast(t('keybindingsHelp'), 6000);
+      return;
+    }
   });
 }

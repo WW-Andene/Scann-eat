@@ -26,6 +26,7 @@ import { initProfileDialog } from '/features/profile-dialog.js';
 import { initMenuScan, openMenuScan } from '/features/menu-scan.js';
 import { initTemplatesDialog } from '/features/templates-dialog.js';
 import { initRecipesDialog } from '/features/recipes-dialog.js';
+import { initQaAutocomplete } from '/features/qa-autocomplete.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -1827,6 +1828,7 @@ initKeybindings({
   quickAddBtn: $('quick-add-btn'),
   templatesBtn: $('templates-btn'),
   recipesBtn: $('recipes-btn'),
+  t, toast,
 });
 
 // ============================================================================
@@ -2219,9 +2221,13 @@ $('portion-panel')?.addEventListener('click', (e) => {
 });
 
 logBtn?.addEventListener('click', async () => {
-  if (!lastData) return;
+  // R10.3: tell the user *why* the log button is a no-op when they
+  // click it without a scanned product. Previously silent — looked
+  // like a broken button until the user figured out they needed to
+  // scan first.
+  if (!lastData) { toast(t('logNoScan'), 'warn'); return; }
   const grams = Math.max(0, Number(portionInput.value) || 0);
-  if (grams <= 0) return;
+  if (grams <= 0) { toast(t('logNeedsGrams'), 'warn'); return; }
   const meal = portionMealSelect?.value || 'snack';
   // Shared-meal scaling: if the user says they only ate e.g. 50% of the
   // portion, downscale grams before logging. buildEntry() multiplies per-
@@ -2436,56 +2442,8 @@ $('qa-photo-menu-input')?.addEventListener('change', async (e) => {
 // Reset AI status when the dialog opens (via the quick-add button).
 quickAddBtn?.addEventListener('click', () => hide(qaAiStatus));
 
-// ---------- Quick Add name autocomplete (built-in food DB) ----------
-const qaNameInput = $('qa-name');
-const qaSuggestionsList = $('qa-name-suggestions-list');
-
-function applyFoodToQuickAdd(food) {
-  const set = (id, v) => { const el = $(id); if (el) el.value = String(Math.round(v ?? 0)); };
-  if (qaNameInput) qaNameInput.value = food.name;
-  // food-db values are per 100 g. Default to 100 g portion unless the user
-  // typed a specific grams value in qa-kcal already.
-  set('qa-kcal', food.kcal);
-  set('qa-protein', food.protein_g);
-  set('qa-carbs', food.carbs_g);
-  set('qa-fat', food.fat_g);
-}
-
-function renderFoodSuggestions(query) {
-  if (!qaSuggestionsList) return;
-  const matches = searchFoodDB(query, 6, listCustomFoods());
-  qaSuggestionsList.textContent = '';
-  if (matches.length === 0) { hide(qaSuggestionsList); return; }
-  for (const f of matches) {
-    const li = document.createElement('li');
-    li.className = 'qa-suggestion';
-    li.setAttribute('role', 'option');
-    const name = document.createElement('span');
-    name.className = 'qs-name';
-    name.textContent = f.name;
-    const kcal = document.createElement('span');
-    kcal.className = 'qs-kcal';
-    kcal.textContent = `${Math.round(f.kcal)} kcal / 100 g`;
-    li.appendChild(name);
-    li.appendChild(kcal);
-    li.addEventListener('mousedown', (ev) => {
-      ev.preventDefault(); // keep focus on the input
-      applyFoodToQuickAdd(f);
-      hide(qaSuggestionsList);
-    });
-    qaSuggestionsList.appendChild(li);
-  }
-  show(qaSuggestionsList);
-}
-
-qaNameInput?.addEventListener('input', (e) => renderFoodSuggestions(e.target.value));
-qaNameInput?.addEventListener('blur', () => {
-  // Slight delay so a mousedown on a suggestion can fire before we hide.
-  setTimeout(() => hide(qaSuggestionsList), 150);
-});
-qaNameInput?.addEventListener('focus', (e) => {
-  if (e.target.value) renderFoodSuggestions(e.target.value);
-});
+// Quick Add name autocomplete extracted to /features/qa-autocomplete.js.
+// initQaAutocomplete is imported at the top; wired in the boot block.
 
 // Weight UI is extracted to /features/weight.js. renderWeightSummary is
 // imported and called from the dashboard render loop; initWeight wires
@@ -2694,10 +2652,15 @@ initSettingsDialog({
   onLangChange: () => {
     // Close any dialog whose contents were rendered dynamically (not
     // via data-i18n) so the user doesn't see stale strings. Explain +
-    // pillar dialogs are both body-text from t() snapshots; reopen is
-    // one tap away, so the UX cost is zero.
+    // pillar + templates + recipes dialogs all render chip text from
+    // `t()` snapshots; reopen is one tap away, so the UX cost is zero.
+    // R10.5: extended to close templates + recipes so users switching
+    // locale mid-dialog don't see a mix of FR + EN chip labels.
     $('explain-dialog')?.close();
     $('pillar-dialog')?.close();
+    $('templates-dialog')?.close();
+    $('recipes-dialog')?.close();
+    $('recipe-edit-dialog')?.close();
     renderDashboard();
   },
 });
@@ -2712,6 +2675,7 @@ recipesDialog = initRecipesDialog({
   aggregateRecipe, saveRecipe, listRecipes, deleteRecipe,
   putEntry, defaultMealForHour, todayISO, renderDashboard,
 });
+initQaAutocomplete({ show, hide, searchFoodDB, listCustomFoods });
 initProfileDialog({
   t, show, hide,
   getProfile, setProfile, hasMinimalProfile,
