@@ -40,6 +40,9 @@ export function initRecipesDialog(deps) {
     // Feature 3 — recipe import: URL (schema.org / JSON-LD) + photo.
     // `compressImage` is the same helper the QA photo flows use.
     compressImage, getMode, getKey, loadEngine,
+    // Gap fix 1 — recipe scoring: the engine's scoreProduct runs on
+    // a synthesised ProductInput from buildRecipeProductInput.
+    buildRecipeProductInput,
   } = deps;
 
   const recipesBtn = $('recipes-btn');
@@ -77,6 +80,24 @@ export function initRecipesDialog(deps) {
     }));
   }
 
+  // Gap fix 1 — live grade cache + score. loadEngine is async so we
+  // cache the engine module once per dialog session and use a local
+  // draft→score function. Scoring is cheap; re-running on every
+  // keystroke is fine.
+  let cachedEngine = null;
+  async function scoreDraftRecipe(draft) {
+    if (!loadEngine || !buildRecipeProductInput) return null;
+    try {
+      if (!cachedEngine) cachedEngine = await loadEngine();
+      if (!cachedEngine?.scoreProduct) return null;
+      const productInput = buildRecipeProductInput(draft);
+      return cachedEngine.scoreProduct(productInput);
+    } catch (err) {
+      console.warn('[recipe-score]', err);
+      return null;
+    }
+  }
+
   function recalcRecipeTotals() {
     if (!recipeEditTotals) return;
     const draft = {
@@ -95,6 +116,19 @@ export function initRecipesDialog(deps) {
       carb: Math.round(agg.carbs_g),
       fat:  Math.round(agg.fat_g),
       serv,
+    });
+    // Gap fix 1: live recipe grade. Async + idempotent — the most
+    // recent draft wins so rapid typing doesn't paint stale grades.
+    scoreDraftRecipe(draft).then((audit) => {
+      const gradeEl = $('recipe-edit-grade');
+      if (!gradeEl) return;
+      if (!audit || !audit.grade) { gradeEl.hidden = true; return; }
+      gradeEl.textContent = t('recipeGradeChip', {
+        grade: audit.grade,
+        score: Math.round(audit.score),
+      });
+      gradeEl.dataset.grade = audit.grade;
+      gradeEl.hidden = false;
     });
   }
 
@@ -193,6 +227,78 @@ export function initRecipesDialog(deps) {
       // the row was freshly picked (tag via data-attr), re-scale macros.
     }
 
+    // Gap fix 2 — ingredient swap. Click the 🔄 button on a row to
+    // see alternatives from the local FOOD_DB + custom-foods list,
+    // ranked by macro "healthiness" (lower kcal first, then higher
+    // protein density). Picking one updates name + macros in place.
+    const swap = document.createElement('button');
+    swap.type = 'button';
+    swap.className = 'rc-swap';
+    swap.textContent = '🔄';
+    swap.setAttribute('aria-label', t('recipeIngredientSwap'));
+    swap.addEventListener('click', () => {
+      const currentName = (nameInput.value || '').trim();
+      if (!currentName || !searchFoodDB) {
+        toast(t('recipeIngredientSwapNoMatch'), 'warn');
+        return;
+      }
+      // Search uses substring matching; we pull 20 candidates then
+      // re-rank locally by (kcal asc, protein desc) — a reasonable
+      // proxy for "healthier alternative" within the same food
+      // family.
+      const extras = listCustomFoods ? listCustomFoods() : [];
+      const matches = searchFoodDB(currentName, 20, extras);
+      const ranked = matches
+        .filter((f) => (f.name || '').toLowerCase() !== currentName.toLowerCase())
+        .sort((a, b) => {
+          if ((a.kcal || 0) !== (b.kcal || 0)) return (a.kcal || 0) - (b.kcal || 0);
+          return (b.protein_g || 0) - (a.protein_g || 0);
+        })
+        .slice(0, 5);
+      if (ranked.length === 0) {
+        toast(t('recipeIngredientSwapNoMatch'), 'warn');
+        return;
+      }
+      // Inline picker — same affordance as the autocomplete dropdown
+      // but anchored to the swap button and showing the 5 ranked
+      // candidates.
+      let picker = li.querySelector('.rc-swap-picker');
+      if (picker) { picker.remove(); return; }
+      picker = document.createElement('ul');
+      picker.className = 'rc-swap-picker';
+      const header = document.createElement('li');
+      header.className = 'rc-swap-header';
+      header.textContent = t('recipeIngredientSwapTitle', { name: currentName });
+      picker.appendChild(header);
+      for (const f of ranked) {
+        const pickLi = document.createElement('li');
+        pickLi.className = 'rc-swap-item';
+        pickLi.setAttribute('role', 'option');
+        const n = document.createElement('span');
+        n.textContent = f.name;
+        const k = document.createElement('span');
+        k.className = 'rc-swap-kcal';
+        k.textContent = `${Math.round(f.kcal)} kcal · P ${Math.round(f.protein_g || 0)} g / 100 g`;
+        pickLi.appendChild(n);
+        pickLi.appendChild(k);
+        pickLi.addEventListener('mousedown', (ev) => {
+          ev.preventDefault();
+          nameInput.value = f.name;
+          const grams = Math.max(1, Number(gramsInput.value) || 100);
+          if (!Number(gramsInput.value)) gramsInput.value = '100';
+          const factor = grams / 100;
+          kcalInput.value = String(Math.round((f.kcal || 0) * factor));
+          protInput.value = String(Math.round((f.protein_g || 0) * factor));
+          carbInput.value = String(Math.round((f.carbs_g || 0) * factor));
+          fatInput.value = String(Math.round((f.fat_g || 0) * factor));
+          picker.remove();
+          recalcRecipeTotals();
+        });
+        picker.appendChild(pickLi);
+      }
+      li.appendChild(picker);
+    });
+
     const rm = document.createElement('button');
     rm.type = 'button';
     rm.className = 'rc-remove';
@@ -201,6 +307,7 @@ export function initRecipesDialog(deps) {
     rm.addEventListener('click', () => { li.remove(); recalcRecipeTotals(); });
 
     li.appendChild(fields);
+    li.appendChild(swap);
     li.appendChild(rm);
     return li;
   }
@@ -258,6 +365,19 @@ export function initRecipesDialog(deps) {
       pick.setAttribute('aria-label', t('recipeGrocerySelect'));
       pick.dataset.recipeId = r.id;
       head.appendChild(pick);
+      // Gap fix 1: per-recipe grade chip on the list. Lazy-loaded so
+      // the initial list paint isn't blocked on the engine import.
+      const grade = document.createElement('span');
+      grade.className = 'recipe-row-grade';
+      grade.hidden = true;
+      head.appendChild(grade);
+      scoreDraftRecipe(r).then((audit) => {
+        if (!audit?.grade) return;
+        grade.textContent = audit.grade;
+        grade.dataset.grade = audit.grade;
+        grade.title = t('recipeGradeChip', { grade: audit.grade, score: Math.round(audit.score) });
+        grade.hidden = false;
+      });
       const name = document.createElement('strong');
       // R14.2: display-time fallback mirrors the templates dialog.
       name.textContent = r.name || t('untitledRecipe');

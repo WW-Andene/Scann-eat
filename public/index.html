@@ -831,6 +831,7 @@
           <ul id="recipe-components-list" class="recipe-components"></ul>
           <button id="recipe-add-component" type="button" class="chip-btn" data-i18n="recipeAddComponent">+ Ingrédient</button>
           <p id="recipe-edit-totals" class="recipe-totals" aria-live="polite">—</p>
+          <span id="recipe-edit-grade" class="recipe-edit-grade" hidden></span>
           <div class="dialog-actions">
             <button id="recipe-edit-cancel" type="button" class="secondary" data-i18n="cancel">Annuler</button>
             <button id="recipe-edit-save" type="submit" data-i18n="save">Enregistrer</button>
@@ -1069,8 +1070,13 @@
         <div class="result-actions">
           <button id="read-aloud-btn" type="button" class="secondary" data-i18n="readAloud">Lire à voix haute</button>
           <button id="compare-next-btn" type="button" class="secondary" data-i18n="compareNext">Comparer au prochain scan</button>
+          <button id="add-to-recipe-btn" type="button" class="secondary" hidden data-i18n="addToRecipe">🥄 Ajouter à une recette…</button>
           <button id="share-btn" type="button" class="secondary" hidden data-i18n="share">Partager</button>
         </div>
+        <!-- Gap fix 3 — inline recipe picker. Populated when the user
+             clicks Add-to-recipe; each option appends the current
+             scanned product as a component to that recipe. -->
+        <ul id="add-to-recipe-picker" class="add-to-recipe-picker" hidden></ul>
 
         <p class="additive-summary" id="additive-summary"></p>
 

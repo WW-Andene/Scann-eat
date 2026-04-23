@@ -7,7 +7,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { aggregateRecipe } from './public/data/recipes.js';
+import { aggregateRecipe, buildRecipeProductInput } from './public/data/recipes.js';
 
 const recipe = {
   id: 'r1',
@@ -91,5 +91,65 @@ describe('aggregateRecipe', () => {
     assert.equal(clone.protein_g, original.protein_g);
     assert.equal(clone.carbs_g, original.carbs_g);
     assert.equal(clone.grams, original.grams);
+  });
+});
+
+// ============================================================================
+// Gap fix 1 — buildRecipeProductInput for recipe scoring
+// ============================================================================
+
+describe('buildRecipeProductInput', () => {
+  it('synthesises a ProductInput with per-100g nutrition', () => {
+    const r = {
+      id: 'r1', name: 'Pasta', servings: 1,
+      components: [
+        // 200 g pasta at 700 kcal total + 150 g sauce at 200 kcal total
+        // = 900 kcal / 350 g × 100 = 257 kcal per 100 g
+        { product_name: 'pasta', grams: 200, kcal: 700, protein_g: 25, carbs_g: 140, fat_g: 3 },
+        { product_name: 'sauce', grams: 150, kcal: 200, protein_g: 4, carbs_g: 20, fat_g: 10 },
+      ],
+    };
+    const input = buildRecipeProductInput(r);
+    assert.equal(input.name, 'Pasta');
+    assert.equal(input.weight_g, 350);
+    assert.ok(Math.abs(input.nutrition.energy_kcal - 257.14) < 0.5, `got ${input.nutrition.energy_kcal}`);
+    assert.ok(Math.abs(input.nutrition.protein_g - 8.29) < 0.5, `got ${input.nutrition.protein_g}`);
+  });
+
+  it('ingredients list carries percentages based on grams', () => {
+    const r = {
+      id: 'r1', name: 'Mix', servings: 1,
+      components: [
+        { product_name: 'a', grams: 100, kcal: 100 },
+        { product_name: 'b', grams: 300, kcal: 100 },
+      ],
+    };
+    const input = buildRecipeProductInput(r);
+    assert.equal(input.ingredients.length, 2);
+    assert.equal(input.ingredients[0].name, 'a');
+    assert.equal(input.ingredients[0].percentage, 25);
+    assert.equal(input.ingredients[1].percentage, 75);
+    assert.ok(input.ingredients[0].is_whole_food);
+  });
+
+  it('falls back to 100g basis when no grams are declared', () => {
+    const r = {
+      id: 'r1', name: 'NoGrams', servings: 1,
+      components: [
+        { product_name: 'x', grams: 0, kcal: 50 },
+        { product_name: 'y', grams: 0, kcal: 50 },
+      ],
+    };
+    const input = buildRecipeProductInput(r);
+    // basis = 100; per-100g = 100 total / 100 × 100 = 100
+    assert.equal(input.nutrition.energy_kcal, 100);
+    // percentages are null when grams are missing
+    assert.equal(input.ingredients[0].percentage, null);
+  });
+
+  it('handles empty recipe', () => {
+    const input = buildRecipeProductInput({ id: 'x', name: 'Empty', components: [] });
+    assert.equal(input.ingredients.length, 0);
+    assert.equal(input.nutrition.energy_kcal, 0);
   });
 });

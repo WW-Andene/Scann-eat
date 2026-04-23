@@ -70,6 +70,19 @@ export function ensureStores(db) {
  * `servings` divides the total, so the same recipe can be reused as
  * "1 serving" or "half a serving" at apply time.
  */
+// Gap fix 1: every micronutrient the consumption entry carries is
+// also summed through recipe aggregation. Single source of truth so
+// adding a new field means one list edit here instead of hunting
+// through aggregateRecipe call sites.
+const RECIPE_MICRO_FIELDS = [
+  'fiber_g',
+  'iron_mg', 'calcium_mg', 'magnesium_mg', 'potassium_mg', 'zinc_mg', 'sodium_mg',
+  'vit_a_ug', 'vit_c_mg', 'vit_d_ug', 'vit_e_mg', 'vit_k_ug',
+  'b1_mg', 'b2_mg', 'b3_mg', 'b6_mg', 'b9_ug', 'b12_ug',
+  'polyunsaturated_fat_g', 'monounsaturated_fat_g',
+  'omega_3_g', 'omega_6_g', 'cholesterol_mg',
+];
+
 export function aggregateRecipe(recipe, servings = 1) {
   const s = Math.max(0.1, Number(servings) || 1);
   const items = recipe?.components ?? [];
@@ -77,7 +90,7 @@ export function aggregateRecipe(recipe, servings = 1) {
   const round1 = (v) => Math.round(v * 10) / 10;
   const round2 = (v) => Math.round(v * 100) / 100;
   const round3 = (v) => Math.round(v * 1000) / 1000;
-  return {
+  const out = {
     // R14.1: leave empty for UI-layer fallback; data stays locale-
     // neutral. Callers in the apply path already render via t().
     product_name: recipe?.name || '',
@@ -92,6 +105,92 @@ export function aggregateRecipe(recipe, servings = 1) {
     salt_g:    round3(sum('salt_g')),
     fromRecipe: recipe?.id,
   };
+  // Micronutrients + fat breakdown — sum across components then
+  // divide by servings. Stored as 0 when no component declares the
+  // value; the dashboard already renders conditionally on > 0.
+  for (const field of RECIPE_MICRO_FIELDS) {
+    out[field] = round2(sum(field));
+  }
+  return out;
+}
+
+/**
+ * Gap fix 1 — buildRecipeProductInput: synthesise a ProductInput
+ * that the scoring engine (scoreProduct) can grade. Pure, no engine
+ * dependency — the caller imports scoreProduct and runs this through
+ * it to get { grade, score, pillars }.
+ *
+ * Method:
+ *   - Nutrition is per-100g of the TOTAL recipe weight (sum(grams)).
+ *     If the user didn't enter grams for components, we fall back to
+ *     a nominal 100 g so the scoring engine has something to work
+ *     with instead of division-by-zero.
+ *   - Ingredients list is synthesised from component names (no
+ *     additive detection; home recipes don't have E-numbers). Each
+ *     component's grams relative to the total become its percentage
+ *     — matches how scoring-engine expects percentages to be
+ *     declared.
+ *   - NOVA defaults to unclassified (NaN) so inferNovaClass picks
+ *     it up from whole-food flags; components are tagged as whole
+ *     foods since recipe-building assumes real ingredients.
+ */
+export function buildRecipeProductInput(recipe) {
+  const items = (recipe?.components ?? []).filter((c) => c && (c.product_name || c.kcal));
+  const totalGrams = items.reduce((acc, it) => acc + (Number(it?.grams) || 0), 0);
+  // Fall back to 100 g nominal total so scoreProduct has a scale.
+  const basis = totalGrams > 0 ? totalGrams : 100;
+  const per100 = (key) => {
+    const total = items.reduce((acc, it) => acc + (Number(it?.[key]) || 0), 0);
+    return (total * 100) / basis;
+  };
+  const ingredients = items.map((c) => {
+    const grams = Number(c.grams) || 0;
+    const pct = totalGrams > 0 ? Math.round((grams / totalGrams) * 1000) / 10 : null;
+    return {
+      name: String(c.product_name || '').trim() || '—',
+      percentage: pct,
+      is_whole_food: true,
+      category: 'food',
+    };
+  });
+  return {
+    name: recipe?.name || '',
+    category: 'other',
+    weight_g: totalGrams || null,
+    ingredients,
+    nutrition: {
+      energy_kcal: per100('kcal'),
+      fat_g: per100('fat_g'),
+      saturated_fat_g: per100('sat_fat_g'),
+      carbs_g: per100('carbs_g'),
+      sugars_g: per100('sugars_g'),
+      fiber_g: per100('fiber_g'),
+      protein_g: per100('protein_g'),
+      salt_g: per100('salt_g'),
+      iron_mg: per100('iron_mg'),
+      calcium_mg: per100('calcium_mg'),
+      magnesium_mg: per100('magnesium_mg'),
+      potassium_mg: per100('potassium_mg'),
+      zinc_mg: per100('zinc_mg'),
+      sodium_mg: per100('sodium_mg'),
+      vit_a_ug: per100('vit_a_ug'),
+      vit_c_mg: per100('vit_c_mg'),
+      vit_d_ug: per100('vit_d_ug'),
+      vit_e_mg: per100('vit_e_mg'),
+      vit_k_ug: per100('vit_k_ug'),
+      b1_mg: per100('b1_mg'),
+      b2_mg: per100('b2_mg'),
+      b3_mg: per100('b3_mg'),
+      b6_mg: per100('b6_mg'),
+      b9_ug: per100('b9_ug'),
+      b12_ug: per100('b12_ug'),
+      polyunsaturated_fat_g: per100('polyunsaturated_fat_g'),
+      monounsaturated_fat_g: per100('monounsaturated_fat_g'),
+      omega_3_g: per100('omega_3_g'),
+      omega_6_g: per100('omega_6_g'),
+      cholesterol_mg: per100('cholesterol_mg'),
+    },
+  };
 }
 
 /**
@@ -105,17 +204,26 @@ export async function saveRecipe({ id, name, components, servings = 1 }) {
     // R14.1: verbatim name; UI layer handles the untitled fallback.
     name: String(name || '').trim(),
     servings: Math.max(1, Math.round(Number(servings) || 1)),
-    components: (components || []).map((c) => ({
-      product_name: c.product_name,
-      grams: Number(c.grams) || 0,
-      kcal: Number(c.kcal) || 0,
-      carbs_g: Number(c.carbs_g) || 0,
-      fat_g: Number(c.fat_g) || 0,
-      sat_fat_g: Number(c.sat_fat_g) || 0,
-      sugars_g: Number(c.sugars_g) || 0,
-      protein_g: Number(c.protein_g) || 0,
-      salt_g: Number(c.salt_g) || 0,
-    })),
+    components: (components || []).map((c) => {
+      // Base macros — the ones the UI form captures.
+      const row = {
+        product_name: c.product_name,
+        grams: Number(c.grams) || 0,
+        kcal: Number(c.kcal) || 0,
+        carbs_g: Number(c.carbs_g) || 0,
+        fat_g: Number(c.fat_g) || 0,
+        sat_fat_g: Number(c.sat_fat_g) || 0,
+        sugars_g: Number(c.sugars_g) || 0,
+        protein_g: Number(c.protein_g) || 0,
+        salt_g: Number(c.salt_g) || 0,
+      };
+      // Gap fix 1: also pass through every micro the caller supplied
+      // (e.g. from buildEntry when the recipe is built from scanned
+      // components). Missing fields default to 0 so aggregateRecipe's
+      // sum stays numerical.
+      for (const f of RECIPE_MICRO_FIELDS) row[f] = Number(c[f]) || 0;
+      return row;
+    }),
     created_at: Date.now(),
     updated_at: Date.now(),
   };

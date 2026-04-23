@@ -2244,6 +2244,170 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 /* Gap fix #5 — recipe component row ingredient autocomplete. Visually
    identical to the Quick Add version; positioned relative to the row
    since each component is its own <li>. */
+/* Gap fix 1 — recipe grade chips. Same grade palette + pattern
+   overlay as .recent-grade so deuteranopic users can tell them
+   apart at a glance. Editor chip is larger and sits inline with
+   the totals line; list chip is the compact circular badge. */
+.recipe-edit-grade {
+  display: inline-block;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  margin-top: var(--sp-2);
+  font-variant-numeric: tabular-nums;
+  background: var(--muted);
+  color: var(--on-muted);
+  background-repeat: repeat;
+  border: 2px solid transparent;
+}
+.recipe-edit-grade[data-grade="A+"] { background-color: var(--grade-aplus); border-color: rgba(0,0,0,0.25); }
+.recipe-edit-grade[data-grade="A"]  { background-color: var(--grade-a);     border-color: rgba(0,0,0,0.2); }
+.recipe-edit-grade[data-grade="B"]  {
+  background-color: var(--grade-b);
+  background-image: radial-gradient(rgba(0,0,0,0.2) 1px, transparent 1px);
+  background-size: 4px 4px;
+  border-color: rgba(0,0,0,0.25);
+}
+.recipe-edit-grade[data-grade="C"]  {
+  background-color: var(--grade-c);
+  background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+  border-color: rgba(0,0,0,0.3);
+}
+.recipe-edit-grade[data-grade="D"]  {
+  background-color: var(--grade-d);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+  border-color: rgba(0,0,0,0.35);
+}
+.recipe-edit-grade[data-grade="F"]  {
+  background-color: var(--grade-f);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 7px);
+  border-color: rgba(255,255,255,0.35);
+}
+.recipe-row-grade {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 0.85em;
+  margin-right: var(--sp-2);
+  background: var(--muted);
+  color: var(--on-muted);
+  background-repeat: repeat;
+  border: 2px solid transparent;
+  flex-shrink: 0;
+}
+.recipe-row-grade[data-grade="A+"] { background-color: var(--grade-aplus); border-color: rgba(0,0,0,0.25); }
+.recipe-row-grade[data-grade="A"]  { background-color: var(--grade-a);     border-color: rgba(0,0,0,0.2); }
+.recipe-row-grade[data-grade="B"]  {
+  background-color: var(--grade-b);
+  background-image: radial-gradient(rgba(0,0,0,0.2) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+.recipe-row-grade[data-grade="C"]  {
+  background-color: var(--grade-c);
+  background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+}
+.recipe-row-grade[data-grade="D"]  {
+  background-color: var(--grade-d);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+}
+.recipe-row-grade[data-grade="F"]  {
+  background-color: var(--grade-f);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 7px);
+}
+
+/* Gap fix 2 — ingredient swap picker. Appears under a component
+   row when the 🔄 button is clicked; mirrors the R5 autocomplete
+   dropdown visually. */
+.rc-swap {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1em;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.rc-swap:hover,
+.rc-swap:focus-visible { background: var(--panel-3); color: var(--accent); outline: none; }
+.rc-swap-picker {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  position: absolute;
+  top: 44px;
+  left: 0;
+  right: 0;
+  z-index: 11;
+}
+.rc-swap-header {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 0.75em;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.rc-swap-item {
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: 0.9em;
+}
+.rc-swap-item:hover { background: var(--panel-2); }
+.rc-swap-kcal { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Gap fix 3 — add-to-recipe picker on the scan result. Same list
+   visual pattern as the autocomplete dropdowns. */
+.add-to-recipe-picker {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-2) 0 0;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  max-height: 260px;
+  overflow-y: auto;
+}
+.add-to-recipe-header,
+.add-to-recipe-empty {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 0.82em;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  pointer-events: none;
+}
+.add-to-recipe-item {
+  padding: var(--sp-3);
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  min-height: 44px;
+}
+.add-to-recipe-item:hover,
+.add-to-recipe-item:focus-visible { background: var(--panel-2); outline: none; }
+
 .recipe-component { position: relative; }
 .rc-suggestions {
   list-style: none;

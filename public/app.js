@@ -43,7 +43,7 @@ import { computePersonalScore, personalGrade } from '/core/personal-score.js';
 import { logEntry, logQuickAdd, listByDate, listAllEntries, deleteEntry, clearDate, dailyTotals, todayISO, groupByMeal, MEALS, putEntry } from '/data/consumption.js';
 import { logWeight, listWeight, deleteWeight, summarize as summarizeWeight, weeklyTrend } from '/data/weight-log.js';
 import { saveTemplate, listTemplates, deleteTemplate, expandTemplate, templateKcal } from '/data/meal-templates.js';
-import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/recipes.js';
+import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe, buildRecipeProductInput } from '/data/recipes.js';
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
@@ -716,6 +716,12 @@ function renderAudit(data) {
   renderAdditiveSummary(data.product);
   setupPortionPanel(data.product);
   show(shareBtn);
+  // Gap fix 3 — reveal the add-to-recipe button once a scan is on
+  // screen. Hidden by default and when the user dismisses the scan.
+  const addBtn = $('add-to-recipe-btn');
+  if (addBtn) addBtn.hidden = false;
+  const picker = $('add-to-recipe-picker');
+  if (picker) { picker.hidden = true; picker.textContent = ''; }
 
   renderList('red-flags', audit.red_flags, t('noFlag'));
   renderList('green-flags', audit.green_flags, t('noFlag'));
@@ -2051,6 +2057,11 @@ function resetScanState() {
   hide(resultEl);
   hide(errorEl);
   hide(comparisonEl);
+  // Gap fix 3: stash the add-to-recipe picker on reset.
+  const atrBtn = $('add-to-recipe-btn');
+  if (atrBtn) atrBtn.hidden = true;
+  const atrPicker = $('add-to-recipe-picker');
+  if (atrPicker) { atrPicker.hidden = true; atrPicker.textContent = ''; }
 }
 resetBtn.addEventListener('click', () => { resetScanState(); });
 
@@ -2265,6 +2276,97 @@ pendingRetry?.addEventListener('click', () => { retryPending(); });
 // Share button is now useful even without Web Share — it falls back to
 // clipboard via shareOrCopy(). No need to hide it on unsupported browsers.
 shareBtn?.addEventListener('click', shareCurrentScan);
+
+// Gap fix 3 — add the current scanned product as a component to one
+// of the user's saved recipes. Surfaces a small inline picker of
+// every saved recipe; picking one appends a row carrying the
+// product's per-100 g macros (+ all R34 micros when OFF reports
+// them) and persists via saveRecipe (upsert by id).
+$('add-to-recipe-btn')?.addEventListener('click', async () => {
+  const picker = $('add-to-recipe-picker');
+  if (!picker) return;
+  if (!lastData?.product) { toast(t('logNoScan'), 'warn'); return; }
+  // Toggle close-on-second-click.
+  if (!picker.hidden) { picker.hidden = true; picker.textContent = ''; return; }
+  const recipes = await listRecipes().catch(() => []);
+  picker.textContent = '';
+  if (recipes.length === 0) {
+    const hint = document.createElement('li');
+    hint.className = 'add-to-recipe-empty';
+    hint.textContent = t('addToRecipeNoRecipes');
+    picker.appendChild(hint);
+    picker.hidden = false;
+    return;
+  }
+  const header = document.createElement('li');
+  header.className = 'add-to-recipe-header';
+  header.textContent = t('addToRecipePickTitle');
+  picker.appendChild(header);
+  for (const r of recipes) {
+    const li = document.createElement('li');
+    li.className = 'add-to-recipe-item';
+    li.setAttribute('role', 'option');
+    li.textContent = r.name || t('untitledRecipe');
+    li.addEventListener('click', async () => {
+      try {
+        const p = lastData.product;
+        const n = p.nutrition || {};
+        // Component shape mirrors saveRecipe's writer (it strips
+        // through the RECIPE_MICRO_FIELDS list and zeros missing
+        // values). Grams default to 100 so aggregateRecipe's
+        // per-100g math stays correct until the user tweaks them.
+        const component = {
+          product_name: p.name || t('untitledRecipe'),
+          grams: 100,
+          kcal: Number(n.energy_kcal) || 0,
+          carbs_g: Number(n.carbs_g) || 0,
+          fat_g: Number(n.fat_g) || 0,
+          sat_fat_g: Number(n.saturated_fat_g) || 0,
+          sugars_g: Number(n.sugars_g) || 0,
+          protein_g: Number(n.protein_g) || 0,
+          salt_g: Number(n.salt_g) || 0,
+          fiber_g: Number(n.fiber_g) || 0,
+          iron_mg: Number(n.iron_mg) || 0,
+          calcium_mg: Number(n.calcium_mg) || 0,
+          magnesium_mg: Number(n.magnesium_mg) || 0,
+          potassium_mg: Number(n.potassium_mg) || 0,
+          zinc_mg: Number(n.zinc_mg) || 0,
+          sodium_mg: Number(n.sodium_mg) || 0,
+          vit_a_ug: Number(n.vit_a_ug) || 0,
+          vit_c_mg: Number(n.vit_c_mg) || 0,
+          vit_d_ug: Number(n.vit_d_ug) || 0,
+          vit_e_mg: Number(n.vit_e_mg) || 0,
+          vit_k_ug: Number(n.vit_k_ug) || 0,
+          b1_mg: Number(n.b1_mg) || 0,
+          b2_mg: Number(n.b2_mg) || 0,
+          b3_mg: Number(n.b3_mg) || 0,
+          b6_mg: Number(n.b6_mg) || 0,
+          b9_ug: Number(n.b9_ug) || 0,
+          b12_ug: Number(n.b12_ug) || 0,
+          polyunsaturated_fat_g: Number(n.polyunsaturated_fat_g) || 0,
+          monounsaturated_fat_g: Number(n.monounsaturated_fat_g) || 0,
+          omega_3_g: Number(n.omega_3_g) || 0,
+          omega_6_g: Number(n.omega_6_g) || 0,
+          cholesterol_mg: Number(n.cholesterol_mg) || 0,
+        };
+        await saveRecipe({
+          id: r.id,
+          name: r.name,
+          servings: r.servings || 1,
+          components: [...(r.components || []), component],
+        });
+        picker.hidden = true;
+        picker.textContent = '';
+        toast(t('addToRecipeDone', {
+          food: component.product_name,
+          recipe: r.name || t('untitledRecipe'),
+        }), 'ok');
+      } catch (err) { console.error('[add-to-recipe]', err); }
+    });
+    picker.appendChild(li);
+  }
+  picker.hidden = false;
+});
 
 // Read-aloud wiring
 const readAloudBtn = document.getElementById('read-aloud-btn');
@@ -3043,6 +3145,9 @@ recipesDialog = initRecipesDialog({
   searchFoodDB, listCustomFoods,
   // Feature 3 — URL import + photo scan for recipes.
   compressImage, getMode, getKey, loadEngine,
+  // Gap fix 1 — recipe scoring: synthesise ProductInput for
+  // scoreProduct.
+  buildRecipeProductInput,
 });
 initQaAutocomplete({
   t, show, hide, searchFoodDB, listCustomFoods,
