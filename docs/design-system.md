@@ -229,6 +229,15 @@ across OS emoji stacks.
 - Versioned independently of the code. The tokens live in `styles.css`;
   changing one ships with the next web deploy.
 
+## Competitive positioning (v2, post-§DCP)
+
+**Occupied quadrant:** *Warm × Data-dense.* Rivals cluster at
+Clinical-dense (Cronometer), Warm-curated (Yuka), or neutral
+(MyFitnessPal). The warm-dense quadrant is the "scientist's
+notebook at a farmer's market" territory — coral paper,
+tabular numerics, emoji-per-feature, grade-pattern overlay.
+No direct competitor plants a flag here.
+
 ## Character brief (v2, post-§DP)
 
 Canonical character statement. Every design decision filters through

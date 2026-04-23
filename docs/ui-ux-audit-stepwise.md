@@ -988,3 +988,68 @@ them elsewhere" — matches the intended posture.
    simple attribute selector turns `<span data-icon>📸</span>`
    into a calibrated icon without requiring the class every time.
    Opt-in via `data-icon` so it never retrofits unexpectedly.
+
+---
+
+## Step 12 — §DCP competitive visual positioning
+
+### §DCP1. Benchmark identification (food-scan + nutrition-tracking)
+
+| Product | Visual character | Accent / palette | Typography | Density | Signature | Generic score |
+|---|---|---|---|---|---|---|
+| **Yuka** | Bright, candy-simple, one food at a time | Green (A–B) / orange (C) / red (D–E) circular grade + pure white UI | Geometric sans, default rendering | Airy (one card filling the screen) | Colour-circle grade badge filling half the screen | 2 — strong brand |
+| **MyFitnessPal** | Neutral, corporate, list-heavy | Material-blue `#2196F3`-ish, grey panels | Roboto/SF default | Dense (infinite scroll of meals) | None distinctive — could be any tracker | 4 — highly generic |
+| **Cronometer** | Clinical, pro-user, data-dense | Dark-green `#0F7B39` + mostly greys | System default, small sizes | Very dense (nutrient tables, charts) | Comprehensive nutrient grids | 3 — utilitarian |
+| **Scann-eat** | Warm, precise, notebook-ledger | Coral `#E84A5F` + cream panels + pattern-overlaid grades | Atkinson Hyperlegible + tabular-nums | Dense-but-paced | Grade-pattern overlay + paper grain + coral two-tone | 2 — distinctive per §DBI audit |
+
+**Relations:**
+- vs Yuka: equal in brand distinctiveness; Scann-eat carries deeper data per food, Yuka carries more curated single-food-at-a-time.
+- vs MFP: Scann-eat ahead on visual character, at parity on data depth.
+- vs Cronometer: Scann-eat ahead on warmth, behind on exhaustive nutrient breakdown but closing fast (Batch 2 micro rows).
+
+### §DCP2. Positioning matrix
+
+Axes for the nutrition-app domain:
+**Clinical ↔ Warm** × **Data-dense ↔ Curated**
+
+```
+           Curated
+              │
+      Yuka ●  │
+              │              ● Noom
+    ──────────┼──────────
+              │              ● Scann-eat
+              │  MFP ●
+    Cronometer●              
+              │
+           Dense
+    Clinical ←──────────→ Warm
+```
+
+**Whitespace:** the *warm × dense* quadrant is weakly occupied —
+Cronometer owns clinical-dense; Yuka owns warm-curated; MFP sits
+dead-centre-neutral. **Warm + dense** is where a "scientist's
+notebook at a farmer's market" sits. That's exactly the
+§DP2 character brief. Scann-eat can credibly claim this
+position — and already does per the §DP0 extraction.
+
+### §DCP3. Visual differentiation opportunities
+
+| # | Differentiator | Current | Target | Effort | Competitive value |
+|---|---|---|---|---|---|
+| 1 | **Coral primary** (no competitor uses it) | `--bg` coral + `--accent` orange | **kept** — the "plant the flag" colour | shipped | vs MFP blue, Cronometer green, Yuka lime, Noom purple |
+| 2 | **Grade pattern overlays** (colour-blind signal + brand signature) | Applied to all grade badges after Step 8 | **kept** | shipped | No competitor does pattern-overlaid grades |
+| 3 | **Notebook-margin rule on the hero card** | `.score-card` is a plain panel | 2px accent-dim vertical line on the inside-left edge of `.score-card` — the "ruled margin" of a notebook page | **LOW** | Plants the flag on "scientist's notebook" — territory unoccupied by any competitor |
+| 4 | **Tabular numerics on every dashboard value** | Already via `--num-feat: tnum lnum` on body | **kept** | shipped | Rare in consumer apps; reads as Data-serious |
+
+### Step 12 fixes → shipping
+
+1. **Notebook-margin rule on `.score-card`** — a 2px `--accent-dim`
+   vertical band on the inner-left edge via `border-left` +
+   a tighter `padding-left` compensation. Reads as "a page
+   from a ruled notebook" at ambient glance. Works with both
+   single and dual-score layouts. Visual value: the single
+   most concentrated territorial-claim move available.
+2. **`docs/design-system.md` positioning line** — one sentence
+   recording the chosen quadrant (warm × dense, "scientist's
+   notebook at a farmer's market") so future work doesn't drift.

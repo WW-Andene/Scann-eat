@@ -4904,3 +4904,39 @@ dialog::backdrop {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
                "Twemoji Mozilla", sans-serif;
 }
+
+/* ==========================================================================
+   STEP 12 — §DCP competitive visual positioning.
+   Plants the flag on the "warm × dense" quadrant via one
+   territorial-claim move: a 2px accent-dim vertical rule on the
+   inner-left edge of the hero scan card (.score-card). Reads as
+   "ruled notebook margin" — unoccupied by any competitor
+   (Yuka/MFP/Cronometer/Noom) and aligned with the §DP2 Character
+   Brief's "scientist's notebook" metaphor.
+   ========================================================================== */
+
+/* §DCP3 — notebook-margin rule. Relative positioning anchors an
+   absolute 2px band; using a pseudo-element keeps the existing
+   box-shadow and content layout untouched. Positioned inside
+   the border-radius so the rule follows the rounded corner. */
+.score-card {
+  position: relative;
+}
+.score-card::before {
+  content: "";
+  position: absolute;
+  top: var(--sp-5);
+  bottom: var(--sp-5);
+  left: calc(var(--sp-3) + 2px);
+  width: 2px;
+  background: var(--accent-dim);
+  border-radius: 2px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+/* Dual-score layout uses tighter top/bottom padding; nudge the
+   rule to match so it doesn't overshoot either score slot. */
+.score-card.dual::before {
+  top: var(--sp-4);
+  bottom: var(--sp-4);
+}
