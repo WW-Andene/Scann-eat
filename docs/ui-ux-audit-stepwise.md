@@ -534,3 +534,100 @@ editorial.
 3. Reduce-motion + reduce-contrast branches honoured.
 4. Document DH findings — dashboard tile-equal-weight and
    scan "log" button placement are intentional trade-offs.
+
+---
+
+## Step 7 — §DI iconography + §DDT trend calibration
+
+### §DI1. Icon Language Assessment
+
+**Icon sources:** one — **Unicode emoji only**, documented as
+convention in `docs/design-system.md`.
+
+**Style:** native OS emoji. Platform-dependent rendering:
+- Apple: 3D shaded illustrations (iOS / macOS Safari)
+- Google: flat filled (Android Chrome, Linux)
+- Microsoft: flat linear (Edge on Windows)
+- Samsung: hybrid
+
+Finding **DI1-1**: cross-device visual drift. A 🥕 on iOS renders
+as a detailed 3D carrot with ink outline; on Windows it's a
+flat-orange triangle. Same product, different feel.
+
+**Fix options:**
+- **Twemoji CDN / bundle** (Twitter open-source set) — one consistent
+  style everywhere. Cost: +40 KB (bundle) or one extra HTTP call
+  (CDN). Cheap and one-shot.
+- **Custom SVG icon set** — biggest visual differentiator but a
+  large undertaking.
+- **Accept platform variance** — current state; cheapest.
+
+**Shipping choice:** add a `.icon-glyph` helper class that normalises
+emoji inline-with-text alignment (line-height, optical size,
+vertical baseline). Defer the Twemoji adoption to a future product
+decision — call it out in the audit as the biggest remaining
+iconography lever.
+
+### §DI2. Icon Grid & Optical Sizing
+
+Emojis don't sit on a 24×24 grid — each platform's vector sizes
+differently. What Scann-eat CAN control:
+- **Inline-with-text alignment:** baseline drift when emoji + text
+  share a line. Fix: `line-height: 1; vertical-align: -0.1em;` on
+  the glyph span.
+- **Optical size compensation:** simple-geometry emojis (💧, ⚖️)
+  look smaller at the same font-size as dense-geometry (📅, 🥕).
+  Nudge glyph `font-size: 1.08em` to compensate.
+
+### §DI3. Icon Expressiveness Spectrum
+
+Placement: **Calibrated** (emoji + OS-native rendering, no
+customisation). Appropriate for warm editorial product. NOT
+stuck at Utilitarian.
+
+If product positioning ever shifts toward "flagship consumer" or
+"IP-adjacent", move to **Signature** via custom SVG set. Not
+warranted now.
+
+### §DI4. Custom Icon Direction
+
+Deferred — product doesn't yet warrant Signature or Illustrative.
+When it does, the skill's 5-icon test sequence (home / settings /
+user / alert / plus) is the design gate.
+
+### §DDT1. Trend Inventory
+
+| Trend | Present? | Status |
+|---|---|---|
+| Glassmorphism | ✓ partial — dialog backdrops (Step 6) | Cooling but executed correctly; text lives on cards above the scrim, high-contrast coral backdrop. |
+| Neumorphism | ✗ | ✓ (passed) |
+| Bento grid | ✗ | n/a |
+| Gradient mesh | ✗ | We use linear gradient, not mesh. |
+| Bold type-as-hero | ✗ not yet deployed | Tokens ready (`--text-2xl`, `--text-3xl`); no hero moment uses them. |
+| Neo-brutalism | ✗ | ✓ |
+| Dot/grid texture | paper-grain 2% (Step 6) | Adjacent — grain, not grid-texture. OK. |
+| Aurora | ✗ | ✓ |
+| Minimal monochrome | ✗ | n/a (we're warm, not monochrome) |
+| Skeuomorphic revival | gesture via paper grain | Low intensity, intentional. ✓ |
+
+**Finding DDT1-1:** Glassmorphism backdrop-filter blur at 6px sits
+below the skill's ≥12px quality bar. Bump to 12px to meet the
+threshold (executed well or removed — no middle).
+
+### §DDT2. Trend Strategy
+
+Warm-editorial consumer app competing on privacy + nutrition
+quality. Correct posture: **Trend selective** (use where it serves,
+ignore where it doesn't). Actual posture matches. No gap.
+
+**Trend debt:** none. v2 already dialled back the "vibrant coral
+shout". No neumorphism. No flashy trends maintained-for-legacy.
+
+### Step 7 fixes → shipping
+
+1. `.icon-glyph` helper class (line-height, vertical-align, optical
+   size nudge) for emoji-with-text consistency.
+2. Dialog backdrop-filter blur 6px → 12px (meets skill quality bar
+   for glassmorphism).
+3. Document Twemoji as the biggest pending iconography lever (not
+   shipped — product decision).
