@@ -1278,7 +1278,11 @@ function buildIngredientRow(ing) {
     makeActivatable(li, () => {
       explainTitle.textContent = `${ing.name}${e}`;
       const parts = [info.concern];
-      if (info.source) parts.push(`\n\nSource : ${info.source}`);
+      // R15.1: "Source :" was hard-coded French. The source text
+      // itself is scientific reference data (locale-neutral) but the
+      // label was leaking French to EN users every time they opened
+      // an additive explanation.
+      if (info.source) parts.push(`\n\n${t('sourceLabel')} ${info.source}`);
       explainBody.textContent = parts.join('');
       explainDialog.showModal();
     });
@@ -1716,16 +1720,35 @@ async function renderRecentScans() {
   // Uses the unfiltered `all` (so the chip stays stable while the
   // user filters the list), and only renders grade buckets that
   // actually have entries — keeps the chip short on a small history.
+  // R15.6: each grade bucket is now a button that filters the list
+  // to that grade — saves a trip through the <select>.
   const summaryEl = $('recent-summary');
   if (summaryEl) {
+    summaryEl.textContent = '';
     const sum = summarizeScanHistory(all);
-    const parts = [];
+    const total = document.createElement('span');
+    total.textContent = t('recentSummaryTotal', { n: sum.total });
+    summaryEl.appendChild(total);
+    const activeGrade = historyGradeSelect?.value || '';
     for (const g of ['A+', 'A', 'B', 'C', 'D', 'F']) {
-      if (sum.byGrade[g] > 0) parts.push(`${sum.byGrade[g]}${g}`);
+      if (sum.byGrade[g] === 0) continue;
+      summaryEl.appendChild(document.createTextNode(' · '));
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'recent-summary-grade';
+      btn.dataset.grade = g;
+      if (g === activeGrade) btn.dataset.active = 'true';
+      btn.textContent = `${sum.byGrade[g]}${g}`;
+      btn.setAttribute('aria-label', t('recentSummaryFilter', { n: sum.byGrade[g], grade: g }));
+      btn.setAttribute('aria-pressed', g === activeGrade ? 'true' : 'false');
+      btn.addEventListener('click', () => {
+        if (!historyGradeSelect) return;
+        // Toggle: clicking the active grade clears the filter.
+        historyGradeSelect.value = (g === activeGrade) ? '' : g;
+        renderRecentScans();
+      });
+      summaryEl.appendChild(btn);
     }
-    summaryEl.textContent = parts.length
-      ? `${t('recentSummaryTotal', { n: sum.total })} · ${parts.join(' · ')}`
-      : t('recentSummaryTotal', { n: sum.total });
     show(summaryEl);
   }
   if (items.length === 0) {
