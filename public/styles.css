@@ -4769,3 +4769,92 @@ textarea::-webkit-input-placeholder {
 body.reduce-motion:has(dialog[open])::before {
   transition: none;
 }
+
+/* ==========================================================================
+   STEP 10 — §DSA2 elevation · §DSA4 light physics · §DSA5 focal atmosphere.
+   Three coherence shifts:
+     (1) --elev-3 modal shadow — dialogs lift farther than cards
+         (§DSA2, physics: bigger object = longer shadow),
+     (2) dark-mode top-edge rim highlight on cards — completes the
+         "light from above" model where shadows alone read weak
+         on dark surfaces (§DSA4),
+     (3) focal grade glow — the hero scan-result `.grade` badge
+         gets a subtle coloured halo echoing its own grade hue
+         (§DSA5, "the single most important element").
+   ========================================================================== */
+
+/* §DSA2 — --elev-3 modal shadow. Heavier spread + longer drop
+   than --elev-1 so dialogs physically read as "further off the
+   page" than cards. Adjusted per theme (lighter alpha on light
+   so the shadow doesn't darken the coral paper). */
+:root {
+  --elev-3:
+    0 2px 6px rgba(0, 0, 0, 0.22),
+    0 14px 42px rgba(0, 0, 0, 0.32);
+}
+[data-theme="light"] {
+  --elev-3:
+    0 2px 4px rgba(0, 0, 0, 0.10),
+    0 14px 36px rgba(0, 0, 0, 0.14);
+}
+
+dialog.settings-dialog {
+  box-shadow: var(--elev-3);
+}
+
+/* §DSA4 — dark-mode only top-edge rim highlight on cards.
+   "Light from above" physics means the top edge catches the
+   light even on a dark surface. Composited onto the existing
+   --elev-1 via multiple shadows; only kicks in on dark theme
+   so light-theme cards (already bright) aren't over-treated. */
+[data-theme="dark"] .result,
+[data-theme="dark"] .pairings,
+[data-theme="dark"] .recent-scans,
+[data-theme="dark"] .daily-dashboard,
+[data-theme="dark"] .progress-dialog-card,
+[data-theme="dark"] dialog.settings-dialog,
+[data-theme="dark"] .hydration-tile,
+[data-theme="dark"] .activity-tile,
+[data-theme="dark"] .fasting-tile,
+[data-theme="dark"] .weight-summary {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    var(--elev-1);
+}
+/* Apply the stronger elev-3 to the dark dialog with the rim. */
+[data-theme="dark"] dialog.settings-dialog {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--elev-3);
+}
+
+/* §DSA5 — focal atmosphere for the one hero element. The
+   scan-result grade badge #grade-el receives a soft coloured
+   halo echoing its own grade hue. Restrained alpha + short
+   bleed keeps it within the Paper material — no aurora, no
+   neon. Unique to #grade-el so it never competes with the
+   recurring grade chips in history / pairings / recipes. */
+#grade-el {
+  transition: box-shadow var(--motion-enter, 220ms) var(--ease-ui, ease);
+}
+#grade-el[data-grade="A+"] {
+  box-shadow: 0 0 24px rgba(107, 229, 132, 0.28);
+}
+#grade-el[data-grade="A"] {
+  box-shadow: 0 0 24px rgba(163, 224, 103, 0.25);
+}
+#grade-el[data-grade="B"] {
+  box-shadow: 0 0 24px rgba(245, 214, 81, 0.22);
+}
+#grade-el[data-grade="C"] {
+  box-shadow: 0 0 24px rgba(245, 166, 75, 0.24);
+}
+#grade-el[data-grade="D"] {
+  box-shadow: 0 0 24px rgba(245, 110, 75, 0.26);
+}
+#grade-el[data-grade="F"] {
+  box-shadow: 0 0 26px rgba(229, 75, 94, 0.30);
+}
+@media (prefers-reduced-motion: reduce) {
+  #grade-el { transition: none; }
+}

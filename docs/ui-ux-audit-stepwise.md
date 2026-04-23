@@ -803,3 +803,94 @@ for the canonical copy; summary here:
 3. **Design-system.md Character brief** — canonical §DP2 brief
    added so future work filters decisions through the brief,
    not reinvents it.
+
+---
+
+## Step 10 — §DSA rest (elevation · light physics · focal/ambient)
+
+### §DSA2. Elevation system audit
+
+Layer census of the app's Z-stack:
+
+| Layer | Component | Shadow token | Verdict |
+|---|---|---|---|
+| 0 (page) | body gradient | — | ✓ |
+| 1 (cards) | `.result`, `.daily-dashboard`, `.pairings`, `.recent-scans`, tiles, weight summary | `--elev-1` | ✓ |
+| 1 (buttons) | `button` default | `--elev-1` | ✓ |
+| 1+ (hover) | `button:hover` | `--elev-2` | ✓ |
+| 2 (popover/sheet) | **none — no popover layer in the app** | — | N/A |
+| 3 (modal) | `dialog.settings-dialog` | `--elev-1` (same as cards) | **gap — modal borrows card elevation** |
+
+**Finding DSA2-1:** dialogs use `--elev-1`, the same token as
+cards. Physically correct elevation says modals lift *farther*
+off the page than cards — heavier shadow, wider spread. The
+backdrop scrim partly compensates, but the dialog itself should
+carry a distinct shadow weight.
+
+**Finding DSA2-2:** dark mode uses the same `--elev-1` shadow
+family. Per skill §DSA2: shadows in dark mode are barely visible
+— elevation on dark should come from **lightness increments**,
+not from black box-shadows. Current dark cards on dark bg rely
+on colour contrast + a shadow that contributes almost nothing
+visually. A top-edge 1px highlight (rim-lit from above) would
+restore light physics on dark.
+
+### §DSA4. Light physics
+
+Implicit light source, extracted from existing shadow values:
+
+| Property | Value | Reading |
+|---|---|---|
+| Direction | 0px X offset, +Y offset | directly above |
+| Quality | blur 3–12px, ~0.06–0.08 alpha | soft diffuse |
+| Warmth | rgba(0,0,0,...) neutral + coral-tonal option (Step 8) | neutral→warm toggle |
+| Intensity | moderate | moderate |
+
+Consistency ✓ — every shadow drops straight down. No mixed
+angles. No specular highlights (paper material, so none expected).
+
+**Finding DSA4-1:** dark mode has no top-edge highlight on
+cards. Under the "light from above" model, dark surfaces should
+show a faint top-rim highlight (the edge nearest the light
+catches it). Adding a 1px `inset 0 1px 0 rgba(255,255,255,0.06)`
+to `.panel`-family surfaces in dark mode completes the light
+physics that shadows alone can't on dark.
+
+**No violation of light source consistency.** Angle is uniform.
+
+### §DSA5. Focal vs ambient atmosphere
+
+| Layer | Where it lives | Verdict |
+|---|---|---|
+| Ambient | body coral gradient + 2% grain | ✓ everywhere, never dominant |
+| Surface | `--panel` cream/near-black + `--elev-1` | ✓ slight lift |
+| Focal | scan-result `.grade` + `.grade-chip-reveal` opt-in animation | ✓ but thin |
+| Accent | none named | **gap — no unique "the single most important element" token** |
+
+The grade-reveal animation is a focal moment, but only when
+opt-in after a new scan. The resting-state grade badge (shown
+on history, pairings, recipe list) has the same treatment as
+any other badge. Per §DSA5 the hero scan-result grade should
+have *more* atmospheric weight than the recurring grade chips.
+
+**Finding DSA5-1:** no "accent atmosphere" for the single most
+important element. The scan-result `.grade` inside `.result`
+is the hero moment — it could carry a subtle coloured glow that
+echoes the grade hue. Keep it restrained (0.3 alpha max, short
+bleed) to stay within Paper material.
+
+### Step 10 fixes → shipping
+
+1. **`--elev-3` modal shadow token** — heavier drop for dialogs.
+   Dark: `0 8px 24px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.20)`.
+   Light: commensurate. Applied to `dialog.settings-dialog` in
+   place of the card-weight `--elev-1`.
+2. **Dark-mode top-edge rim highlight** — `inset 0 1px 0
+   rgba(255,255,255,0.06)` composited onto the existing
+   `--elev-1` for `.panel`-family cards. Expresses light physics
+   on dark where shadows alone carry nothing.
+3. **Focal grade glow** — the scan-result grade (`#grade-el`
+   only, not `.recent-grade` / `.compare-grade`) gets a subtle
+   `box-shadow: 0 0 24px {grade-hue}/0.25` that echoes the
+   grade colour. Single hero element. Dialled below the opt-in
+   reveal threshold so it works at rest.
