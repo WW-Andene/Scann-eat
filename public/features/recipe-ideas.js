@@ -72,14 +72,29 @@ async function fetchRecipes({ direct, server }) {
     const engine = await loadEngine();
     const key = getKey();
     if (!key) throw new Error(t('errMissingKey'));
-    return direct(engine, key);
+    try {
+      return await direct(engine, key);
+    } catch (err) {
+      // R22.2: 429 rate-limit translation for the direct path —
+      // matches the identifyViaModePath pattern in app.js so the
+      // user sees the same "try again in a moment" message rather
+      // than a raw HTTP error.
+      if (err?.status === 429) throw new Error(t('errRateLimit'));
+      throw err;
+    }
   } else {
     const res = await fetch(server.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(server.body),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 429 || body.error === 'rate_limit') {
+        throw new Error(t('errRateLimit'));
+      }
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
     return res.json();
   }
 }
@@ -97,7 +112,13 @@ async function runAndRender(intro, fetcher) {
     result = await fetcher();
   } catch (err) {
     console.warn('[recipeIdeas]', err);
-    $('recipe-ideas-status').textContent = t('recipeIdeasFailed');
+    // R22.2: surface a translated rate-limit message instead of the
+    // generic "failed" text so the user knows to retry, not to
+    // abandon the feature.
+    const msg = err?.message === t('errRateLimit')
+      ? err.message
+      : t('recipeIdeasFailed');
+    $('recipe-ideas-status').textContent = msg;
     return;
   }
   const recipes = Array.isArray(result?.recipes) ? result.recipes : [];

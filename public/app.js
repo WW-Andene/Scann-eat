@@ -1186,8 +1186,10 @@ $('pantry-submit')?.addEventListener('click', async () => {
   if (pantry.length === 0) { $('pantry-status').textContent = t('pantryEmpty'); return; }
   $('pantry-status').textContent = '';
   pantryDialog?.close();
-  // Recipes dialog should also close so the card view has space.
-  recipesDialog?.close();
+  // R22.1: recipes dialog should also close so the card view has
+  // space. Since R9.1 `recipesDialog` is a module handle, not the
+  // DOM element — call through the DOM directly.
+  document.getElementById('recipes-dialog')?.close();
   await openPantryIdeas(pantry);
 });
 
