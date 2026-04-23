@@ -2339,6 +2339,11 @@ const logToast = $('log-toast');
 const dashboardEl = $('daily-dashboard');
 const dashboardRows = $('dashboard-rows');
 const dashboardEntries = $('dashboard-entries');
+// Gap fix #10: mark the dashboard regions as busy on boot so the CSS
+// skeleton placeholders paint before the first real render. Cleared
+// on the first successful render.
+dashboardRows?.setAttribute('aria-busy', 'true');
+dashboardEntries?.setAttribute('aria-busy', 'true');
 const dashboardLog = $('dashboard-log');
 const dashboardDateEl = $('dashboard-date');
 const dashboardRemainingEl = $('dashboard-remaining');
@@ -3324,6 +3329,10 @@ async function renderDashboard() {
   const targets = dailyTargets(profile);
   const entries = await listByDate().catch(() => []);
   const totals = await dailyTotals().catch(() => null);
+  // Gap fix #10: clear skeletons once we have the IDB read back; both
+  // success and empty-dashboard branches below drop the busy marker.
+  dashboardRows?.removeAttribute('aria-busy');
+  dashboardEntries?.removeAttribute('aria-busy');
   if (!totals) { hide(dashboardEl); return; }
 
   if (totals.count === 0 && !targets) { hide(dashboardEl); return; }

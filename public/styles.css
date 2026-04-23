@@ -2097,6 +2097,46 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 }
 .qa-favourite .qs-name { color: var(--accent); }
 
+/* Gap fix #10 — skeleton placeholders. Applied to the dashboard
+   before its first real render so the layout doesn't jump from
+   empty→populated. CSS-only (no JS branching): the container picks
+   up [aria-busy="true"] during initial load, skeletons fade out on
+   render completion. prefers-reduced-motion kills the shimmer. */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.dashboard-rows[aria-busy="true"],
+.dashboard-entries[aria-busy="true"] {
+  min-height: 180px;
+  position: relative;
+}
+.dashboard-rows[aria-busy="true"]::before,
+.dashboard-rows[aria-busy="true"]::after,
+.dashboard-entries[aria-busy="true"]::before {
+  content: "";
+  display: block;
+  height: 44px;
+  margin: 8px 0;
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+  background-image: linear-gradient(90deg,
+    var(--panel-2) 0,
+    var(--panel-3) 40px,
+    var(--panel-2) 80px);
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+.dashboard-entries[aria-busy="true"]::before { height: 60px; }
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-rows[aria-busy="true"]::before,
+  .dashboard-rows[aria-busy="true"]::after,
+  .dashboard-entries[aria-busy="true"]::before {
+    animation: none;
+  }
+}
+
 /* Gap fix #13 — manual barcode entry (collapsible, sits under the
    Analyse button). Intentionally understated: most users scan, this
    is the escape hatch. */
