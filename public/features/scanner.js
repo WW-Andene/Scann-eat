@@ -56,15 +56,25 @@ export async function openCameraScanner() {
   const detector = getBarcodeDetector();
   const scan = async () => {
     if (!cameraDialog.open) return;
+    // R21.1: pause scan loop when the document is hidden — the
+    // camera stream suspends anyway, but the detect() call still
+    // burns CPU at 4 Hz without any visible benefit. Visibilitychange
+    // listener below re-triggers the loop when the tab returns.
+    if (document.hidden) {
+      cameraLoopHandle = null;
+      return;
+    }
     try {
       const codes = await detector.detect(cameraVideo);
       for (const c of codes) {
         const d = (c.rawValue || '').replace(/\D/g, '');
         if (d.length === 8 || d.length === 12 || d.length === 13) {
-          // Small haptic blip so users holding the phone know it caught it
-          // even before the overlay closes. 50 ms stays under the reduce-
-          // motion threshold most users set via vibration-strength settings.
-          try { navigator.vibrate?.(50); } catch { /* not supported */ }
+          // R21.2: haptic blip gated by reduce-motion preference —
+          // users who opt out of animated UI typically don't want
+          // 50 ms vibrations either.
+          if (!document.body.classList.contains('reduce-motion')) {
+            try { navigator.vibrate?.(50); } catch { /* not supported */ }
+          }
           closeCameraScanner();
           addBarcodeOnly(d);
           await scanImage();
@@ -74,6 +84,15 @@ export async function openCameraScanner() {
     } catch { /* ignore detection errors */ }
     cameraLoopHandle = setTimeout(scan, 250);
   };
+  // Kick the loop again when the user returns to the tab.
+  const onVis = () => {
+    if (!document.hidden && cameraDialog.open && !cameraLoopHandle) scan();
+  };
+  document.addEventListener('visibilitychange', onVis);
+  // Clean up the visibility listener when the dialog closes.
+  cameraDialog.addEventListener('close', () => {
+    document.removeEventListener('visibilitychange', onVis);
+  }, { once: true });
   scan();
 }
 
