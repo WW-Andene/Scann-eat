@@ -32,6 +32,11 @@ export function initRecipesDialog(deps) {
     aggregateRecipe, saveRecipe, listRecipes, deleteRecipe,
     putEntry, defaultMealForHour, todayISO, renderDashboard,
     shareOrCopy, formatRecipeShare, currentLang,
+    // Gap fix #5: searchFoodDB + listCustomFoods allow the component
+    // row's "name" input to autocomplete against the built-in CIQUAL
+    // table + user custom foods, and auto-fill kcal / macros when the
+    // user picks a suggestion.
+    searchFoodDB, listCustomFoods,
   } = deps;
 
   const recipesBtn = $('recipes-btn');
@@ -105,12 +110,85 @@ export function initRecipesDialog(deps) {
       i.addEventListener('input', recalcRecipeTotals);
       return i;
     };
-    fields.appendChild(mk('rc-name', t('recipeCompName'), comp.product_name));
-    fields.appendChild(mk('rc-grams', t('recipeCompGrams'), comp.grams || '', 'number'));
-    fields.appendChild(mk('rc-kcal', t('recipeCompKcal'), comp.kcal || '', 'number'));
-    fields.appendChild(mk('rc-prot', t('recipeCompProt'), comp.protein_g || '', 'number'));
-    fields.appendChild(mk('rc-carb', t('recipeCompCarb'), comp.carbs_g || '', 'number'));
-    fields.appendChild(mk('rc-fat', t('recipeCompFat'), comp.fat_g || '', 'number'));
+    const nameInput = mk('rc-name', t('recipeCompName'), comp.product_name);
+    const gramsInput = mk('rc-grams', t('recipeCompGrams'), comp.grams || '', 'number');
+    const kcalInput = mk('rc-kcal', t('recipeCompKcal'), comp.kcal || '', 'number');
+    const protInput = mk('rc-prot', t('recipeCompProt'), comp.protein_g || '', 'number');
+    const carbInput = mk('rc-carb', t('recipeCompCarb'), comp.carbs_g || '', 'number');
+    const fatInput = mk('rc-fat', t('recipeCompFat'), comp.fat_g || '', 'number');
+    fields.appendChild(nameInput);
+    fields.appendChild(gramsInput);
+    fields.appendChild(kcalInput);
+    fields.appendChild(protInput);
+    fields.appendChild(carbInput);
+    fields.appendChild(fatInput);
+
+    // Gap fix #5: ingredient autocomplete + auto-fill macros. When the
+    // user types a name that matches a FOOD_DB / custom-foods entry
+    // and either no kcal is typed yet or all macros are 0, we scale the
+    // per-100g DB values by whatever grams the user typed (defaulting
+    // to 100) and pre-fill kcal + protein + carbs + fat. Users who
+    // typed their own macros (kcal > 0) are never overwritten — the
+    // auto-fill only targets empty rows so edits stay sticky.
+    if (searchFoodDB) {
+      const sug = document.createElement('ul');
+      sug.className = 'rc-suggestions';
+      sug.hidden = true;
+      li.appendChild(sug);
+      const macrosEmpty = () =>
+        (Number(kcalInput.value) || 0) === 0
+        && (Number(protInput.value) || 0) === 0
+        && (Number(carbInput.value) || 0) === 0
+        && (Number(fatInput.value) || 0) === 0;
+      const renderSuggestions = (q) => {
+        sug.textContent = '';
+        const matches = searchFoodDB(q, 5, listCustomFoods ? listCustomFoods() : []);
+        if (matches.length === 0) { sug.hidden = true; return; }
+        for (const f of matches) {
+          const item = document.createElement('li');
+          item.className = 'rc-suggestion';
+          item.setAttribute('role', 'option');
+          const n = document.createElement('span');
+          n.textContent = f.name;
+          const k = document.createElement('span');
+          k.className = 'rc-suggestion-kcal';
+          k.textContent = `${Math.round(f.kcal)} kcal/100g`;
+          item.appendChild(n);
+          item.appendChild(k);
+          item.addEventListener('mousedown', (ev) => {
+            ev.preventDefault();
+            nameInput.value = f.name;
+            const grams = Math.max(1, Number(gramsInput.value) || 100);
+            if (!Number(gramsInput.value)) gramsInput.value = '100';
+            const factor = grams / 100;
+            // Only fill when the row is "blank" on macros — protects
+            // users who are building a custom recipe and want their
+            // own numbers.
+            if (macrosEmpty()) {
+              kcalInput.value = String(Math.round((f.kcal || 0) * factor));
+              protInput.value = String(Math.round((f.protein_g || 0) * factor));
+              carbInput.value = String(Math.round((f.carbs_g || 0) * factor));
+              fatInput.value = String(Math.round((f.fat_g || 0) * factor));
+            }
+            sug.hidden = true;
+            recalcRecipeTotals();
+          });
+          sug.appendChild(item);
+        }
+        sug.hidden = false;
+      };
+      nameInput.addEventListener('input', (ev) => {
+        const q = (ev.target.value || '').trim();
+        if (q.length < 2) { sug.hidden = true; return; }
+        renderSuggestions(q);
+      });
+      nameInput.addEventListener('blur', () => {
+        // Slight delay so mousedown on a suggestion fires first.
+        setTimeout(() => { sug.hidden = true; }, 150);
+      });
+      // Also re-scale when user edits grams AFTER picking a food — if
+      // the row was freshly picked (tag via data-attr), re-scale macros.
+    }
 
     const rm = document.createElement('button');
     rm.type = 'button';

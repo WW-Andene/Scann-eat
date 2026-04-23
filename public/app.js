@@ -2964,6 +2964,9 @@ recipesDialog = initRecipesDialog({
   putEntry, defaultMealForHour, todayISO, renderDashboard,
   shareOrCopy, formatRecipeShare,
   currentLang: () => currentLang,
+  // Gap fix #5: ingredient autocomplete + auto-fill in the recipe
+  // editor rows.
+  searchFoodDB, listCustomFoods,
 });
 initQaAutocomplete({ show, hide, searchFoodDB, listCustomFoods });
 initProfileDialog({
