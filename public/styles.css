@@ -130,6 +130,26 @@
 .app-toast[data-variant="warn"]  { box-shadow: inset 4px 0 0 var(--warning), 0 10px 30px rgba(0, 0, 0, 0.25); }
 .app-toast[data-variant="error"] { box-shadow: inset 4px 0 0 var(--danger),  0 10px 30px rgba(0, 0, 0, 0.25); }
 .app-toast[data-variant="ok"]    { box-shadow: inset 4px 0 0 var(--success), 0 10px 30px rgba(0, 0, 0, 0.25); }
+/* R35.I2: undo-toast action button sits inline with the toast text. */
+.app-toast[data-has-action="true"] { pointer-events: auto; padding-right: 12px; }
+.app-toast-action {
+  display: none;
+  margin-left: 12px;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  padding: 4px 14px;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: 0.9em;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 32px;
+  vertical-align: middle;
+}
+.app-toast[data-has-action="true"] .app-toast-action { display: inline-block; }
+.app-toast-action:hover,
+.app-toast-action:focus-visible { background: var(--accent); color: var(--on-accent, #fff); outline: none; }
 
 /* ========== NOSCRIPT FALLBACK ===========================================
    Shown only when JavaScript is disabled — the rest of the UI is driven
@@ -2677,20 +2697,26 @@ body.reduce-motion .hyd-fill { transition: none; }
   color: var(--text);
   font-weight: 700;
 }
-.dash-entry-del {
+.dash-entry-del,
+.dash-entry-edit {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 1.3em;
+  font-size: 1.1em;
   padding: 0;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   min-height: auto;
   border-radius: var(--r-pill);
   display: grid;
   place-items: center;
+  cursor: pointer;
 }
-.dash-entry-del:hover { background: var(--panel-3); color: var(--danger); }
+.dash-entry-del { font-size: 1.3em; width: 44px; height: 44px; }
+.dash-entry-del:hover,
+.dash-entry-del:focus-visible { background: var(--panel-3); color: var(--danger); outline: none; }
+.dash-entry-edit:hover,
+.dash-entry-edit:focus-visible { background: var(--panel-3); color: var(--accent); outline: none; }
 .dash-entry-empty {
   color: var(--muted);
   font-size: 0.95em;

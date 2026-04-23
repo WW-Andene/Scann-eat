@@ -207,10 +207,57 @@ function toast(text, variantOrMs) {
   if (variant) toastEl.dataset.variant = variant;
   else delete toastEl.dataset.variant;
   toastEl.dataset.visible = 'true';
+  // Ensure any lingering action slot from a previous toastWithUndo is
+  // cleared so plain toast() calls don't inherit a stale button.
+  toastEl.dataset.hasAction = 'false';
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toastEl.dataset.visible = 'false';
   }, ms);
+}
+
+// R35.I2: toast with an Undo button. Used by destructive actions
+// (delete entry, clear-today, delete weight, etc.) so the user has a
+// 6-second grace window to reverse. The caller passes an async
+// callback that reinstates the data; tapping Undo invokes it and
+// dismisses the toast early.
+let toastActionEl = null;
+function toastWithUndo(text, onUndo, ms = 6000) {
+  if (!toastEl) {
+    toastEl = document.createElement('div');
+    toastEl.className = 'app-toast';
+    toastEl.setAttribute('role', 'status');
+    toastEl.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toastEl);
+  }
+  if (!toastActionEl) {
+    toastActionEl = document.createElement('button');
+    toastActionEl.type = 'button';
+    toastActionEl.className = 'app-toast-action';
+    toastEl.appendChild(toastActionEl);
+  } else if (toastActionEl.parentElement !== toastEl) {
+    toastEl.appendChild(toastActionEl);
+  }
+  // Clear existing text nodes (the button stays); rebuild.
+  for (const n of Array.from(toastEl.childNodes)) {
+    if (n !== toastActionEl) toastEl.removeChild(n);
+  }
+  toastEl.insertBefore(document.createTextNode(String(text)), toastActionEl);
+  toastActionEl.textContent = t('undo');
+  toastEl.dataset.variant = 'warn';
+  toastEl.dataset.visible = 'true';
+  toastEl.dataset.hasAction = 'true';
+  if (toastTimer) clearTimeout(toastTimer);
+  const dismiss = () => {
+    toastEl.dataset.visible = 'false';
+    toastEl.dataset.hasAction = 'false';
+    toastActionEl.onclick = null;
+  };
+  toastActionEl.onclick = async () => {
+    dismiss();
+    try { await onUndo(); } catch (err) { console.error('[undo]', err); }
+  };
+  toastTimer = setTimeout(dismiss, ms);
 }
 
 // ============================================================================
@@ -2369,6 +2416,9 @@ document.querySelectorAll('.share-presets [data-share]').forEach((btn) => {
 
 // ----- Quick Add -----
 quickAddBtn?.addEventListener('click', () => {
+  // R35.I1: clicking "+" always resets the edit state — user is
+  // adding a new entry, not continuing an edit.
+  editingEntry = null;
   // reset fields
   for (const id of ['qa-name', 'qa-kcal', 'qa-carbs', 'qa-protein', 'qa-fat', 'qa-satfat', 'qa-sugars', 'qa-salt', 'qa-fiber']) {
     const el = $(id);
@@ -2376,9 +2426,16 @@ quickAddBtn?.addEventListener('click', () => {
   }
   // pick a default meal by time-of-day
   if ($('qa-meal')) $('qa-meal').value = defaultMealForHour(new Date().getHours());
+  // Reset the dialog title back to default from any prior edit.
+  const title = $('quick-add-dialog-title');
+  if (title) title.textContent = t('quickAddTitle');
   quickAddDialog.showModal();
 });
-qaCancel?.addEventListener('click', (e) => { e.preventDefault(); quickAddDialog.close(); });
+qaCancel?.addEventListener('click', (e) => {
+  e.preventDefault();
+  editingEntry = null;
+  quickAddDialog.close();
+});
 
 // Voice-dictate extracted to /features/voice-dictate.js — initialized below
 // with initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }).
@@ -2590,12 +2647,40 @@ function readQaForm() {
   };
 }
 
+// R35.I1+I9: editing state for the Quick Add dialog. When set, the
+// save handler upserts the existing entry (preserving its id + date +
+// timestamp, letting the user change grams/macros/meal) instead of
+// creating a new one. Null = "add new" flow.
+let editingEntry = null;
+
 qaSave?.addEventListener('click', async (e) => {
   e.preventDefault();
   const f = readQaForm();
   if (f.kcal <= 0) { $('qa-kcal')?.focus(); return; }
   try {
-    await logQuickAdd(f);
+    if (editingEntry) {
+      // R35.I1: upsert the existing entry with the user's edits.
+      // Preserves id / date / timestamp / fromRecipe so the row stays
+      // in its original meal slot unless the user changed `meal`, and
+      // doesn't jump to today's date when edited tomorrow.
+      await putEntry({
+        ...editingEntry,
+        product_name: f.name || editingEntry.product_name,
+        meal: f.meal,
+        kcal: f.kcal,
+        carbs_g: f.carbs_g,
+        protein_g: f.protein_g,
+        fat_g: f.fat_g,
+        sat_fat_g: f.sat_fat_g,
+        sugars_g: f.sugars_g,
+        salt_g: f.salt_g,
+        fiber_g: f.fiber_g,
+      });
+      toast(t('entryUpdated', { name: f.name || editingEntry.product_name }), 'ok');
+      editingEntry = null;
+    } else {
+      await logQuickAdd(f);
+    }
     quickAddDialog.close();
     await renderDashboard();
   } catch (err) {
@@ -2647,8 +2732,20 @@ clearTodayBtn?.addEventListener('click', async () => {
   const n = today.length;
   if (n === 0) { toast(t('clearTodayNoneToClear'), 'warn'); return; }
   if (!window.confirm(t('clearTodayConfirm', { n }))) return;
+  // R35.I2: undo-safe. Snapshot the entries before clearing; tapping
+  // Undo reinserts them all. IDB upsert-by-id means restoration is
+  // exact even if the user already re-logged something in between.
+  const snapshot = today.map((e) => ({ ...e }));
   await clearDate();
   await renderDashboard();
+  toastWithUndo(
+    t('clearTodayDone', { n }),
+    async () => {
+      for (const e of snapshot) await putEntry(e);
+      await renderDashboard();
+      toast(t('clearTodayRestored', { n }), 'ok');
+    },
+  );
 });
 
 // ============================================================================
@@ -3315,22 +3412,61 @@ async function renderDashboard() {
         }
         const k = document.createElement('strong');
         k.textContent = `${Math.round(e.kcal)} kcal`;
+        // R35.I1+I9: edit button opens Quick Add pre-filled so the
+        // user can tweak grams / macros / meal without delete+re-log.
+        // Reuses the existing Quick Add form (it already has every
+        // field the entry carries) instead of building a second
+        // dialog.
+        const edit = document.createElement('button');
+        edit.type = 'button';
+        edit.className = 'dash-entry-edit';
+        edit.setAttribute('aria-label', e.product_name
+          ? `${t('editEntry')} — ${e.product_name}`
+          : t('editEntry'));
+        edit.textContent = '✎';
+        edit.addEventListener('click', () => {
+          editingEntry = e;
+          $('qa-name').value = e.product_name || '';
+          $('qa-kcal').value = String(Math.round(e.kcal || 0));
+          $('qa-carbs').value = String(Math.round(e.carbs_g || 0));
+          $('qa-protein').value = String(Math.round(e.protein_g || 0));
+          $('qa-fat').value = String(Math.round(e.fat_g || 0));
+          $('qa-satfat').value = String(Math.round(e.sat_fat_g || 0));
+          $('qa-sugars').value = String(Math.round(e.sugars_g || 0));
+          $('qa-salt').value = String((e.salt_g || 0).toFixed(2));
+          $('qa-fiber').value = String(Math.round(e.fiber_g || 0));
+          if ($('qa-meal')) $('qa-meal').value = e.meal || 'snack';
+          const title = $('quick-add-dialog-title');
+          if (title) title.textContent = t('editEntryTitle');
+          quickAddDialog.showModal();
+        });
         const del = document.createElement('button');
         del.type = 'button';
         del.className = 'dash-entry-del';
-        // R23.1: aria-label now includes the entry name so screen-
-        // reader users can disambiguate between the dozen identical
-        // "×" buttons in a logged day. Mirrors R13.4 scan-history fix.
         del.setAttribute('aria-label', e.product_name
           ? `${t('deleteEntry')} — ${e.product_name}`
           : t('deleteEntry'));
         del.textContent = '×';
         del.addEventListener('click', async () => {
+          // R35.I2: undo-toast. Snapshot the entry before deletion
+          // and let the user restore it in a 6 s window. putEntry
+          // is upsert-by-id so the restore reinstates the row with
+          // its original id / timestamp / date — completely intact.
+          const snapshot = { ...e };
           await deleteEntry(e.id);
           await renderDashboard();
+          toastWithUndo(
+            t('entryDeleted', { name: e.product_name || '—' }),
+            async () => {
+              await putEntry(snapshot);
+              await renderDashboard();
+              toast(t('entryRestored'), 'ok');
+            },
+          );
         });
         li.appendChild(info);
         li.appendChild(k);
+        li.appendChild(edit);
         li.appendChild(del);
         ul.appendChild(li);
       }
