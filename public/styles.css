@@ -5228,3 +5228,62 @@ button.btn-loading::after {
 .btn-destructive:active:not(:disabled) {
   transform: scale(0.97);
 }
+
+/* ==========================================================================
+   STEP 17 — §DCO3 card & surface · §DCO4 navigation design.
+   Three additions:
+     (1) --r-modal-lg 36px so top-level dialogs read one step
+         softer than cards (32px),
+     (2) chip-btn[aria-current="page"] style — forward-compat
+         active-nav treatment,
+     (3) .dashboard-actions[role="toolbar"] subtle hairline rail —
+         nav row reads as a dedicated surface once the HTML is
+         upgraded.
+   ========================================================================== */
+
+/* §DCO3 — modal radius differentiation. Cards currently sit at
+   --r-xl (32px). Modals sharing that value read identical to
+   cards, losing the "softer container = deeper container"
+   hierarchy the skill calls for. +4px nudges settings dialogs
+   one step softer. */
+:root {
+  --r-modal-lg: 36px;
+}
+dialog.settings-dialog {
+  border-radius: var(--r-modal-lg);
+}
+
+/* §DCO4 — forward-compat active-nav treatment. [aria-current]
+   on a chip-btn makes the corresponding chip read as the "you
+   are here" state. Accent-tinted background + 2px accent bar
+   at the bottom. Ships even though the HTML doesn't currently
+   set the attribute; the day a feature marks its open chip,
+   the rule fires. */
+.chip-btn[aria-current="page"],
+.chip-btn[aria-current="true"] {
+  background: color-mix(in oklch, var(--panel-2) 70%, var(--accent));
+  color: var(--text);
+  border-color: var(--accent);
+  position: relative;
+}
+.chip-btn[aria-current="page"]::after,
+.chip-btn[aria-current="true"]::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -6px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: var(--r-pill);
+}
+
+/* §DCO4 — dashboard-actions as a toolbar. A subtle bottom
+   hairline separates the nav row from the dashboard surface
+   below. Attribute-gated: ships inert until HTML marks the
+   container with role="toolbar". */
+.dashboard-actions[role="toolbar"] {
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-2);
+}

@@ -1444,3 +1444,92 @@ inputs use it yet.
    until action is confirmed); on hover, shifts to `--danger`
    with a warn-panel-style tinted background. Unifies destructive
    affordance without breaking existing per-feature del rules.
+
+---
+
+## Step 17 — §DCO3 card & surface · §DCO4 navigation design
+
+### §DCO3. Card & surface audit
+
+Card census — primary container classes + their anatomy:
+
+| Class | Background | Radius | Padding | Shadow | Hover |
+|---|---|---|---|---|---|
+| `.result` | flex wrapper only | — | — | — | — |
+| `.score-card` | `--panel` | `--r-xl` 32px | `--sp-6` × `--sp-5` | `--elev-1` + tonal (Step 10) + notebook-margin rule (Step 12) | — |
+| `.daily-dashboard` | `--panel` | `--r-xl` 32px | `--sp-5` | `--elev-1` | — |
+| `.pairings` | `--panel` | `--r-md` 18px | `--sp-5` | `--elev-1` | — |
+| `.recent-scans` | `--panel` | `--r-xl` 32px | `--sp-5` | `--elev-1` | — |
+| `.product` | `--panel` | `--r-xl` 32px | `--sp-5` | `--elev-1` | — |
+| `.hydration-tile` / `.activity-tile` / `.fasting-tile` / `.weight-summary` | `--panel-2` | `--r-md` 18px | `--sp-4` | `--elev-1` | — |
+| `.settings-dialog` | `--panel` | `--r-xl` 32px | `--sp-6` | `--elev-3` (Step 10) | — |
+
+**Radius family analysis (§DCO3 coherence):**
+
+Current positions vs the skill's "warm consumer" spec:
+
+| Element | App value | "Warm consumer" spec | Status |
+|---|---|---|---|
+| Chip-btn | pill | pill | ✓ |
+| Default button | `--r-md` 18 (via Step 8 `--r-btn` 14 available but unused) | 100 pill | ✓ intentional — only chip-btns go pill |
+| Input | `--r-input` 10 (global baseline Step 16) | 10 | ✓ |
+| Card | 18 (tiles) / 32 (hero) | 16 | slight mix |
+| Modal | 32 | 20 | **gap — modal shares card radius, should be distinct** |
+| Badge | `--r-pill` 999 | pill | ✓ |
+
+**Finding DCO3-1:** cards use two radii — `--r-md` 18 for
+secondary tiles (`.hydration-tile`, `.activity-tile`) and
+`--r-xl` 32 for hero containers (`.daily-dashboard`,
+`.score-card`, `.settings-dialog`). This is a two-tier family
+and it's coherent per §DP2 "warm consumer"; only gap is modals
+sharing the card's 32px — they should feel softer than cards.
+
+**Finding DCO3-2:** no shared `.card-hover` utility for
+interactive cards (e.g. `.recent-scans li button` that opens
+the product). Per-feature hover handling; a shared class
+would unify the card-as-button affordance if click-through
+cards multiply.
+
+### §DCO4. Navigation design character
+
+Scann-eat has no traditional nav bar — the dashboard's
+`.dashboard-actions` chip-btn row is the de-facto navigation
+(📸 scan, 🥗 templates, 📅 planning, 🛒 grocery, 💡 recipe ideas,
+📜 menu scan, etc.). Feature-level navigation happens inside
+dialogs (modal drill-down pattern).
+
+| Dimension | Observed | Character reading |
+|---|---|---|
+| Position | top of main, after dashboard header | ✓ app-like, thumb-reachable on mobile |
+| Active state | — (all chip-btns render equal at rest; "active" = the dialog is open, which is visible via the dialog itself) | ✓ acceptable per app architecture |
+| Hover | brightness(1.05) + `--elev-2` | ✓ carries character |
+| Icon treatment | emoji + label | ✓ Calibrated Signature position (§DI3) |
+| Density | 8–12 chips on dashboard, dense | ✓ matches "food ledger" density target |
+
+**Finding DCO4-1:** no `[aria-current]` style — the chip
+corresponding to a currently-open dialog doesn't visually
+differentiate. Low-priority: modal-dialog pattern means users
+always see the open dialog, so the chip's active state is
+redundant. But: a forward-compat `[aria-current="page"]` rule
+would let future product work light it up cheaply.
+
+**Finding DCO4-2:** `.dashboard-actions` has no `role="toolbar"`
+declared. Users on AT hear each button individually without
+the container context. HTML-level change; not a CSS ship.
+
+### Step 17 fixes → shipping
+
+1. **Modal radius differentiation** — introduce `--r-modal-lg`
+   (36px) for top-level settings/scan dialogs so they read as
+   one step softer than cards (32px). Keeps the 16/18/32/36
+   minor-third-ish progression coherent. Applied to
+   `.settings-dialog` via the existing alias.
+2. **Forward-compat `[aria-current="page"]` style for chip-btn** —
+   accent-tinted background + subtle bottom-rule. Ships even
+   though nothing currently sets the attribute; ready the day
+   a feature marks its open chip.
+3. **`.dashboard-actions[role="toolbar"]` subtle visual
+   grouping** — a thin hairline under the row using the
+   `--border` token, so the nav reads as a dedicated rail
+   distinct from the dashboard content below. Attribute-gated
+   so it activates when the HTML is upgraded.
