@@ -19,6 +19,7 @@ import { initFasting, renderFasting } from '/features/fasting.js';
 import { initAppearance, applyAppearance, applyTheme, applyReadingPrefs } from '/features/appearance.js';
 import { shareOrCopy } from '/core/share.js';
 import { dateFormatter, localeFor } from '/core/date-format.js';
+import { localDateISO } from '/core/dateutil.js';
 import { initRecipeIdeas, openRecipeIdeas, openPantryIdeas } from '/features/recipe-ideas.js';
 import { initSettingsDialog } from '/features/settings-dialog.js';
 import { initKeybindings } from '/features/keybindings.js';
@@ -3416,12 +3417,15 @@ function renderLineChart(container, values, opts = {}) {
 
 async function renderProgressCharts() {
   // Build an ISO-dated series of the last 30 days. Null = no data that day.
+  // R26.1: use local-day ISO (matches how consumption + weight entries
+  // are stamped after R25.1). Previously mixed local Date arithmetic
+  // with UTC-based toISOString().slice(0,10), which could offset the
+  // series by one day at tz edges and silently misalign weights with
+  // kcal columns.
   const days = [];
-  const today = new Date();
+  const nowMs = Date.now();
   for (let i = 29; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().slice(0, 10));
+    days.push(localDateISO(nowMs - i * 86_400_000));
   }
 
   // Weight series — pick the most recent entry per date if multiple.
