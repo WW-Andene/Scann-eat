@@ -1664,3 +1664,61 @@ for date) rather than generic "Enter value…". ✓
 2. **No CSS changes this step** — the empty-tile treatment was
    already in place (Step 4226 + Step 14). This closes the copy
    half of that §DST1 fix.
+
+---
+
+## Step 20 — §DDV data visualization character
+
+### §DDV1. Chart color system audit
+
+Scann-eat's data viz is handcoded inline SVG + CSS `.dash-fill`
+bars and `.wbar-col` weekly bars. **No chart library** — no
+Recharts blue, no Chart.js gray, no D3 defaults. The palette is
+fully product-owned.
+
+Census:
+
+| Chart | Where | Primary color | Other states | Grid |
+|---|---|---|---|---|
+| `.progress-chart` (weight / kcal / water 30-day) | Progress dialog | `--accent` line + dot | none (single series) | absent (minimal) |
+| `.wbar-col` (30d weekly stacked macros) | Weekly summary | `--accent` | `--warning` over, `--panel-3` empty | absent |
+| `.dash-fill` (daily macro progress) | Dashboard | `--success`/`--warning`/`--danger` by state | — | absent |
+| `.score-card .grade` (grade palette) | Scan result | `--grade-aplus..f` 6-stop diverging | pattern overlays | N/A |
+
+All series colors come from `--*` tokens — no stray hex, no
+library defaults. Grid-absent is on-character for a consumer
+"warm food ledger" (skill: "consumer → dashed or absent").
+
+### §DDV2. Chart typography alignment
+
+| Text | Rule | Font-family | Size | Numerals | Verdict |
+|---|---|---|---|---|---|
+| `.pc-axis` (SVG text) | `.progress-chart .pc-axis` | inherits Atkinson | **`10px` literal** | tabular-nums explicit | **gap — should use `--text-xs`** |
+| `.wbar-label` | `.wbar-label` | inherits | `0.7em` | — | **gap — should use `--text-xs`** |
+| `.wbar-val` | `.wbar-val` | inherits | `0.72em` | tabular-nums ✓ | **gap — should use `--text-xs`** |
+| `.dash-bar + strong` | globally set | inherits | — | tabular-nums via `body` | ✓ |
+
+SVG `<text>` inherits the document font (no canvas rendering,
+no font injection problem). Tabular-nums propagates through.
+
+### §DDV3. Chart style × product character
+
+| Dimension | Target per §DP2 | Observed | Verdict |
+|---|---|---|---|
+| Grid lines | consumer → absent | absent | ✓ |
+| Bar corner radius | matches `--r-xs` 8 | `--r-xs` top corners | ✓ |
+| Line type | warm → monotone/bezier acceptable; precision → linear | linear (via `buildLineChartPath`) | ✓ hybrid — linear is data-precise, on-character |
+| Data point markers | single "you are here" dot on the last point | ✓ exactly | ✓ |
+| Animation on load | consumer → present | `.wbar-col` has `transition: height 240ms ease` | ✓ but **should use `--motion-enter` token** |
+| Axis | `--muted` + small caps feel | `--muted` + 10px literal | ✓ colour / size literal off-token |
+
+### Step 20 fixes → shipping
+
+1. **`.pc-axis` font-size → `--text-xs`** — SVG axis labels now
+   read from the type scale (11.5px) instead of a hard literal
+   (10px). Slightly larger, still tight.
+2. **`.wbar-label` + `.wbar-val` font-sizes → `--text-xs`** —
+   token coherence on the weekly-bar labels. Eliminates the
+   last per-rule em literals on the data-viz surfaces.
+3. **`.wbar-col` transition duration → `--motion-enter`** —
+   240ms → 220ms, aligned to the canonical enter duration.

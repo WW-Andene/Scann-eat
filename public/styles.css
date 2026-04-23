@@ -2593,7 +2593,7 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 }
 .progress-chart .pc-axis {
   fill: var(--muted);
-  font-size: 10px;
+  font-size: var(--text-xs, 11.5px);
   font-variant-numeric: tabular-nums;
 }
 .progress-chart .pc-empty {
@@ -2702,20 +2702,20 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   background: var(--accent);
   border-radius: var(--r-xs) var(--r-xs) 0 0;
   min-height: 2px;
-  transition: height 240ms ease;
+  transition: height var(--motion-enter, 220ms) var(--ease-ui, ease);
 }
 body.reduce-motion .wbar-col { transition: none; }
 .wbar[data-over="true"] .wbar-col { background: var(--warning); }
 .wbar[data-empty="true"] .wbar-col { background: var(--panel-3); }
 .wbar-label {
-  font-size: 0.7em;
+  font-size: var(--text-xs, 11.5px);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 700;
 }
 .wbar-val {
-  font-size: 0.72em;
+  font-size: var(--text-xs, 11.5px);
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
