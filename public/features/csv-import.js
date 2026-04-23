@@ -41,16 +41,24 @@ function isoDate(input) {
   const s = String(input).trim();
   // YYYY-MM-DD already
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // M/D/YYYY (US — common in MFP)
-  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  // N/N/YYYY — US MFP is M/D/YYYY by default. R34.I4: previously
+  // the function stamped position-1 as month unconditionally, so
+  // a French export like "31/01/2025" became "2025-31-01" — an
+  // invalid date that downstream code silently dropped. Now: if
+  // the first field is > 12 it must be D/M/YYYY; if the second
+  // field is > 12 it must be M/D/YYYY; otherwise fall back to
+  // US-style (the dominant MFP export).
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m) {
-    const [, mo, da, yr] = m;
-    return `${yr}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`;
+    const p1 = Number(m[1]);
+    const p2 = Number(m[2]);
+    let mo; let da;
+    if (p1 > 12 && p2 <= 12) { da = m[1]; mo = m[2]; }
+    else if (p2 > 12 && p1 <= 12) { mo = m[1]; da = m[2]; }
+    else { mo = m[1]; da = m[2]; } // ambiguous → US-style
+    if (Number(mo) < 1 || Number(mo) > 12 || Number(da) < 1 || Number(da) > 31) return null;
+    return `${m[3]}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`;
   }
-  // D/M/YYYY (FR locale exports — slightly ambiguous; we trust the
-  // MFP US-style by default since it's the dominant export format).
-  // If both parts ≤ 12 we can't tell which is the month — fall back
-  // to leaving the original string to the caller for inspection.
   return null;
 }
 

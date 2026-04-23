@@ -57,7 +57,12 @@ export function listCustomFoods() {
 }
 
 export function saveCustomFood(food) {
-  const entry = food.id ? food : buildCustomFood(food);
+  // R34.N3: always build a normalized entry (which fills defaults for
+  // aliases / created_at / custom). If the caller supplies an id, we
+  // override the generated one so the existing-by-id branch of the
+  // upsert replaces the prior row cleanly.
+  const entry = buildCustomFood(food);
+  if (food?.id) entry.id = food.id;
   if (!entry.name) return null;
   const all = readAll();
   const ix = all.findIndex((f) => f.id === entry.id);

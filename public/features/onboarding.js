@@ -31,21 +31,27 @@ export function maybeShowOnboarding({ t }) {
     dots.forEach((d, i) => d.classList.toggle('active', i + 1 === current));
     obNext.textContent = current === TOTAL ? t('start') : t('next');
   };
-  obNext.onclick = () => {
+  // R34.I2: use addEventListener with { once: false } and a single
+  // close listener that tears everything down on dismissal, instead
+  // of mixing .onclick assignments (which leak when reinvoked) with
+  // addEventListener. Keeps the handlers disposable if anyone ever
+  // re-calls maybeShowOnboarding before dismissal.
+  const onNext = () => {
     if (current < TOTAL) { current++; render(); }
     else { localStorage.setItem(LS_ONBOARDED, '1'); obDialog.close(); }
   };
-  obSkip.onclick = () => {
+  const onSkip = () => {
     localStorage.setItem(LS_ONBOARDED, '1');
     obDialog.close();
   };
-  // Escape key also closes the dialog — mark as onboarded so the user isn't
-  // shown the same intro every reload after choosing to dismiss it.
   const onClose = () => {
     localStorage.setItem(LS_ONBOARDED, '1');
-    obDialog.removeEventListener('close', onClose);
+    obNext.removeEventListener('click', onNext);
+    obSkip.removeEventListener('click', onSkip);
   };
-  obDialog.addEventListener('close', onClose);
+  obNext.addEventListener('click', onNext);
+  obSkip.addEventListener('click', onSkip);
+  obDialog.addEventListener('close', onClose, { once: true });
   render();
   obDialog.showModal();
 }

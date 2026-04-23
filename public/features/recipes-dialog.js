@@ -148,7 +148,24 @@ export function initRecipesDialog(deps) {
       recipesListEl.appendChild(li);
       return;
     }
-    for (const r of all) {
+    // R34.N1: client-side search filter. Case-insensitive substring
+    // over recipe.name + any component.product_name, so typing "tomate"
+    // surfaces both "Salade de tomates" and "Pâtes sauce tomate".
+    const searchEl = $('recipes-search');
+    const q = (searchEl?.value || '').trim().toLowerCase();
+    const filtered = q
+      ? all.filter((r) =>
+          (r.name || '').toLowerCase().includes(q)
+          || (r.components || []).some((c) => (c.product_name || '').toLowerCase().includes(q)))
+      : all;
+    if (filtered.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'dash-entry-empty';
+      li.textContent = t('recipesSearchNoMatch');
+      recipesListEl.appendChild(li);
+      return;
+    }
+    for (const r of filtered) {
       const li = document.createElement('li');
       li.className = 'tpl-item';
       li.dataset.recipeId = r.id;
@@ -314,6 +331,11 @@ export function initRecipesDialog(deps) {
     refreshRecipeFromPlateBtn();
     try { await renderRecipesList(); }
     catch (err) { console.warn('[recipes] render failed', err); }
+  });
+  // R34.N1: wire the search input — debounce-free; filter runs client-
+  // side over the already-fetched list.
+  $('recipes-search')?.addEventListener('input', () => {
+    renderRecipesList().catch(() => {});
   });
   recipesCloseBtn?.addEventListener('click', (e) => { e.preventDefault(); recipesDialog?.close(); });
   recipeNewBtn?.addEventListener('click', () => openRecipeEditor(null));

@@ -85,9 +85,15 @@ export function aggregateGroceryList(recipes) {
  * copy/paste into a notes app. Lines look like:
  *   - tomate · 250 g
  *   - parmesan · 30 g
+ *
+ * R34.N4: `markdown: true` emits GitHub-style task-list checkboxes
+ * (`- [ ] tomate · 250 g`) so the pasted result renders as checkable
+ * items in GitHub Issues, Obsidian, Bear, Notion, and most modern
+ * note apps. Default behaviour unchanged for existing callers.
  */
-export function formatGroceryList(items) {
+export function formatGroceryList(items, opts = {}) {
+  const prefix = opts.markdown ? '- [ ] ' : '- ';
   return items
-    .map((it) => `- ${it.name}${it.grams > 0 ? ` · ${it.grams} g` : ''}`)
+    .map((it) => `${prefix}${it.name}${it.grams > 0 ? ` · ${it.grams} g` : ''}`)
     .join('\n');
 }

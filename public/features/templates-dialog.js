@@ -92,7 +92,24 @@ export function initTemplatesDialog(deps) {
       ul.appendChild(li);
       return;
     }
-    for (const tpl of all) {
+    // R34.N2: client-side search filter — symmetrical with the
+    // recipes search. Case-insensitive substring over name + any
+    // item's product_name.
+    const searchEl = $('tpl-search');
+    const q = (searchEl?.value || '').trim().toLowerCase();
+    const filtered = q
+      ? all.filter((tpl) =>
+          (tpl.name || '').toLowerCase().includes(q)
+          || (tpl.items || []).some((it) => (it.product_name || '').toLowerCase().includes(q)))
+      : all;
+    if (filtered.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'dash-entry-empty';
+      li.textContent = t('templatesSearchNoMatch');
+      ul.appendChild(li);
+      return;
+    }
+    for (const tpl of filtered) {
       const li = document.createElement('li');
       li.className = 'tpl-item';
       const head = document.createElement('div');
@@ -188,6 +205,10 @@ export function initTemplatesDialog(deps) {
     templatesDialog?.showModal();
     try { await renderTemplatesList(); }
     catch (err) { console.warn('[templates] render failed', err); }
+  });
+  // R34.N2: wire the search input — debounce-free client-side filter.
+  $('tpl-search')?.addEventListener('input', () => {
+    renderTemplatesList().catch(() => {});
   });
   tplClose?.addEventListener('click', (e) => { e.preventDefault(); templatesDialog?.close(); });
 

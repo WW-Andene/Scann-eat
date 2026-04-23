@@ -635,6 +635,7 @@
           <h2 id="templates-dialog-title" data-i18n="templatesTitle">Repas sauvegardés</h2>
           <p class="hint" data-i18n="templatesIntro">Sauvegarde les repas que tu manges souvent, applique-les en un tap.</p>
           <button id="tpl-save-today" type="button" class="log-btn" data-i18n="saveTodayAsTemplate">Sauvegarder aujourd'hui</button>
+          <input id="tpl-search" type="search" data-i18n-placeholder="templatesSearchPlaceholder" placeholder="Rechercher…" />
           <ul id="tpl-list" class="tpl-list"></ul>
           <div class="dialog-actions">
             <button id="tpl-close" type="button" class="secondary" data-i18n="close">Fermer</button>
@@ -675,6 +676,10 @@
           <p id="grocery-source" class="hint"></p>
           <ul id="grocery-list" class="tpl-list grocery-list"></ul>
           <textarea id="grocery-text" rows="6" class="grocery-text" readonly aria-label="Liste de courses (texte)"></textarea>
+          <label class="inline-check">
+            <input id="grocery-markdown" type="checkbox" />
+            <span data-i18n="groceryMarkdown">Format Markdown (cases à cocher)</span>
+          </label>
           <div class="dialog-actions">
             <button id="grocery-copy" type="button" class="chip-btn accent" data-i18n="groceryCopy">Copier</button>
             <button id="grocery-share" type="button" class="chip-btn" hidden data-i18n="groceryShare">Partager</button>
@@ -762,6 +767,7 @@
           <button id="recipe-pantry-btn" type="button" class="secondary compact" data-i18n="recipePantry">🥕 Avec ce que j'ai</button>
           <button id="recipe-grocery-btn" type="button" class="secondary compact" data-i18n="recipeGrocery">🛒 Liste de courses</button>
           <button id="recipe-from-plate-btn" type="button" class="secondary compact" hidden data-i18n="recipeFromPlate">Depuis le dernier scan multi-aliments</button>
+          <input id="recipes-search" type="search" data-i18n-placeholder="recipesSearchPlaceholder" placeholder="Rechercher…" />
           <ul id="recipes-list" class="tpl-list"></ul>
           <div class="dialog-actions">
             <button id="recipes-close" type="button" class="secondary" data-i18n="close">Fermer</button>

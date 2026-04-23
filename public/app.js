@@ -887,7 +887,9 @@ async function openGroceryList() {
       list.appendChild(li);
     }
   }
-  if (text) text.value = formatGroceryList(items);
+  // R34.N4: honour the markdown checkbox for checkbox-style output.
+  const useMd = !!$('grocery-markdown')?.checked;
+  if (text) text.value = formatGroceryList(items, { markdown: useMd });
   // Share btn falls back to clipboard via shareOrCopy, so it's useful
   // on every platform — just reveal it when the dialog opens.
   const shareBtn = $('grocery-share');
@@ -896,6 +898,10 @@ async function openGroceryList() {
 }
 
 $('recipe-grocery-btn')?.addEventListener('click', openGroceryList);
+// R34.N4: re-render the textarea when the user toggles the markdown
+// checkbox. We already have a reference to `items` only within
+// openGroceryList; cheapest path is to re-run the aggregation.
+$('grocery-markdown')?.addEventListener('change', () => openGroceryList());
 $('grocery-close')?.addEventListener('click', (e) => { e.preventDefault(); groceryDialog?.close(); });
 $('grocery-copy')?.addEventListener('click', async (e) => {
   e.preventDefault();
@@ -1531,7 +1537,23 @@ function composeReadAloudText(data) {
 // Comparison
 // ============================================================================
 
-function compareArmed() { return localStorage.getItem(LS_COMPARE_ARMED) === '1'; }
+// R34.I1: compare-armed expiry. Previously, "Compare next scan" stayed
+// armed forever — a user who armed it, got distracted, then scanned a
+// totally unrelated product days later would see a bogus diff. Expire
+// after 24 h so arming stays a session-scoped intent.
+const COMPARE_ARM_TTL_MS = 24 * 60 * 60 * 1000;
+const LS_COMPARE_ARMED_AT = 'scanneat.compare_armed_at';
+function compareArmed() {
+  if (localStorage.getItem(LS_COMPARE_ARMED) !== '1') return false;
+  const armedAt = Number(localStorage.getItem(LS_COMPARE_ARMED_AT) || 0);
+  if (!Number.isFinite(armedAt) || Date.now() - armedAt > COMPARE_ARM_TTL_MS) {
+    localStorage.removeItem(LS_COMPARE_ARMED);
+    localStorage.removeItem(LS_COMPARE_ARMED_AT);
+    localStorage.removeItem(LS_COMPARE_PREV);
+    return false;
+  }
+  return true;
+}
 function previousSnapshot() {
   const raw = localStorage.getItem(LS_COMPARE_PREV);
   if (!raw) return null;
@@ -1577,6 +1599,7 @@ function maybeRenderComparison(data) {
 }
 function armComparison(data) {
   localStorage.setItem(LS_COMPARE_ARMED, '1');
+  localStorage.setItem(LS_COMPARE_ARMED_AT, String(Date.now()));
   localStorage.setItem(LS_COMPARE_PREV, JSON.stringify(snapshotFromData(data)));
   compareNextBtn.textContent = t('compareWaiting');
   compareNextBtn.disabled = true;
@@ -2651,15 +2674,31 @@ function renderCustomFoodsList() {
   for (const f of all) {
     const li = document.createElement('li');
     li.className = 'tpl-item';
-    const label = document.createElement('span');
-    // R17.3: full macro breakdown instead of protein-only. Matches
-    // the recipe / template row format the user already knows.
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.className = 'custom-food-label';
+    // R34.N3: click a row's label to pre-fill the add form for
+    // in-place editing. Saving with the same name upserts via
+    // saveCustomFood's id-lookup branch (buildCustomFood adds an
+    // id only if not provided — we preserve it by passing the
+    // existing food wholesale when the name is unchanged).
     label.textContent = t('customFoodRow', {
       name: f.name,
       kcal: Math.round(f.kcal),
       prot: Math.round(f.protein_g),
       carb: Math.round(f.carbs_g),
       fat: Math.round(f.fat_g),
+    });
+    label.addEventListener('click', () => {
+      $('cf-name').value = f.name;
+      $('cf-kcal').value = String(Math.round(f.kcal));
+      $('cf-protein').value = String(Math.round(f.protein_g));
+      $('cf-carbs').value = String(Math.round(f.carbs_g));
+      $('cf-fat').value = String(Math.round(f.fat_g));
+      $('cf-name').focus();
+      // Stash the id on the form so the save handler upserts instead
+      // of creating a duplicate.
+      $('cf-name').dataset.editingId = f.id;
     });
     const del = document.createElement('button');
     del.type = 'button';
@@ -2694,7 +2733,12 @@ $('cf-save')?.addEventListener('click', () => {
   const name = ($('cf-name')?.value || '').trim();
   const kcal = Number($('cf-kcal')?.value) || 0;
   if (!name || kcal <= 0) { toast(t('customFoodNeedsNameKcal'), 'warn'); return; }
+  // R34.N3: when the user clicked a row to edit, the name field
+  // carries a data-editing-id attr. Passing `id` upserts (saveCustomFood
+  // finds by id and replaces) instead of creating a duplicate.
+  const editingId = $('cf-name')?.dataset.editingId || undefined;
   const saved = saveCustomFood({
+    id: editingId,
     name,
     kcal,
     protein_g: Number($('cf-protein')?.value) || 0,
@@ -2702,10 +2746,11 @@ $('cf-save')?.addEventListener('click', () => {
     fat_g:     Number($('cf-fat')?.value)     || 0,
   });
   if (saved) {
-    toast(t('customFoodSavedToast', { name: saved.name }), 'ok');
+    toast(t(editingId ? 'customFoodUpdatedToast' : 'customFoodSavedToast', { name: saved.name }), 'ok');
     for (const id of ['cf-name', 'cf-kcal', 'cf-protein', 'cf-carbs', 'cf-fat']) {
       const el = $(id); if (el) el.value = '';
     }
+    if ($('cf-name')) delete $('cf-name').dataset.editingId;
     renderCustomFoodsList();
     // R17.5: after-save focus back to name so the user can chain
     // entries without touch-navigation between macros and name.
@@ -2726,7 +2771,7 @@ initActivity({
   renderDashboard,
 });
 initWeight({
-  t,
+  t, toast,
   currentLang: () => currentLang,
   getProfile, setProfile,
   listWeight, logWeight, deleteWeight,

@@ -16,6 +16,10 @@ import { dateFormatter, localeFor } from '../core/date-format.js';
 let deps = null;
 
 function $(id) { return document.getElementById(id); }
+
+// R34.I3: kg input rejects non-numeric + extreme ranges. Previously
+// `logWeight` threw silently on `0.5` (< 0) or `450` (> 400) and the
+// dialog just closed without feedback.
 function show(el) { if (el) el.removeAttribute('hidden'); }
 function hide(el) { if (el) el.setAttribute('hidden', ''); }
 
@@ -125,7 +129,11 @@ export function initWeight(injected) {
   $('w-save')?.addEventListener('click', async (e) => {
     e.preventDefault();
     const kg = Number($('w-kg').value);
-    if (!Number.isFinite(kg) || kg <= 0) { $('w-kg').focus(); return; }
+    if (!Number.isFinite(kg) || kg <= 0 || kg > 400) {
+      $('w-kg').focus();
+      if (deps.toast) deps.toast(t('weightInvalid'), 'warn');
+      return;
+    }
     try {
       await logWeight(kg, $('w-notes').value || '', $('w-date').value || todayISO());
       // Update the current profile weight to match latest entry.
@@ -135,6 +143,11 @@ export function initWeight(injected) {
       await renderWeightHistory();
       await renderDashboard();
       dialog?.close();
-    } catch (err) { console.error('[weight]', err); }
+      // R34.I3: success toast — previously silent on save.
+      if (deps.toast) deps.toast(t('weightSaved', { kg }), 'ok');
+    } catch (err) {
+      console.error('[weight]', err);
+      if (deps.toast) deps.toast(t('weightSaveFailed'), 'error');
+    }
   });
 }
