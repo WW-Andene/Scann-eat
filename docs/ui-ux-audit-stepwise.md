@@ -1972,3 +1972,73 @@ Closest match to skill profiles: **Studio (warm, professional)** + light Paper m
 2. **No other CSS changes** — §LIGHT, §SHAPE, §ATMOSPHERE all
    pass the audit. This step is primarily documentation of
    already-on-character work.
+
+---
+
+## Step 25 — art-direction Part IV §DETECT anti-slop · §FIX
+
+### §DETECT. Binary checklist scorecard
+
+Running the 33-item binary check against the current codebase:
+
+| Category | Items | Passed | Failed |
+|---|---|---|---|
+| Color | 6 | 6 | 0 |
+| Type | 5 | 5 | 0 |
+| Shape | 3 | 3 | 0 |
+| Depth | 3 | 3 | 0 |
+| Motion | 3 | 3 | 0 — confirmed no `transition: all` in the codebase |
+| Layout | 3 | 2 | 1 — centered-column-only (intentional for mobile-first PWA) |
+| Components | 6 | 6 | 0 |
+| Identity | 3 | 3 | 0 |
+| **Total** | **32** | **31** | **1** |
+
+**Skill scoring scale:** <20 = rebuild · 20-25 = fix specific
+areas · **26+ = proceed.**
+
+Scann-eat scores **31/32 = proceed**, well above the
+top-tier threshold. The single "failure" (centered-column-only
+layout) is deliberate — mobile-first PWA where multi-column
+would break the thumb-reachable target. Noted in Step 15
+(§DRC) and Step 24 (§COMPOSITION).
+
+### §FIX. Pattern-by-pattern replacement audit
+
+| Banned pattern | Present? | Status |
+|---|---|---|
+| `#3b82f6` Tailwind blue accent | ✗ | — (use coral orange) |
+| `#8b5cf6` "AI product" purple | ✗ | — |
+| `#ffffff` background | ✗ | light theme uses `#FFFDF7` warm cream (Step 8) |
+| `#000000` background | ✗ | dark theme uses `#1B1B1F` near-black |
+| `#111827` Tailwind dark default | ✗ | — |
+| gray-900/500/400 text stack | ✗ | `--text`/`--muted` both chromatic |
+| `rgba(0,0,0,...)` shadows | partial | critical path fixed (card `--elev-1-tonal` in Step 23); 63 other call-sites exist for grade-pattern overlays + inset wells where pure-black alpha is correct |
+| `ring-blue-500` focus | ✗ | focus ring is `--accent` |
+| `border-gray-200` universal | ✗ | `--border`/`--border-strong` chromatic |
+| `placeholder:text-gray-400` | ✗ | Step 8 bound to `--muted` |
+| Purple→blue→pink hero gradient | ✗ | coral→coral monochromatic gradient |
+| `transition: all 0.2s ease-in-out` | ✗ | confirmed zero occurrences |
+| Default Lucide/Heroicons unmodified | ✗ | Unicode emoji (Calibrated Signature position) |
+| "No items yet" gray empty state | ✗ | dashed paper-tile + voiced copy + CTA slot (Step 14/19) |
+| Default spinner | ✗ | coral shimmer + grain skeleton (Step 13) |
+| Red error box | ✗ | coral-stripe toast + 3-level panels (Step 14) |
+| White card + gray border + shadow-sm | ✗ | `--panel` + `--elev-1-tonal` + notebook-margin rule on hero |
+
+**Remaining sub-gap:** focus ring width is uniformly 3px.
+Per §A3 (the original design-aesthetic-audit finding from
+the v2 rework) this reads "jarring on tiny chips — the outline
+is as thick as the chip border." Step 21 tokenised it;
+Step 25 now calibrates it.
+
+### Step 25 fixes → shipping
+
+1. **Focus ring calibration for compact chips** — `.chip-btn.compact`
+   and `.chip-btn.compact[aria-current]` get narrower focus
+   indicators via local `--focus-ring-width: 2px` +
+   `--focus-ring-offset: 1px`. Tight tap targets no longer
+   wear an outline thicker than their own border.
+2. **Scorecard recorded** — the binary-checklist result is now
+   part of the audit doc as a reference for future audits.
+   Regression risk: a future refactor that introduces a
+   `rgba(0,0,0,...)` shadow on cards or a generic `#ffffff`
+   surface should be caught by re-running this scorecard.

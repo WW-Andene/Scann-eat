@@ -5366,3 +5366,17 @@ dialog.settings-dialog {
   --scrim-top: rgba(246, 208, 214, 0.70);
   --scrim-bottom: rgba(240, 183, 191, 0.78);
 }
+
+/* ==========================================================================
+   STEP 25 — art-direction §DETECT anti-slop calibration.
+   The binary checklist scored 31/32 — the one tuning gap left is
+   that the 3px focus ring reads chunky on small chips. Calibrate
+   the focus-ring width + offset locally for .chip-btn.compact
+   using the Step 21 tokens. Primary chips and buttons keep the
+   standard 3px / 2px ring.
+   ========================================================================== */
+
+.chip-btn.compact:focus-visible {
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 1px;
+}
