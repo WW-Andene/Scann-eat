@@ -1,5 +1,5 @@
 /**
- * Meal-templates dialog — list, save-today, apply, duplicate, delete.
+ * Meal-templates dialog — list, save-today, apply, duplicate, share, delete.
  *
  * Previously 120 lines inline in app.js. The extraction is a pure
  * pattern re-use: dialog open/close, a promise-based name prompt, and
@@ -11,9 +11,14 @@
  * name prompt). Useful for creating variants (Monday snack vs Tuesday
  * snack) without retyping every macro.
  *
+ * R12.2 adds the share-template chip: routes through shareOrCopy +
+ * formatTemplateShare for the same native-share/clipboard symmetry as
+ * the recipe / weekly / daily / monthly share chips.
+ *
  * Deps shape:
  *   { t, toast, listByDate, saveTemplate, listTemplates, deleteTemplate,
- *     expandTemplate, templateKcal, putEntry, todayISO, renderDashboard }
+ *     expandTemplate, templateKcal, putEntry, todayISO, renderDashboard,
+ *     shareOrCopy, formatTemplateShare, currentLang }
  */
 
 function $(id) { return document.getElementById(id); }
@@ -23,6 +28,7 @@ export function initTemplatesDialog(deps) {
     t, toast,
     listByDate, saveTemplate, listTemplates, deleteTemplate,
     expandTemplate, templateKcal, putEntry, todayISO, renderDashboard,
+    shareOrCopy, formatTemplateShare, currentLang,
   } = deps;
 
   const templatesBtn = $('templates-btn');
@@ -133,6 +139,23 @@ export function initTemplatesDialog(deps) {
         await renderTemplatesList();
         toast(t('templateSavedToast', { name: saved.name }), 'ok');
       });
+      // R12.2: share-template chip — mirrors the R11.8 recipe chip.
+      const shareBtn = document.createElement('button');
+      shareBtn.type = 'button';
+      shareBtn.className = 'chip-btn';
+      shareBtn.textContent = t('templateShare');
+      shareBtn.setAttribute('aria-label', t('templateShare'));
+      shareBtn.addEventListener('click', async () => {
+        if (!shareOrCopy || !formatTemplateShare) return;
+        const text = formatTemplateShare(tpl, { lang: currentLang ? currentLang() : 'fr' });
+        if (!text) { toast(t('templateShareEmpty'), 'warn'); return; }
+        await shareOrCopy({
+          title: tpl.name || t('templateShare'),
+          text,
+          toasts: { copied: t('templateShareCopied'), failed: t('templateShareFailed') },
+          toast,
+        });
+      });
       const del = document.createElement('button');
       del.type = 'button';
       del.className = 'chip-btn';
@@ -144,6 +167,7 @@ export function initTemplatesDialog(deps) {
       });
       actions.appendChild(apply);
       actions.appendChild(dup);
+      actions.appendChild(shareBtn);
       actions.appendChild(del);
       li.appendChild(actions);
       ul.appendChild(li);

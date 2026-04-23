@@ -12,6 +12,10 @@
  *                  typing in a field and no dialog is already open —
  *                  so typing "r" into a text input never hijacks
  *                  focus into a dialog.
+ *   f            — scrolls the fasting tile into view (R12.6). The
+ *                  fasting feature is a tile, not a dialog, so the
+ *                  best UX is "show me where it is" rather than
+ *                  open/close.
  *   ?            — emits a toast cheat-sheet of the above (R10.2).
  *                  Same typing/dialog guard as q/t/r.
  *
@@ -50,6 +54,14 @@ export function initKeybindings({
     if (e.key === 't' && templatesBtn) { e.preventDefault(); templatesBtn.click(); return; }
     if (e.key === 'r' && recipesBtn) { e.preventDefault(); recipesBtn.click(); return; }
     if (e.key === 'w' && weightBtn) { e.preventDefault(); weightBtn.click(); return; }
+    if (e.key === 'f') {
+      const tile = document.getElementById('fasting-tile');
+      if (tile && !tile.hidden) {
+        e.preventDefault();
+        tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
     if (e.key === '?' && t && toast) {
       e.preventDefault();
       // 6-second display — long enough to read the sheet but not

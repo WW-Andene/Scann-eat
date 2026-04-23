@@ -590,6 +590,49 @@ export function formatRecipeShare(recipe, opts = {}) {
 }
 
 /**
+ * R12.1 — formatTemplateShare: a saved meal template rendered as a
+ * compact share block. Pairs with formatRecipeShare; templates differ
+ * in that their items already carry per-item kcal + macros (recipes
+ * carry per-component grams + macros that get summed per-serving).
+ *
+ *   template: { name, meal?, items: [{ product_name, grams, kcal,
+ *               protein_g, carbs_g, fat_g }] }
+ *   opts:     { lang }
+ *
+ * Returns '' when items is empty.
+ */
+export function formatTemplateShare(template, opts = {}) {
+  if (!template || !Array.isArray(template.items) || template.items.length === 0) return '';
+  const { lang = 'fr' } = opts;
+  const isFr = lang !== 'en';
+  const r = (n) => Math.round(Number(n) || 0);
+  const sum = (key) => template.items.reduce((acc, it) => acc + (Number(it?.[key]) || 0), 0);
+  const kcal = r(sum('kcal'));
+  const prot = r(sum('protein_g'));
+  const carb = r(sum('carbs_g'));
+  const fat  = r(sum('fat_g'));
+  const lines = [];
+  lines.push(isFr
+    ? `📋 Repas : ${template.name || 'Sans nom'}`
+    : `📋 Meal: ${template.name || 'Untitled'}`);
+  lines.push(isFr
+    ? `${kcal} kcal · P ${prot} g · G ${carb} g · L ${fat} g · ${template.items.length} élément(s)`
+    : `${kcal} kcal · P ${prot} g · C ${carb} g · F ${fat} g · ${template.items.length} item(s)`);
+  lines.push('');
+  lines.push(isFr ? 'Composition :' : 'Items:');
+  for (const it of template.items) {
+    const label = it.product_name || '—';
+    const grams = r(it.grams);
+    const ck = r(it.kcal);
+    lines.push(grams > 0
+      ? `• ${label} — ${grams} g · ${ck} kcal`
+      : `• ${label} — ${ck} kcal`);
+  }
+  lines.push('— Scann-eat');
+  return lines.join('\n');
+}
+
+/**
  * formatPairingsShare — turns a matchPairings() hit into a shareable
  * plain-text "recipe card". Used by the pairings section's Share button
  * and by navigator.share on mobile (WhatsApp, Messages, Mail). Pure

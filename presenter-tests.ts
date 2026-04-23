@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare } from './public/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare, formatTemplateShare } from './public/core/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -859,5 +859,53 @@ describe('formatRecipeShare', () => {
     const out = formatRecipeShare(recipe, { lang: 'fr' });
     assert.ok(out.includes('• Pâtes — 200 g · 700 kcal'));
     assert.ok(out.includes('• Pesto — 50 g · 260 kcal'));
+  });
+});
+
+// ============================================================================
+// formatTemplateShare (R12.1)
+// ============================================================================
+
+describe('formatTemplateShare', () => {
+  const tpl = {
+    id: 't1',
+    name: 'Petit-déj rapide',
+    meal: 'breakfast',
+    items: [
+      { product_name: 'Yaourt', grams: 125, kcal: 90, protein_g: 6, carbs_g: 12, fat_g: 0 },
+      { product_name: 'Banane', grams: 120, kcal: 105, protein_g: 1, carbs_g: 27, fat_g: 0 },
+    ],
+  };
+
+  it('returns "" on empty / missing items', () => {
+    assert.equal(formatTemplateShare({ name: 'x', items: [] }), '');
+    assert.equal(formatTemplateShare(null), '');
+    assert.equal(formatTemplateShare(undefined), '');
+  });
+
+  it('sums per-item kcal + macros without per-serving division', () => {
+    const out = formatTemplateShare(tpl, { lang: 'en' });
+    // 90 + 105 = 195 kcal total (templates do not divide by servings)
+    assert.ok(out.includes('195 kcal'), out);
+    // 6+1 = 7 g protein
+    assert.ok(out.includes('P 7 g'), out);
+  });
+
+  it('locale-aware header', () => {
+    const fr = formatTemplateShare(tpl, { lang: 'fr' });
+    const en = formatTemplateShare(tpl, { lang: 'en' });
+    assert.ok(fr.startsWith('📋 Repas'));
+    assert.ok(en.startsWith('📋 Meal'));
+  });
+
+  it('shows item count in the second line', () => {
+    const fr = formatTemplateShare(tpl, { lang: 'fr' });
+    const en = formatTemplateShare(tpl, { lang: 'en' });
+    assert.ok(fr.includes('2 élément(s)'));
+    assert.ok(en.includes('2 item(s)'));
+  });
+
+  it('ends with Scann-eat signature', () => {
+    assert.ok(formatTemplateShare(tpl).endsWith('— Scann-eat'));
   });
 });
