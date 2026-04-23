@@ -24,7 +24,7 @@ async function renderWeightHistory() {
   const ul = $('w-history');
   if (!ul) return;
   const all = await listWeight().catch(() => []);
-  ul.innerHTML = '';
+  ul.textContent = '';
   if (all.length === 0) {
     const li = document.createElement('li');
     li.className = 'dash-entry-empty';
@@ -64,7 +64,7 @@ export async function renderWeightSummary(profile) {
   if (entries.length === 0) { hide(el); return; }
   const s = summarizeWeight(entries, 30);
   const trend = weeklyTrend(entries.slice(-10));
-  el.innerHTML = '';
+  el.textContent = '';
 
   const appendSpan = (nodes) => {
     const span = document.createElement('span');

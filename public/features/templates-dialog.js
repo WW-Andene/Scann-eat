@@ -84,7 +84,7 @@ export function initTemplatesDialog(deps) {
     const ul = $('tpl-list');
     if (!ul) return;
     const all = await listTemplates().catch(() => []);
-    ul.innerHTML = '';
+    ul.textContent = '';
     if (all.length === 0) {
       const li = document.createElement('li');
       li.className = 'dash-entry-empty';

@@ -55,7 +55,7 @@ export async function renderActivity() {
     summary.textContent = t('activitySummary', { min: b.minutes, kcal: b.kcal });
   }
   if (list) {
-    list.innerHTML = '';
+    list.textContent = '';
     if (entries.length === 0) {
       hide(list);
     } else {

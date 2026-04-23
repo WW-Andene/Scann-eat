@@ -313,7 +313,7 @@ async function compressImage(file) {
 // ============================================================================
 
 function renderQueue() {
-  queueEl.innerHTML = '';
+  queueEl.textContent = '';
   if (queue.length === 0) queueEl.hidden = true;
   else {
     queueEl.hidden = false;
@@ -668,7 +668,7 @@ function renderAudit(data) {
     [t('pillarAdditives'), audit.pillars.additive_risk],
     [t('pillarIntegrity'), audit.pillars.ingredient_integrity],
   ];
-  const pillarList = $('pillar-list'); pillarList.innerHTML = '';
+  const pillarList = $('pillar-list'); pillarList.textContent = '';
   for (const [label, pillar] of pillars) {
     const pct = Math.round((pillar.score / pillar.max) * 100);
     const safePct = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
@@ -708,7 +708,7 @@ function renderAudit(data) {
 function renderAllergens(product) {
   const el = $('allergens');
   const hits = detectAllergens(product, currentLang);
-  el.innerHTML = '';
+  el.textContent = '';
   if (hits.length === 0) { hide(el); return; }
   const intro = document.createElement('span');
   intro.className = 'allergen-intro';
@@ -1316,7 +1316,7 @@ function buildIngredientRow(ing) {
 function renderIngredients(product) {
   ensureAdditivesIndex();
   const host = $('ingredient-list');
-  host.innerHTML = '';
+  host.textContent = '';
   const ingredients = Array.isArray(product?.ingredients) ? product.ingredients : [];
   const foods = ingredients.filter((i) => i && i.category !== 'additive');
   const additives = ingredients.filter((i) => i && i.category === 'additive');
@@ -1338,7 +1338,7 @@ function renderIngredients(product) {
 }
 
 function renderNutrition(product) {
-  const ul = $('nutrition-list'); ul.innerHTML = '';
+  const ul = $('nutrition-list'); ul.textContent = '';
   const n = product?.nutrition;
   if (!n) return; // defensive: stale saved snapshot without nutrition
   const fmt = (v, unit) => (typeof v === 'number' ? `${v} ${unit}` : '—');
@@ -1379,7 +1379,7 @@ function makeActivatable(el, onActivate) {
 }
 
 function renderList(id, items, emptyLabel) {
-  const ul = $(id); ul.innerHTML = '';
+  const ul = $(id); ul.textContent = '';
   if (!items || items.length === 0) {
     const li = document.createElement('li'); li.className = 'empty';
     li.textContent = emptyLabel; ul.appendChild(li); return;
@@ -1403,7 +1403,7 @@ function openExplanation(reason) {
 
 function openPillarDialog(label, pillar) {
   pillarDialogTitle.textContent = `${label} — ${pillar.score} / ${pillar.max}`;
-  pillarDialogList.innerHTML = '';
+  pillarDialogList.textContent = '';
   const all = [
     ...pillar.bonuses.map((b) => ({ ...b, kind: 'bonus' })),
     ...pillar.deductions.map((d) => ({ ...d, kind: 'deduction' })),
@@ -1625,7 +1625,7 @@ function renderPersonalScore(audit, product) {
   $('personal-verdict-el').textContent = r.diet_reason || '';
   show(personalSlot);
 
-  personalAdjustmentsList.innerHTML = '';
+  personalAdjustmentsList.textContent = '';
   if (r.adjustments.length === 0) {
     hide(personalAdjustmentsEl);
     return;
