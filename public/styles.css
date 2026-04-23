@@ -4435,3 +4435,90 @@ dialog.settings-dialog h2,
   text-wrap: balance;
   line-height: 1.15;
 }
+
+/* ==========================================================================
+   STEP 5 — §DM motion vocabulary. Six canonical durations + micro-feedback
+   affordance + signature reveal.
+   ========================================================================== */
+:root,
+[data-theme="dark"],
+[data-theme="light"] {
+  --motion-fast:  100ms;   /* micro-feedback — button press */
+  --motion-base:  140ms;   /* standard state change (alias of --speed-ui) */
+  --motion-enter: 200ms;   /* appear, expand */
+  --motion-exit:  150ms;   /* dismiss, collapse (exits are faster) */
+  --motion-nav:   250ms;   /* view, page transition */
+  --motion-loop: 1000ms;   /* pulse / shimmer — was 1.2s, tighter now */
+}
+
+/* §DM4 — press-feedback affordance. Opt-in via `.press` on any
+   chip / small-button surface that otherwise lacks physical press
+   feedback. Primary buttons already get this via the v2 layer. */
+.press {
+  transition: transform var(--motion-fast) var(--ease-ui);
+}
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Apply to the small interactive controls that had no feedback. */
+.chip-btn,
+.dash-entry-del,
+.dash-entry-edit,
+.hyd-btn,
+.recent-del,
+.queue-remove,
+.rc-remove,
+.rc-swap,
+.act-entry-del {
+  transition: transform var(--motion-fast) var(--ease-ui),
+              background var(--motion-base) var(--ease-ui),
+              color var(--motion-base) var(--ease-ui);
+}
+.chip-btn:active:not(:disabled),
+.dash-entry-del:active,
+.dash-entry-edit:active,
+.hyd-btn:active,
+.recent-del:active,
+.queue-remove:active,
+.rc-remove:active,
+.rc-swap:active,
+.act-entry-del:active {
+  transform: scale(0.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip-btn:active,
+  .dash-entry-del:active,
+  .dash-entry-edit:active,
+  .hyd-btn:active,
+  .recent-del:active,
+  .queue-remove:active,
+  .rc-remove:active,
+  .rc-swap:active,
+  .act-entry-del:active { transform: none; }
+}
+
+/* §DM5 signature — grade reveal animation. Opt-in via
+   .grade-chip-reveal (app.js can toggle it after a new scan lands).
+   Leaves existing grade renders static unless explicitly triggered,
+   so re-opening a historical scan doesn't bounce. */
+@keyframes scanneat-grade-land {
+  from { transform: scale(0.94); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.grade-chip-reveal {
+  animation: scanneat-grade-land var(--motion-enter) var(--ease-ui) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .grade-chip-reveal { animation: none; }
+}
+
+/* §DM2 — retune existing infinite pulses from 1.2s → var(--motion-loop)
+   for a slightly snappier feel matching the axis-3 energy target. */
+.qa-voice-btn[data-state="listening"] {
+  animation-duration: var(--motion-loop) !important;
+}
+.dash-pulse-dot,
+.scanning-dot {
+  animation-duration: var(--motion-loop) !important;
+}

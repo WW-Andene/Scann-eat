@@ -310,3 +310,89 @@ Skill's §DST4 will be covered in a later step.
 3. Bump body `line-height` to 1.5 (warm-editorial target).
 4. Document type-voice findings; success-state typography deferred
    to Step 11 (§DST4).
+
+---
+
+## Step 5 — IV. MOTION (§DM1–§DM5)
+
+### §DM1. Motion Vocabulary Card
+
+Current state, extracted:
+
+| Token (measured) | Count | Where |
+|---|---|---|
+| `100ms ease` | 1 | chip-btn subtle |
+| `120ms ease` | ~5 | button feedback, summary hover |
+| `140ms ease` | 2 | settings-btn, recipe-idea card |
+| `160ms ease` | 1 | skip-link |
+| `180ms ease` | 2 | toast show/hide, progress bar |
+| `240ms ease` | 1 | weekly-bar fill |
+| `260ms ease` | — | unused |
+| `0.15s ease` | 1 | one rule in s-form rather than ms |
+| `1.2s ease-in-out infinite` | 3 | voice-pulse, shimmer, dash-pulse |
+| `0.9s linear infinite` | 1 | progress-spinner |
+| v2 layer `--speed-ui 140ms` / `--ease-ui cubic-bezier(…)` | 6 | buttons, chips |
+
+**Finding DM1:** 8 different durations + mix of `s` / `ms` +
+`ease` (legacy) vs `cubic-bezier` (v2). No canonical vocabulary.
+
+Recommendation card per skill:
+
+```yaml
+Vocabulary (target)
+──────────────────
+Micro-feedback (press, toggle):     100 ms  ease-out
+Small state (color, focus):         140 ms  ease-out  ← v2 --speed-ui
+Entrance (appear, expand):          200 ms  ease-out
+Exit (dismiss, collapse):           150 ms  ease-in
+Navigation (view, page):            250 ms  ease-in-out
+Looping (pulse, shimmer):          1200 ms  ease-in-out infinite
+```
+
+### §DM2. Motion Character vs Axis Profile
+
+Energy axis = 3 (v2 dial-down). Appropriate motion character:
+- Snappy but not bouncy (no overshoot spring)
+- Single-ease family (cubic-bezier(.2,.8,.2,1) — the v2 curve)
+- Reduce-motion respected everywhere
+
+Current state mostly aligns. The `1.2s` pulses read slightly
+slow for a "warm but responsive" feel; `1.0s` would match.
+
+### §DM3. Motion Performance
+
+- No `animation-fill-mode: both` explicitly set anywhere — enter
+  animations can flash their end state before starting. Minor.
+- `will-change` never used — acceptable, avoids promotion costs.
+- reduce-motion handling is present but inconsistent: voice-pulse,
+  skeleton, wbar-col have explicit overrides; others rely on the
+  single kill-switch block (v2). Good.
+
+### §DM4. Micro-interaction
+
+| Element | Current feedback | Target |
+|---|---|---|
+| Primary button | scale(0.97) + elev-change (v2) | ✓ |
+| Chip button | no press feedback | **GAP** — add scale(0.97) |
+| Dashboard entry edit/del | no press feedback | **GAP** — subtle scale |
+| Hydration +/- | no press feedback | **GAP** — add |
+| Toggle checkbox | browser default | acceptable |
+| Focus ring | v2 color via --border-focus | ✓ |
+
+### §DM5. Motion Signature
+
+One moment of "intentional motion expression" the app could own:
+the scan success reveal (grade chip lands with a tiny spring).
+Currently: the scan result appears static. A scale-up reveal
+(scale 0.95→1, 200ms ease-out) on `.grade-chip` would be the
+signature. **Low-risk, opt-in via a CSS class.**
+
+### Step 5 fixes → shipping
+
+1. Canonical motion tokens: `--motion-fast` 100ms, `--motion-base`
+   140ms, `--motion-enter` 200ms, `--motion-exit` 150ms,
+   `--motion-nav` 250ms, `--motion-loop` 1200ms.
+2. Press-feedback class `.press` (scale 0.97 on :active + transition)
+   applied to chip-btn, dash-entry-edit/-del, hydration +/-.
+3. Grade-chip signature reveal — opt-in keyframe `.grade-chip-reveal`.
+4. Retune the 1.2s pulses → 1.0s (within warm-responsive feel).
