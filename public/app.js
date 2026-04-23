@@ -922,7 +922,7 @@ async function renderMealPlan() {
   const dates = weekDates();
   const recipes = await listRecipes().catch(() => []);
   const templates = await listTemplates().catch(() => []);
-  const locale = currentLang === 'en' ? 'en-GB' : 'fr-FR';
+  const locale = localeFor(currentLang);
   const mealLabels = {
     breakfast: t('mealBreakfast'),
     lunch: t('mealLunch'),
@@ -937,7 +937,7 @@ async function renderMealPlan() {
     const head = document.createElement('header');
     head.className = 'meal-plan-day-head';
     const dt = new Date(`${date}T12:00:00`);
-    head.textContent = dt.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+    head.textContent = dateFormatter(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(dt);
     card.appendChild(head);
 
     for (const meal of MEAL_PLAN_MEALS) {
@@ -3195,9 +3195,9 @@ async function renderWeeklyView() {
     // `title` works for mouse hover + touch long-press on most mobile
     // browsers; aria-label covers screen readers regardless.
     const date = new Date(d.date + 'T12:00:00Z');
-    const dateFull = date.toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
+    const dateFull = dateFormatter(localeFor(currentLang), {
       weekday: 'long', day: 'numeric', month: 'long',
-    });
+    }).format(date);
     const tooltip = isEmpty
       ? `${dateFull} — ${t('weekViewTooltipEmpty')}`
       : t('weekViewTooltip', {
@@ -3282,9 +3282,9 @@ async function renderMonthlyView() {
     if (isEmpty) wrap.dataset.empty = 'true';
     if (isOver) wrap.dataset.over = 'true';
     const date = new Date(d.date + 'T12:00:00Z');
-    const dateFull = date.toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
+    const dateFull = dateFormatter(localeFor(currentLang), {
       weekday: 'long', day: 'numeric', month: 'long',
-    });
+    }).format(date);
     const tooltip = isEmpty
       ? `${dateFull} — ${t('weekViewTooltipEmpty')}`
       : t('weekViewTooltip', {
@@ -3367,9 +3367,9 @@ async function renderDashboard() {
   renderDayNote();
   const burned = await renderActivity();
 
-  dashboardDateEl.textContent = new Date().toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'fr-FR', {
+  dashboardDateEl.textContent = dateFormatter(localeFor(currentLang), {
     weekday: 'short', day: 'numeric', month: 'short',
-  });
+  }).format(new Date());
 
   // Streak: small positive-reinforcement line. Only shown at 2+ consecutive
   // days so a single-day user isn't greeted with "1 day streak" nag.

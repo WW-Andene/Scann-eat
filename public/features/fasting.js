@@ -14,6 +14,8 @@
  *     listFastHistory, computeFastStreak, clearFastHistory }
  */
 
+import { dateFormatter, localeFor } from '../core/date-format.js';
+
 const LS_START = 'scanneat.fasting.start';
 const LS_TARGET = 'scanneat.fasting.target';
 
@@ -80,9 +82,9 @@ function renderStreak() {
         const li = document.createElement('li');
         const hours = Math.floor(r.duration_ms / 3_600_000);
         const mins = Math.floor((r.duration_ms % 3_600_000) / 60_000);
-        const date = new Date(r.end_ms).toLocaleDateString(currentLang() === 'en' ? 'en-GB' : 'fr-FR', {
+        const date = dateFormatter(localeFor(currentLang()), {
           day: '2-digit', month: 'short',
-        });
+        }).format(new Date(r.end_ms));
         li.textContent = t(r.complete ? 'fastingHistoryLineOk' : 'fastingHistoryLineKo', {
           date, h: hours, m: String(mins).padStart(2, '0'),
           target: r.target_hours ?? '—',

@@ -11,6 +11,8 @@
  *   renderWeightSummary(profile) — called from renderDashboard per tick
  */
 
+import { dateFormatter, localeFor } from '../core/date-format.js';
+
 let deps = null;
 
 function $(id) { return document.getElementById(id); }
@@ -91,9 +93,10 @@ export async function renderWeightSummary(profile) {
   if (profile?.goal_weight_kg && s.recent_count >= 2) {
     const f = weightForecast(s.latest_kg, profile.goal_weight_kg, trend);
     if (f.status === 'ok') {
-      const locale = currentLang() === 'en' ? 'en-GB' : 'fr-FR';
       const d = new Date(f.targetISO + 'T00:00:00');
-      const datePretty = d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+      const datePretty = dateFormatter(localeFor(currentLang()), {
+        day: 'numeric', month: 'long', year: 'numeric',
+      }).format(d);
       appendSpan([text(t('weightForecastOk', { date: datePretty, weeks: f.weeks }))]);
     } else if (f.status === 'wrong-direction') {
       appendSpan([text(t('weightForecastWrongDir'))]);
