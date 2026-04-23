@@ -108,10 +108,13 @@ export function initBackupIO(deps) {
       const text = await file.text();
       const data = JSON.parse(text);
       await restoreBackup(data);
+      // R20.2: activity entries were silently excluded from the count
+      // shown to the user after a v2 backup restore — the count under-
+      // reported by however many activity rows the backup contained.
       const counts =
         (data.history?.length || 0) + (data.consumption?.length || 0) +
         (data.weight?.length || 0) + (data.templates?.length || 0) +
-        (data.recipes?.length || 0);
+        (data.recipes?.length || 0) + (data.activity?.length || 0);
       setBackupStatus(t('backupImported', { items: counts }));
       await renderRecentScans();
       await renderDashboard();

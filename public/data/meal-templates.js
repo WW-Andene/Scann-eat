@@ -49,14 +49,19 @@ function openDB() {
  * Save a template. `items` is an array of ConsumptionEntry-like objects
  * without date/timestamp/id — those get re-generated on apply.
  */
-export async function saveTemplate({ name, meal = 'snack', items }) {
+export async function saveTemplate({ id, name, meal = 'snack', items }) {
   // R14.1: store the user's name verbatim (empty string allowed).
   // Previous 'Sans nom' fallback baked a French literal into the
   // user's IDB, visible in the list for English-locale users as a
   // French word amidst otherwise-translated UI. Display-time
   // fallback now lives in the UI layer (see t('untitledTemplate')).
+  //
+  // R20.1: preserve the caller-supplied id (restore path + future
+  // update flow). Previously saveTemplate always regenerated the id,
+  // which meant backup/restore broke meal-plan slot references
+  // (slots store `template.id` and can't find them after restore).
   const template = {
-    id: globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}${Math.random().toString(36).slice(2)}`,
+    id: id ?? (globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}${Math.random().toString(36).slice(2)}`),
     name: String(name || '').trim(),
     meal,
     items: (items || []).map((i) => ({
