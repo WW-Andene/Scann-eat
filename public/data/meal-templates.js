@@ -50,9 +50,14 @@ function openDB() {
  * without date/timestamp/id — those get re-generated on apply.
  */
 export async function saveTemplate({ name, meal = 'snack', items }) {
+  // R14.1: store the user's name verbatim (empty string allowed).
+  // Previous 'Sans nom' fallback baked a French literal into the
+  // user's IDB, visible in the list for English-locale users as a
+  // French word amidst otherwise-translated UI. Display-time
+  // fallback now lives in the UI layer (see t('untitledTemplate')).
   const template = {
     id: globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}${Math.random().toString(36).slice(2)}`,
-    name: String(name || '').trim() || 'Sans nom',
+    name: String(name || '').trim(),
     meal,
     items: (items || []).map((i) => ({
       product_name: i.product_name,

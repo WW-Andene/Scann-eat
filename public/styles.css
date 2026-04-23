@@ -1001,6 +1001,14 @@ body.returning-user main > .capture         { order: 1; }
   letter-spacing: 0.08em;
   font-weight: 700;
 }
+/* R14.4: muted italic for templates/recipes that the user saved
+   without a name — visually marks the "Untitled" / "Sans nom"
+   placeholder so it's distinguishable from a real name. */
+.tpl-head strong.untitled {
+  font-style: italic;
+  color: var(--muted);
+  font-weight: 500;
+}
 /* R13.7: history summary chip — sits between the header and the
    filter row, surfaces the user's grade distribution at a glance. */
 .recent-summary {

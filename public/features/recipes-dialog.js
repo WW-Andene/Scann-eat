@@ -161,7 +161,9 @@ export function initRecipesDialog(deps) {
       pick.dataset.recipeId = r.id;
       head.appendChild(pick);
       const name = document.createElement('strong');
-      name.textContent = r.name;
+      // R14.2: display-time fallback mirrors the templates dialog.
+      name.textContent = r.name || t('untitledRecipe');
+      if (!r.name) name.classList.add('untitled');
       const agg = aggregateRecipe(r, r.servings || 1);
       const summary = document.createElement('span');
       summary.className = 'tpl-kcal';

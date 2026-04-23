@@ -571,7 +571,13 @@ export function formatRecipeShare(recipe, opts = {}) {
   const carb = r(sum('carbs_g') / servings);
   const fat  = r(sum('fat_g') / servings);
   const lines = [];
-  lines.push(isFr ? `🍽 Recette : ${recipe.name || 'Sans nom'}` : `🍽 Recipe: ${recipe.name || 'Untitled'}`);
+  // R14.3: legacy 'Sans nom' from pre-R14.1 recipes still round-trips
+  // through here. Treat both empty AND the legacy sentinel as
+  // "untitled" so EN users' historical data renders correctly.
+  const name = recipe.name && recipe.name !== 'Sans nom'
+    ? recipe.name
+    : (isFr ? 'Sans nom' : 'Untitled');
+  lines.push(isFr ? `🍽 Recette : ${name}` : `🍽 Recipe: ${name}`);
   lines.push(isFr
     ? `${kcal} kcal · P ${prot} g · G ${carb} g · L ${fat} g · pour ${servings} part(s)`
     : `${kcal} kcal · P ${prot} g · C ${carb} g · F ${fat} g · per ${servings} serving(s)`);
@@ -612,9 +618,13 @@ export function formatTemplateShare(template, opts = {}) {
   const carb = r(sum('carbs_g'));
   const fat  = r(sum('fat_g'));
   const lines = [];
+  // R14.3: same legacy-sentinel handling as formatRecipeShare.
+  const tname = template.name && template.name !== 'Sans nom'
+    ? template.name
+    : (isFr ? 'Sans nom' : 'Untitled');
   lines.push(isFr
-    ? `📋 Repas : ${template.name || 'Sans nom'}`
-    : `📋 Meal: ${template.name || 'Untitled'}`);
+    ? `📋 Repas : ${tname}`
+    : `📋 Meal: ${tname}`);
   lines.push(isFr
     ? `${kcal} kcal · P ${prot} g · G ${carb} g · L ${fat} g · ${template.items.length} élément(s)`
     : `${kcal} kcal · P ${prot} g · C ${carb} g · F ${fat} g · ${template.items.length} item(s)`);

@@ -78,7 +78,9 @@ export function aggregateRecipe(recipe, servings = 1) {
   const round2 = (v) => Math.round(v * 100) / 100;
   const round3 = (v) => Math.round(v * 1000) / 1000;
   return {
-    product_name: recipe?.name || 'Sans nom',
+    // R14.1: leave empty for UI-layer fallback; data stays locale-
+    // neutral. Callers in the apply path already render via t().
+    product_name: recipe?.name || '',
     category: 'other',
     grams:     Math.round(sum('grams')),
     kcal:      round1(sum('kcal')),
@@ -100,7 +102,8 @@ export function aggregateRecipe(recipe, servings = 1) {
 export async function saveRecipe({ id, name, components, servings = 1 }) {
   const recipe = {
     id: id ?? (globalThis.crypto?.randomUUID?.() ?? `r${Date.now()}${Math.random().toString(36).slice(2)}`),
-    name: String(name || '').trim() || 'Sans nom',
+    // R14.1: verbatim name; UI layer handles the untitled fallback.
+    name: String(name || '').trim(),
     servings: Math.max(1, Math.round(Number(servings) || 1)),
     components: (components || []).map((c) => ({
       product_name: c.product_name,

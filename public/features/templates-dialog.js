@@ -98,7 +98,11 @@ export function initTemplatesDialog(deps) {
       const head = document.createElement('div');
       head.className = 'tpl-head';
       const name = document.createElement('strong');
-      name.textContent = tpl.name;
+      // R14.2: display-time fallback — data layer stores empty when
+      // the user submitted no name; we resolve to the locale string
+      // here instead of baking "Sans nom" into IDB.
+      name.textContent = tpl.name || t('untitledTemplate');
+      if (!tpl.name) name.classList.add('untitled');
       const kcal = document.createElement('span');
       kcal.className = 'tpl-kcal';
       // R8.7: "items" was hard-coded English — now goes through i18n so

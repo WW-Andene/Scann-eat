@@ -55,9 +55,11 @@ describe('aggregateRecipe', () => {
     assert.equal(out.fromRecipe, 'r1');
   });
 
-  it('defaults name when recipe has none', () => {
+  it('returns empty product_name when recipe has none (R14.1)', () => {
+    // Data layer now stays locale-neutral; the UI substitutes the
+    // localised "Untitled" / "Sans nom" via t() at render time.
     const out = aggregateRecipe({ components: [] }, 1);
-    assert.equal(out.product_name, 'Sans nom');
+    assert.equal(out.product_name, '');
   });
 
   it('ignores non-numeric component values', () => {

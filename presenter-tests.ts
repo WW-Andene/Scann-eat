@@ -860,6 +860,21 @@ describe('formatRecipeShare', () => {
     assert.ok(out.includes('• Pâtes — 200 g · 700 kcal'));
     assert.ok(out.includes('• Pesto — 50 g · 260 kcal'));
   });
+
+  // R14.3: empty name + legacy 'Sans nom' sentinel both render
+  // locale-aware. Ensures pre-R14 IDB rows don't leak French into
+  // English share output.
+  it('empty name renders as Untitled in EN, Sans nom in FR', () => {
+    const r2 = { ...recipe, name: '' };
+    assert.ok(formatRecipeShare(r2, { lang: 'en' }).includes('Untitled'));
+    assert.ok(formatRecipeShare(r2, { lang: 'fr' }).includes('Sans nom'));
+  });
+
+  it('legacy "Sans nom" name in EN locale renders as Untitled', () => {
+    const legacy = { ...recipe, name: 'Sans nom' };
+    assert.ok(formatRecipeShare(legacy, { lang: 'en' }).includes('Untitled'));
+    assert.ok(!formatRecipeShare(legacy, { lang: 'en' }).includes('Sans nom'));
+  });
 });
 
 // ============================================================================
@@ -907,6 +922,18 @@ describe('formatTemplateShare', () => {
 
   it('ends with Scann-eat signature', () => {
     assert.ok(formatTemplateShare(tpl).endsWith('— Scann-eat'));
+  });
+
+  // R14.3: empty + legacy-sentinel handling for templates.
+  it('empty name renders locale-aware', () => {
+    const t2 = { ...tpl, name: '' };
+    assert.ok(formatTemplateShare(t2, { lang: 'en' }).includes('Untitled'));
+    assert.ok(formatTemplateShare(t2, { lang: 'fr' }).includes('Sans nom'));
+  });
+
+  it('legacy "Sans nom" name renders as Untitled in EN', () => {
+    const legacy = { ...tpl, name: 'Sans nom' };
+    assert.ok(formatTemplateShare(legacy, { lang: 'en' }).includes('Untitled'));
   });
 });
 
