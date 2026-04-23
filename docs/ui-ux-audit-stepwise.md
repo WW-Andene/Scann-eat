@@ -894,3 +894,97 @@ bleed) to stay within Paper material.
    `box-shadow: 0 0 24px {grade-hue}/0.25` that echoes the
    grade colour. Single hero element. Dialled below the opt-in
    reveal threshold so it works at rest.
+
+---
+
+## Step 11 — §DI icon language · §DDT2 trend strategy
+
+### §DI1. Icon language assessment
+
+| Dimension | Value | Verdict |
+|---|---|---|
+| Icon sources | 1 — Unicode emoji only | ✓ (one source) |
+| Style | OS-native colour-filled glyph set (Apple Color Emoji / Segoe UI Emoji / Noto Color Emoji / Twemoji) | ✓ coherent within-platform |
+| Visual weight | platform-dependent (Apple painterly / Google flatter) | out-of-control for the app |
+| Family consistency | locked via `.icon-glyph { font-family: ... }` helper (Step 7) | ✓ |
+| Grid + optical sizing | `.icon-glyph` normalises 1.08em size + -0.08em baseline nudge (Step 7) | ✓ |
+
+**No gap.** One-source policy is correctly enforced. The only
+residual inconsistency — platform-dependent rendering — is
+intentional (we ride the OS emoji stack rather than ship a
+custom font, per §DP2 "nothing decorative shipped as assets").
+
+### §DI3. Icon expressiveness spectrum
+
+Position on the 5-step spectrum:
+**Utilitarian → Calibrated → *Signature* → Illustrative → Art-directed**
+
+| Signal | Reading |
+|---|---|
+| Emoji choice = deliberate single glyph per feature (📅 planning, 🥕 pantry, 📸 camera, 📜 menu) | Signature-leaning |
+| `.icon-glyph` calibration helper | Calibrated discipline applied to a Signature choice |
+| No custom SVG or icon font | below Illustrative/Art-directed |
+
+**Verdict:** **Calibrated Signature** — standard (emoji) base
+with a distinctive house rule ("one emoji per feature") that
+*is* the signature. Target per A1-5 (Formality 2, Warmth 4,
+Sophistication 3) is Calibrated. We sit one step up,
+intentionally — the emoji-per-feature rule is a brand asset.
+
+Character alignment per §DI3 table: "playful / consumer →
+filled icons with consistent corner rounding, slight
+irregularity." Emoji tick all three. ✓
+
+### §DI4. Custom icon direction
+
+**N/A.** The app's deliberate position is "use the OS emoji
+stack." No custom icon spec required. If the app were to
+migrate off emoji (e.g. for consistent cross-platform
+rendering), §DI4 would supply the brief format — not needed
+today.
+
+### §DDT1. Trend inventory (refresh from Step 7)
+
+| Trend | Present? | Quality bar | Verdict |
+|---|---|---|---|
+| Glassmorphism | ✓ `dialog::backdrop` @ 12px blur | ≥12px blur, 4.5:1 text contrast over blur | ✓ passes (content sits on opaque panel *above* blur, not over it) |
+| Dot/grid texture overlays | ✓ `body::before` SVG noise @ 2% | subtle, non-distracting | ✓ |
+| Gradient backgrounds (not mesh) | ✓ body coral `--bg → --bg-deep` | smooth, no banding | ✓ |
+| Bold typography | partial — display sizes use -0.02em tracking | editorial, not hero | N/A |
+| Neumorphism | ✗ | — | ✓ (correctly absent) |
+| Aurora / chromatic gradients | ✗ | — | ✓ (would contradict Paper material) |
+| Bento grid | ✗ | — | ✓ (dashboard is a vertical stack, not bento) |
+| Neo-brutalism | ✗ | — | ✓ |
+| Minimal monochrome | ✗ — product is warm chromatic | — | ✓ (monochrome would be off-character) |
+| Skeuomorphic revival | partial — paper grain + cream surfaces + notebook metaphor | intentional | ✓ |
+
+No trend debt. Glassmorphism is the one cooling trend still
+present; kept because it meets the quality bar and the coral
+backdrop is exactly the vivid-backdrop context where
+glassmorphism works. Single CSS spot to retire it if we ever
+need to, via the new `--blur-glass` token below.
+
+### §DDT2. Trend strategy
+
+| Question | Answer |
+|---|---|
+| Appropriate posture per §0 / A1-5 | **Trend selective** |
+| Current projection | **Trend selective** (uses glassmorphism + grain; skips mesh/aurora/neu) |
+| Gap | **none** |
+
+App communicates "we use trends where they serve us, ignore
+them elsewhere" — matches the intended posture.
+
+### Step 11 fixes → shipping
+
+1. **`--blur-glass` token** — single knob for the dialog backdrop
+   blur amount (default 12px on dark, 10px on light to compensate
+   for paper already being light). Replaces the hard-coded value.
+   Future tuning → one edit, not two media queries.
+2. **Character brief update** — add the "Calibrated Signature"
+   icon position to `docs/design-system.md` so the §DP2 brief
+   records the deliberate choice.
+3. **`.icon-glyph` auto-apply on `button > span[data-icon]`** — a
+   simple attribute selector turns `<span data-icon>📸</span>`
+   into a calibrated icon without requiring the class every time.
+   Opt-in via `data-icon` so it never retrofits unexpectedly.

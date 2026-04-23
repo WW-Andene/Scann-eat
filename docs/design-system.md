@@ -202,6 +202,12 @@ feature uses a single recognisable emoji as its accent glyph
 (📅 planning, 🥕 pantry, 🛒 grocery, 🎯 gap-closer, 💡 recipe ideas,
 📜 menu scan, 📸 photo, 📱 install).
 
+**Expressiveness position (§DI3):** *Calibrated Signature.* The
+base (Unicode emoji) is standard — the signature is the house rule
+"one recognisable emoji per feature." `.icon-glyph` helper +
+`button > span[data-icon]` auto-apply keep rendering calibrated
+across OS emoji stacks.
+
 ## Focus + accessibility
 
 - Skip link (`.skip-link` → `#main-content`) is the first focusable
