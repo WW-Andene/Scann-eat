@@ -374,11 +374,13 @@ async function addFiles(fileList) {
   // hint that re-shooting might help. Only fires when none of the added
   // frames have a barcode (barcode scans don't need pixel-sharp ingredient
   // text).
+  // R16.4: blurry + duplicate are both "this didn't go quite right"
+  // conditions — annotate as 'warn' so the stripe colour matches.
   if (blurryCount > 0) {
-    toast(t('blurryPhotoWarning'));
+    toast(t('blurryPhotoWarning'), 'warn');
   }
   if (dupCount > 0) {
-    toast(t('duplicateBarcodeSkipped', { n: dupCount }));
+    toast(t('duplicateBarcodeSkipped', { n: dupCount }), 'warn');
   }
 }
 
@@ -387,7 +389,7 @@ function addBarcodeOnly(barcode) {
   // aim the camera if they accidentally pointed at the same barcode
   // twice without blocking the UI.
   if (queue.some((q) => q.barcode === barcode)) {
-    toast(t('duplicateBarcodeSkipped', { n: 1 }));
+    toast(t('duplicateBarcodeSkipped', { n: 1 }), 'warn');
     return;
   }
   // Inline SVG placeholder for the queue thumbnail when the user arrived
@@ -829,7 +831,8 @@ $('pairings-copy-btn')?.addEventListener('click', async () => {
   const text = header + names.join(' · ');
   try {
     await navigator.clipboard?.writeText(text);
-    toast(t('pairingsCopied'));
+    // R16.5: success → 'ok' variant for stripe consistency.
+    toast(t('pairingsCopied'), 'ok');
   } catch { toast(t('pairingsCopyFailed'), 'error'); }
 });
 
@@ -898,7 +901,8 @@ $('grocery-copy')?.addEventListener('click', async (e) => {
   const text = $('grocery-text')?.value || '';
   try {
     await navigator.clipboard?.writeText(text);
-    toast(t('groceryCopied'));
+    // R16.5: success → 'ok' for stripe consistency.
+    toast(t('groceryCopied'), 'ok');
   } catch {
     // Fallback: select the textarea so the user can copy manually.
     $('grocery-text')?.select();
@@ -2592,7 +2596,7 @@ clearTodayBtn?.addEventListener('click', async () => {
   // in the confirm so the user knows the magnitude before nuking.
   const today = await listByDate();
   const n = today.length;
-  if (n === 0) { toast(t('clearTodayNoneToClear')); return; }
+  if (n === 0) { toast(t('clearTodayNoneToClear'), 'warn'); return; }
   if (!window.confirm(t('clearTodayConfirm', { n }))) return;
   await clearDate();
   await renderDashboard();

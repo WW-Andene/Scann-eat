@@ -84,11 +84,13 @@ export async function renderWeightSummary(profile) {
   }
   if (s.recent_count >= 2) {
     const sign = s.delta_kg > 0 ? '+' : '';
-    appendSpan([text(`Δ 30 j : ${sign}${s.delta_kg} kg`)]);
+    // R16.1: "30 j" was hard-coded French (j = jours). Now i18n.
+    appendSpan([text(t('weightDelta30d', { sign, delta: s.delta_kg }))]);
   }
   if (trend !== 0 && Number.isFinite(trend)) {
     const sign = trend > 0 ? '+' : '';
-    appendSpan([text(`${t('weightTrend')} : ${sign}${trend} kg/sem`)]);
+    // R16.1: "kg/sem" (= semaine) was hard-coded French. Now i18n.
+    appendSpan([text(t('weightTrendLine', { sign, trend }))]);
   }
   if (profile?.goal_weight_kg && s.recent_count >= 2) {
     const f = weightForecast(s.latest_kg, profile.goal_weight_kg, trend);

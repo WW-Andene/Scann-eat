@@ -191,7 +191,9 @@ export function initTemplatesDialog(deps) {
   tplSaveToday?.addEventListener('click', async () => {
     const entries = await listByDate().catch(() => []);
     if (entries.length === 0) {
-      toast(t('nothingLoggedToSave'));
+      // R16.3: this is a "can't proceed" feedback, not a success.
+      // Mark it warn so the toast stripe colour matches the meaning.
+      toast(t('nothingLoggedToSave'), 'warn');
       return;
     }
     const name = await askTemplateName();

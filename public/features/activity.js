@@ -131,11 +131,13 @@ export function initActivity(injected) {
     });
     await logActivity(entry);
     dialog?.close();
+    // R16.2: success toast adopts the 'ok' variant for the green
+    // accent stripe — same pattern as R8.3 normalisation.
     toast(t('activityToast', {
       type: activityTypeLabel(type),
       min: minutes,
       kcal: entry.kcal_burned,
-    }));
+    }), 'ok');
     await renderDashboard();
   });
 }
