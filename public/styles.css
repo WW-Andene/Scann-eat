@@ -1278,7 +1278,10 @@ body.returning-user main > .capture         { order: 1; }
 }
 .recipe-idea-ings { list-style: disc; }
 .recipe-idea-steps { list-style: decimal; }
-.recipe-idea-ings li, .recipe-idea-steps li { margin: 2px 0; }
+/* Step 1 (§DS2 coherence): was `margin: 2px 0` — ad-hoc value outside
+   the `--sp-*` scale. Replaced with the scale's floor (1 = 4px) so
+   nested recipe-idea lists breathe with the rest of the app. */
+.recipe-idea-ings li, .recipe-idea-steps li { margin: var(--sp-1) 0; }
 .alt-item {
   display: grid;
   grid-template-columns: 48px 1fr;
