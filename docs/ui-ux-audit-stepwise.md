@@ -1359,3 +1359,88 @@ and paper-grain ambient.
    vast coral backdrop doesn't read as flat negative space. The
    grain becomes the desktop "paper sheet" signal without
    changing the layout.
+
+---
+
+## Step 16 — §DCO1 button system · §DCO2 input & form system
+
+### §DCO1. Button system audit
+
+Current button hierarchy:
+
+| Tier | Class / pattern | Current treatment | Verdict |
+|---|---|---|---|
+| **Primary** | default `button` | `--accent` filled, `--r-md` 18px, 56px min-height, `--elev-1` + hover `--elev-2`, scale(0.98) active, filter brightness(1.05) hover | ✓ commands visual weight |
+| **Secondary** | `.secondary` | transparent, 2px `--border-strong` outline, hover → `--panel-2` | ✓ |
+| **Compact** | `.compact` | 40px min-height, tighter padding | ✓ size variant |
+| **Chip-btn** | `.chip-btn` | pill, 40px, +`--r-pill`, +`.accent` variant | ✓ |
+| **Tertiary / ghost** | — | no explicit class | **Gap — row-action buttons (edit, del) scattered as per-feature classes (`.dash-entry-del`, `.recent-del`, `.rc-remove`)** |
+| **Destructive** | — | `.dash-entry-del:hover` uses `--danger` | ✓ never red at rest (follows skill rule) but scattered |
+
+**Button craft checklist:**
+
+| Item | Status |
+|---|---|
+| Hover / active / focus / disabled states | ✓ all present on primary |
+| Hover > color-darken? | ✓ brightness(1.05) + `--elev-2` |
+| Active press feedback | ✓ scale(0.98) + translateY(1px) |
+| Focus ring custom | ✓ 3px `--accent` outline (§DM4 scaled per Step 2 plans) |
+| Disabled state | ✓ opacity 0.45 + `--panel-3` bg + cursor |
+| Loading state | **Gap — no in-progress state that maintains size** |
+| Icon + text optical centering | ✓ via `.icon-glyph` + `[data-icon]` (Steps 7+11) |
+| Label typography | `font-weight: 600`, no caps tracking | ✓ on-character |
+| Size variants | default + `.compact` | 2 tiers — adequate |
+
+**Finding DCO1-1:** no standard destructive-button class.
+Destructive actions are per-feature (del buttons on dash entries,
+recent scans, recipe components). A `.btn-destructive` helper
+would unify the "red on hover only" rule across the app.
+
+**Finding DCO1-2:** no button loading state. Async actions (scan,
+identify, fetch recipe) currently leave the button reactive with
+no in-progress signal. Tap feedback scales down; then nothing
+until the async completes. A `.btn-loading` class would hold
+size + show a pulse dot.
+
+### §DCO2. Input & form system audit
+
+Per-feature input styling is inconsistent. Census of input rules:
+
+| Rule | Background | Border | Radius | Min-height |
+|---|---|---|---|---|
+| `.unit-convert-form input` | `--panel-2` | 2px `--border-strong` | `--r-md` 18px | 44px |
+| `.manual-barcode-form input` | `--panel-2` | 2px `--border-strong` | `--r-md` | 44px |
+| `.portion-panel input[type=number]` | `--panel-2` | 1px `--border` | `--r-sm` 12px | — |
+| `.recipe-import-form input[type=url]` | `--panel-2` | 2px `--border-strong` | `--r-md` | 44px |
+| Standard `<input>` elsewhere | **browser default** | browser default | browser default | browser default |
+
+**Finding DCO2-1:** no global input baseline. Per-feature rules
+hold their own character, but inputs that aren't in a custom
+form fall back to the browser default — inconsistent
+appearance and weak character carrier.
+
+**Per §DBI3-12 (Step 8)** placeholder colour is already bound to
+`--muted`. Per Step 8 `--r-input` 10px token exists but no
+inputs use it yet.
+
+**Form layout character:**
+
+| Dimension | Current | Target per §DP2 |
+|---|---|---|
+| Label position | above (most forms) | ✓ readable, on-character |
+| Field grouping | per-section with headers | ✓ |
+| Vertical rhythm | `--sp-3` / `--sp-4` in most dialogs | ✓ uses scale |
+
+### Step 16 fixes → shipping
+
+1. **Global input baseline** — one rule for `input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color])`,
+   `textarea`, `select`. Uses `--input-bg`, `--border`, `--r-input` 10px,
+   44px min-height. Character is now consistent across every form,
+   even those without feature-specific overrides.
+2. **`.btn-loading` class** — holds button min-width + replaces label
+   with a centered pulse dot animation. Disables the button visually
+   without changing layout.
+3. **`.btn-destructive` class** — `--text` color at rest (no red
+   until action is confirmed); on hover, shifts to `--danger`
+   with a warn-panel-style tinted background. Unifies destructive
+   affordance without breaking existing per-feature del rules.

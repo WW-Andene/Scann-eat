@@ -5134,3 +5134,97 @@ html {
     opacity: 0.065;
   }
 }
+
+/* ==========================================================================
+   STEP 16 — §DCO1 button system · §DCO2 input & form system.
+   Three additions:
+     (1) global input/textarea/select baseline — any form, anywhere,
+         reads from the token system instead of browser defaults,
+     (2) .btn-loading — holds button size + swaps label for a
+         centered pulse dot during async work,
+     (3) .btn-destructive — unified destructive affordance that is
+         never red at rest, only on hover/focus, per the skill's
+         rule against "constant alarm".
+   ========================================================================== */
+
+/* §DCO2 — global input baseline. Excludes checkbox/radio/range/file/color
+   because those have character-bearing native treatments that shouldn't
+   be flattened. Input-specific per-feature rules still win over this
+   via specificity. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+textarea,
+select {
+  background: var(--input-bg, var(--panel-2));
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-input, 10px);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: inherit;
+  min-height: 44px;
+  box-sizing: border-box;
+  transition: border-color var(--motion-base, 140ms) var(--ease-ui, ease),
+              background var(--motion-base, 140ms) var(--ease-ui, ease);
+}
+textarea {
+  min-height: 88px;
+  line-height: 1.5;
+  resize: vertical;
+}
+select {
+  cursor: pointer;
+}
+
+/* §DCO1 — button loading state. JS toggles .btn-loading when an
+   async action is in flight; the class preserves width (via
+   pointer-events: none + the same min-width) and swaps the label
+   for a pulsing dot so the user gets feedback without layout
+   jumping. */
+button.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+  cursor: wait;
+}
+button.btn-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+  color: var(--accent-ink);
+  opacity: 0.8;
+  animation: scanneat-btn-loading 900ms ease-in-out infinite;
+}
+@keyframes scanneat-btn-loading {
+  0%, 100% { transform: scale(0.6); opacity: 0.4; }
+  50%      { transform: scale(1);   opacity: 1;   }
+}
+@media (prefers-reduced-motion: reduce) {
+  button.btn-loading::after { animation: none; }
+}
+
+/* §DCO1 — destructive button. Text stays --text color at rest
+   (no red at rest — avoids "constant alarm"); hover reveals the
+   destructive intent with tinted background + border-left via
+   the warn-panel pattern. For delete/remove actions. */
+.btn-destructive {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+  box-shadow: none;
+}
+.btn-destructive:hover:not(:disabled),
+.btn-destructive:focus-visible:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in oklch, var(--panel) 85%, var(--danger));
+  filter: none;
+}
+.btn-destructive:active:not(:disabled) {
+  transform: scale(0.97);
+}
