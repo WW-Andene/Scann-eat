@@ -244,7 +244,10 @@ export function initRecipesDialog(deps) {
       del.type = 'button';
       del.className = 'chip-btn';
       del.textContent = '🗑';
-      del.setAttribute('aria-label', t('recipeDelete'));
+      // R23.4: aria-label includes recipe name.
+      del.setAttribute('aria-label', r.name
+        ? `${t('recipeDelete')} — ${r.name}`
+        : t('recipeDelete'));
       del.addEventListener('click', async () => {
         await deleteRecipe(r.id);
         await renderRecipesList();

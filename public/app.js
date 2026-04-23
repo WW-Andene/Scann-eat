@@ -3265,7 +3265,12 @@ async function renderDashboard() {
         const del = document.createElement('button');
         del.type = 'button';
         del.className = 'dash-entry-del';
-        del.setAttribute('aria-label', t('deleteEntry'));
+        // R23.1: aria-label now includes the entry name so screen-
+        // reader users can disambiguate between the dozen identical
+        // "×" buttons in a logged day. Mirrors R13.4 scan-history fix.
+        del.setAttribute('aria-label', e.product_name
+          ? `${t('deleteEntry')} — ${e.product_name}`
+          : t('deleteEntry'));
         del.textContent = '×';
         del.addEventListener('click', async () => {
           await deleteEntry(e.id);

@@ -164,7 +164,10 @@ export function initTemplatesDialog(deps) {
       del.type = 'button';
       del.className = 'chip-btn';
       del.textContent = '🗑';
-      del.setAttribute('aria-label', t('deleteTemplate'));
+      // R23.3: aria-label includes template name.
+      del.setAttribute('aria-label', tpl.name
+        ? `${t('deleteTemplate')} — ${tpl.name}`
+        : t('deleteTemplate'));
       del.addEventListener('click', async () => {
         await deleteTemplate(tpl.id);
         await renderTemplatesList();

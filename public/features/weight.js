@@ -41,7 +41,9 @@ async function renderWeightHistory() {
     del.type = 'button';
     del.className = 'dash-entry-del';
     del.textContent = '×';
-    del.setAttribute('aria-label', t('deleteWeightEntry'));
+    // R23.2: aria-label includes the entry's date + weight so screen
+    // readers can disambiguate multiple delete buttons in the list.
+    del.setAttribute('aria-label', `${t('deleteWeightEntry')} — ${w.date}, ${w.weight_kg} kg`);
     del.addEventListener('click', async () => {
       await deleteWeight(w.id);
       await renderWeightHistory();
