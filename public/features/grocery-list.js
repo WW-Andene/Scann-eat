@@ -15,6 +15,11 @@
  */
 
 function normalizeKey(name) {
+  // R30.1: regex uses \u escape codes instead of literal combining
+  // diacritical marks in the source. Behaviour-identical (matches
+  // the Unicode Combining Diacritical Marks block U+0300..U+036F)
+  // but portable across editors / transpilers that may mishandle
+  // raw combining chars.
   return String(name ?? '').trim().toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '');
 }

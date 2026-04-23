@@ -192,7 +192,7 @@ function renderDerived() {
     rows.push([t('satfatMax'), `${targets.sat_fat_g_max} g`]);
     rows.push([t('freeSugarMax'), `${targets.free_sugars_g_max} g (idéal ${targets.free_sugars_g_ideal} g)`]);
   }
-  els.derivedList.innerHTML = '';
+  els.derivedList.textContent = '';
   for (const [k, v] of rows) {
     const li = document.createElement('li');
     const span = document.createElement('span');
