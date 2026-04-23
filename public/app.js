@@ -25,6 +25,7 @@ import { initKeybindings } from '/features/keybindings.js';
 import { initProfileDialog } from '/features/profile-dialog.js';
 import { initMenuScan, openMenuScan } from '/features/menu-scan.js';
 import { initTemplatesDialog } from '/features/templates-dialog.js';
+import { initRecipesDialog } from '/features/recipes-dialog.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -136,6 +137,11 @@ const isCapacitor = !!globalThis.Capacitor?.isNativePlatform?.();
 
 const queue = []; // { id, dataUrl, base64, mime, barcode? }
 let lastData = null;
+
+// Assigned in the boot block once initRecipesDialog runs. Declared here
+// so the qa-photo-multi handler (registered early) can close over the
+// reference — reads happen at user-click time, always after assignment.
+let recipesDialog = null;
 
 // ============================================================================
 // Preferences → Profile modifiers (moved into Profile; this block kept for
@@ -1816,7 +1822,12 @@ historySearchInput?.addEventListener('input', () => renderRecentScans());
 historyGradeSelect?.addEventListener('change', () => renderRecentScans());
 
 // Keyboard shortcuts extracted to /features/keybindings.js.
-initKeybindings({ scanBtn, historySearchInput });
+initKeybindings({
+  scanBtn, historySearchInput,
+  quickAddBtn: $('quick-add-btn'),
+  templatesBtn: $('templates-btn'),
+  recipesBtn: $('recipes-btn'),
+});
 
 // ============================================================================
 // Auto-update (APK only)
@@ -2377,12 +2388,9 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
     }
     // Stash the plate so the Recipes dialog can offer a "from last plate
     // scan" shortcut — one tap to save the same components as a reusable
-    // recipe going forward.
-    lastIdentifiedPlate = {
-      items: reconciled,
-      stashed_at: Date.now(),
-    };
-    refreshRecipeFromPlateBtn();
+    // recipe going forward. Ownership moved into /features/recipes-dialog.js
+    // in R9 — this handler just pushes the items through the setter.
+    recipesDialog.setLastIdentifiedPlate(reconciled);
     quickAddDialog?.close();
     await renderDashboard();
     toast(t('identifyMultiToast', { n: items.length, db: dbHits }), 'ok');
@@ -2487,254 +2495,13 @@ qaNameInput?.addEventListener('focus', (e) => {
 // initTemplatesDialog is imported at the top; the wire-up happens in
 // the boot block alongside the other feature inits.
 
-// ============================================================================
-// Recipes — multi-component dishes that log as ONE aggregated entry.
-// ============================================================================
-
-const recipesBtn = $('recipes-btn');
-const recipesDialog = $('recipes-dialog');
-const recipesCloseBtn = $('recipes-close');
-const recipesListEl = $('recipes-list');
-const recipeNewBtn = $('recipe-new-btn');
-
-const recipeEditDialog = $('recipe-edit-dialog');
-const recipeEditName = $('recipe-edit-name');
-const recipeEditServings = $('recipe-edit-servings');
-const recipeEditComps = $('recipe-components-list');
-const recipeEditTotals = $('recipe-edit-totals');
-const recipeAddCompBtn = $('recipe-add-component');
-const recipeEditCancel = $('recipe-edit-cancel');
-const recipeEditSave = $('recipe-edit-save');
-
-let editingRecipe = null; // in-memory draft: { id?, name, servings, components: [] }
-
-function newComponent() {
-  return { product_name: '', grams: 0, kcal: 0, carbs_g: 0, fat_g: 0, protein_g: 0 };
-}
-
-function recalcRecipeTotals() {
-  if (!recipeEditTotals) return;
-  const draft = {
-    name: recipeEditName?.value || '',
-    components: readDraftComponentsFromDOM(),
-  };
-  const agg = aggregateRecipe(draft, Number(recipeEditServings?.value) || 1);
-  recipeEditTotals.textContent = t('recipeTotals', {
-    kcal: Math.round(agg.kcal),
-    prot: Math.round(agg.protein_g),
-    carb: Math.round(agg.carbs_g),
-    fat:  Math.round(agg.fat_g),
-    serv: Math.max(1, Math.round(Number(recipeEditServings?.value) || 1)),
-  });
-}
-
-function readDraftComponentsFromDOM() {
-  if (!recipeEditComps) return [];
-  const rows = recipeEditComps.querySelectorAll('.recipe-component');
-  return Array.from(rows).map((row) => ({
-    product_name: row.querySelector('.rc-name')?.value || '',
-    grams:     Number(row.querySelector('.rc-grams')?.value) || 0,
-    kcal:      Number(row.querySelector('.rc-kcal')?.value) || 0,
-    protein_g: Number(row.querySelector('.rc-prot')?.value) || 0,
-    carbs_g:   Number(row.querySelector('.rc-carb')?.value) || 0,
-    fat_g:     Number(row.querySelector('.rc-fat')?.value) || 0,
-  }));
-}
-
-function renderRecipeComponentRow(comp) {
-  const li = document.createElement('li');
-  li.className = 'recipe-component';
-  const fields = document.createElement('div');
-  fields.className = 'rc-fields';
-  const mk = (cls, placeholder, value, type = 'text') => {
-    const i = document.createElement('input');
-    i.type = type;
-    i.className = cls;
-    i.placeholder = placeholder;
-    i.value = value ?? '';
-    if (type === 'number') { i.inputMode = 'decimal'; i.step = 'any'; i.min = '0'; }
-    i.addEventListener('input', recalcRecipeTotals);
-    return i;
-  };
-  fields.appendChild(mk('rc-name', t('recipeCompName'), comp.product_name));
-  fields.appendChild(mk('rc-grams', t('recipeCompGrams'), comp.grams || '', 'number'));
-  fields.appendChild(mk('rc-kcal', t('recipeCompKcal'), comp.kcal || '', 'number'));
-  fields.appendChild(mk('rc-prot', t('recipeCompProt'), comp.protein_g || '', 'number'));
-  fields.appendChild(mk('rc-carb', t('recipeCompCarb'), comp.carbs_g || '', 'number'));
-  fields.appendChild(mk('rc-fat', t('recipeCompFat'), comp.fat_g || '', 'number'));
-
-  const rm = document.createElement('button');
-  rm.type = 'button';
-  rm.className = 'rc-remove';
-  rm.textContent = '×';
-  rm.setAttribute('aria-label', t('recipeRemoveComp'));
-  rm.addEventListener('click', () => { li.remove(); recalcRecipeTotals(); });
-
-  li.appendChild(fields);
-  li.appendChild(rm);
-  return li;
-}
-
-function openRecipeEditor(recipe) {
-  editingRecipe = recipe ?? { id: undefined, name: '', servings: 1, components: [newComponent()] };
-  if (recipeEditName) recipeEditName.value = editingRecipe.name;
-  if (recipeEditServings) recipeEditServings.value = String(editingRecipe.servings || 1);
-  if (recipeEditComps) {
-    recipeEditComps.textContent = '';
-    const comps = editingRecipe.components?.length ? editingRecipe.components : [newComponent()];
-    for (const c of comps) recipeEditComps.appendChild(renderRecipeComponentRow(c));
-  }
-  recalcRecipeTotals();
-  recipeEditDialog?.showModal();
-}
-
-recipeEditName?.addEventListener('input', recalcRecipeTotals);
-recipeEditServings?.addEventListener('input', recalcRecipeTotals);
-
-recipeAddCompBtn?.addEventListener('click', () => {
-  recipeEditComps?.appendChild(renderRecipeComponentRow(newComponent()));
-  recalcRecipeTotals();
-});
-
-recipeEditCancel?.addEventListener('click', (e) => {
-  e.preventDefault();
-  editingRecipe = null;
-  recipeEditDialog?.close();
-});
-
-recipeEditSave?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  const components = readDraftComponentsFromDOM().filter((c) => c.product_name || c.kcal || c.grams);
-  try {
-    await saveRecipe({
-      id: editingRecipe?.id,
-      name: recipeEditName?.value || '',
-      servings: Number(recipeEditServings?.value) || 1,
-      components,
-    });
-    editingRecipe = null;
-    recipeEditDialog?.close();
-    await renderRecipesList();
-  } catch (err) { console.error('[recipe-save]', err); }
-});
-
-async function renderRecipesList() {
-  if (!recipesListEl) return;
-  recipesListEl.textContent = '';
-  const all = await listRecipes().catch(() => []);
-  if (all.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'dash-entry-empty';
-    li.textContent = t('recipeEmpty');
-    recipesListEl.appendChild(li);
-    return;
-  }
-  for (const r of all) {
-    const li = document.createElement('li');
-    li.className = 'tpl-item';
-    li.dataset.recipeId = r.id;
-    const head = document.createElement('div');
-    head.className = 'tpl-head';
-    const pick = document.createElement('input');
-    pick.type = 'checkbox';
-    pick.className = 'tpl-pick';
-    pick.setAttribute('aria-label', t('recipeGrocerySelect'));
-    pick.dataset.recipeId = r.id;
-    head.appendChild(pick);
-    const name = document.createElement('strong');
-    name.textContent = r.name;
-    const agg = aggregateRecipe(r, r.servings || 1);
-    const summary = document.createElement('span');
-    summary.className = 'tpl-kcal';
-    summary.textContent = `${Math.round(agg.kcal)} kcal · ${t('recipeIngrCount', { n: r.components.length })}`;
-    head.appendChild(name);
-    head.appendChild(summary);
-    li.appendChild(head);
-
-    const actions = document.createElement('div');
-    actions.className = 'tpl-actions';
-    const apply = document.createElement('button');
-    apply.type = 'button';
-    apply.className = 'chip-btn accent';
-    apply.textContent = t('recipeApply');
-    apply.addEventListener('click', async () => {
-      try {
-        const aggregated = aggregateRecipe(r, r.servings || 1);
-        const meal = defaultMealForHour(new Date().getHours());
-        const entry = {
-          id: globalThis.crypto?.randomUUID?.() ?? `a${Date.now()}${Math.random().toString(36).slice(2)}`,
-          date: todayISO(),
-          timestamp: Date.now(),
-          meal,
-          ...aggregated,
-        };
-        await putEntry(entry);
-        await renderDashboard();
-        recipesDialog?.close();
-        toast(t('recipeAppliedToast', { name: r.name }), 'ok');
-      } catch (err) { console.error('[recipe-apply]', err); }
-    });
-    const edit = document.createElement('button');
-    edit.type = 'button';
-    edit.className = 'chip-btn';
-    edit.textContent = t('recipeEdit');
-    edit.addEventListener('click', () => openRecipeEditor(r));
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'chip-btn';
-    del.textContent = '🗑';
-    del.setAttribute('aria-label', t('recipeDelete'));
-    del.addEventListener('click', async () => {
-      await deleteRecipe(r.id);
-      await renderRecipesList();
-    });
-    actions.appendChild(apply);
-    actions.appendChild(edit);
-    actions.appendChild(del);
-    li.appendChild(actions);
-    recipesListEl.appendChild(li);
-  }
-}
-
-recipesBtn?.addEventListener('click', async () => {
-  recipesDialog?.showModal();
-  refreshRecipeFromPlateBtn();
-  try { await renderRecipesList(); }
-  catch (err) { console.warn('[recipes] render failed', err); }
-});
-recipesCloseBtn?.addEventListener('click', (e) => { e.preventDefault(); recipesDialog?.close(); });
-recipeNewBtn?.addEventListener('click', () => openRecipeEditor(null));
-
-// Shortcut: spin up a recipe from the most recent multi-item photo scan.
-// Populated from the plate scan flow above and cleared on page reload.
-let lastIdentifiedPlate = null;
-
-function refreshRecipeFromPlateBtn() {
-  const btn = $('recipe-from-plate-btn');
-  if (!btn) return;
-  const has = !!lastIdentifiedPlate && Array.isArray(lastIdentifiedPlate.items) && lastIdentifiedPlate.items.length > 0;
-  btn.disabled = !has;
-  btn.hidden = !has;
-}
-refreshRecipeFromPlateBtn();
-
-$('recipe-from-plate-btn')?.addEventListener('click', () => {
-  if (!lastIdentifiedPlate?.items?.length) return;
-  const components = lastIdentifiedPlate.items.map((it) => ({
-    product_name: String(it.name ?? ''),
-    grams: Math.round(Number(it.estimated_grams) || 0),
-    kcal: Math.round(Number(it.kcal) || 0),
-    protein_g: Math.round(Number(it.protein_g) || 0),
-    carbs_g: Math.round(Number(it.carbs_g) || 0),
-    fat_g: Math.round(Number(it.fat_g) || 0),
-  }));
-  openRecipeEditor({
-    id: undefined,
-    name: '',
-    servings: 1,
-    components,
-  });
-});
+// Recipes dialog + editor extracted to /features/recipes-dialog.js.
+// initRecipesDialog is imported at the top; the module owns the state
+// (editingRecipe, lastIdentifiedPlate) and exposes setLastIdentifiedPlate
+// so the qa-photo-multi handler above can push the latest plate items
+// without poking shared module-scoped variables. Assigned in the boot
+// block below; the handler only reads it at click time, so the TDZ
+// gap between module-top and boot is safe.
 
 function readQaForm() {
   return {
@@ -2939,6 +2706,11 @@ initTemplatesDialog({
   t, toast,
   listByDate, saveTemplate, listTemplates, deleteTemplate,
   expandTemplate, templateKcal, putEntry, todayISO, renderDashboard,
+});
+recipesDialog = initRecipesDialog({
+  t, toast,
+  aggregateRecipe, saveRecipe, listRecipes, deleteRecipe,
+  putEntry, defaultMealForHour, todayISO, renderDashboard,
 });
 initProfileDialog({
   t, show, hide,

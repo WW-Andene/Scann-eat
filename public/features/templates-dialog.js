@@ -126,7 +126,10 @@ export function initTemplatesDialog(deps) {
         const suggested = `${tpl.name} ${t('templateCopySuffix')}`;
         const newName = await askTemplateName(suggested);
         if (!newName) return;
-        const saved = await saveTemplate({ name: newName, items: tpl.items });
+        // R9.7: forward the source template's meal so the clone inherits
+        // breakfast/lunch/dinner/snack instead of silently defaulting
+        // to 'snack' (saveTemplate's parameter default).
+        const saved = await saveTemplate({ name: newName, meal: tpl.meal, items: tpl.items });
         await renderTemplatesList();
         toast(t('templateSavedToast', { name: saved.name }), 'ok');
       });

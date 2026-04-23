@@ -75,4 +75,19 @@ describe('aggregateRecipe', () => {
     assert.equal(out.protein_g, 3);
     assert.equal(out.grams, 50);
   });
+
+  // R9.2: the duplicate-recipe chip persists a clone via saveRecipe;
+  // we can't exercise the IDB round-trip from node:test without a shim,
+  // but the aggregator must stay stable across name changes so the
+  // duplicate's totals are bit-for-bit identical to the source.
+  it('aggregates identically regardless of recipe name (duplicate contract)', () => {
+    const original = aggregateRecipe(recipe, 1);
+    const clone = aggregateRecipe({ ...recipe, id: 'r1-copy', name: 'Salade (copie)' }, 1);
+    // Name and fromRecipe differ by design; the macro totals must match.
+    assert.equal(clone.kcal, original.kcal);
+    assert.equal(clone.fat_g, original.fat_g);
+    assert.equal(clone.protein_g, original.protein_g);
+    assert.equal(clone.carbs_g, original.carbs_g);
+    assert.equal(clone.grams, original.grams);
+  });
 });
