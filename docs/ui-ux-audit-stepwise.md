@@ -214,3 +214,99 @@ document the 3-5 appearances-per-app rule.
 3. Documented brand-distinctiveness findings in the audit doc.
 4. No breaking rename: `--panel-3` stays in place for the 15 rules
    already using it.
+
+---
+
+## Step 4 — III. TYPOGRAPHY (§DT1–§DT4)
+
+### §DT1. Type Personality Matrix
+
+Current stacks:
+
+| Stack | Where applied |
+|---|---|
+| `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` | default |
+| `'Atkinson Hyperlegible', system-ui, …` | opt-in via `.font-atkinson` (dyslexia-friendly) |
+| `'Lexend', system-ui, sans-serif` | opt-in via `.font-lexend` |
+
+Placement on the matrix:
+- **system-ui**: typically humanist sans on Apple (San Francisco) or
+  neutral-grotesque on Windows (Segoe UI). **Default** leans humanist.
+- **Atkinson Hyperlegible**: humanist-sans, purpose-built for
+  low-vision readability (Braille Institute).
+- **Lexend**: humanist-sans tuned for reading-speed studies.
+
+Match to §DP2 character ("warm editorial, scientist's notebook at a
+farmer's market"): **humanist sans is the correct placement**.
+System-ui is the safe baseline; Atkinson + Lexend are user-selectable
+reading-assist alternates. No misalignment.
+
+**No change needed at the family level.**
+
+### §DT2. Typographic Scale & Rhythm
+
+**Extracted sizes:** 42 unique `font-size` values across the CSS.
+That's 7× the size of a coherent scale. Ratio check — sizes
+scattered between `0.7em` and `1.6em` with no discoverable
+arithmetic.
+
+**v2 layer already added the scale** (`--text-xs` … `--text-2xl`)
+but only cascaded it into a small number of rules. The 42 ad-hoc
+sizes still drive most of the visible UI.
+
+**Ratio** for the v2 scale: 11.5 → 13.6 → 16 → 18.4 → 24 → 32.
+That's not on a clean ratio — it mixes 1.18, 1.18, 1.15, 1.30, 1.33.
+Should sit on a single ratio.
+
+**Fix options:**
+- Minor-third (1.2): 12.8 → 15.4 → 18.4 → 22 → 26.4 → 31.7.
+- Major-third (1.25): 12.8 → 16 → 20 → 25 → 31.3 → 39.
+- **Chosen: minor-third (1.2)** — food-quality consumer app, warmth
+  over formality, steps need to be close enough for running copy
+  to flow into labels without a jarring jump.
+
+**Shipping:** retune `--text-*` tokens to minor-third, keep the same
+semantic names so every downstream rule stays correct.
+
+### §DT3. Advanced Type Craft Signals
+
+| Signal | State | Action |
+|---|---|---|
+| `font-variant-numeric: tabular-nums` | ✓ set via `--num-feat` on `<body>` (v2) | keep |
+| `font-feature-settings: "kern" 1` | default on modern browsers | add explicit via body |
+| `font-variant-ligatures: common-ligatures` | missing | add |
+| `-webkit-font-smoothing: antialiased` | missing | add |
+| `text-rendering: optimizeLegibility` | missing | add |
+| `text-wrap: balance` on display headings | missing | add to h1/h2 |
+
+**Finding:** 5 missing craft signals. All are body/root-level rules,
+cheap to add.
+
+### §DT4. Typographic Voice & Expressiveness
+
+**Line-height audit:** default browser `line-height: normal` ≈ 1.2
+is used almost everywhere. For a reading-warm product the skill
+target is 1.5–1.6 for body, 1.7+ for long-form. Currently:
+
+- Body: inherits `line-height: normal` → too tight for warmth.
+- Dialog text: same.
+- Hints / captions: often `1.35`. Acceptable.
+
+**Measure (line length):** `main { max-width: 600px }` equals
+≈75 characters at default body size — right at the top of the
+comfortable reading range. Good.
+
+**Expressive moments:** empty states got v2 treatment (dashed border,
+muted italic). Success toasts get the `'ok'` variant stripe. Error
+toasts get red stripe. Good. **Missing:** success STATE typography
+(after a save / scan log) is identical to idle-state body text.
+Skill's §DST4 will be covered in a later step.
+
+### Step 4 fixes → shipping
+
+1. Retune `--text-*` scale to minor-third (1.2 ratio).
+2. Add body-level typography craft block: kerning, ligatures,
+   antialiasing, optimizeLegibility, balance on h1/h2.
+3. Bump body `line-height` to 1.5 (warm-editorial target).
+4. Document type-voice findings; success-state typography deferred
+   to Step 11 (§DST4).

@@ -4389,3 +4389,49 @@ button:not(.secondary):not(.chip-btn):active:not(:disabled) {
   letter-spacing: 0.02em;
   box-shadow: var(--elev-1);
 }
+
+/* ==========================================================================
+   STEP 4 — §DT2 scale ratio + §DT3 craft signals + §DT4 voice line-height
+   ========================================================================== */
+:root,
+[data-theme="dark"],
+[data-theme="light"] {
+  /* Retuned to minor-third (1.2) so the scale sits on a single ratio.
+     Semantic names unchanged so every downstream rule stays correct.
+     v2 values had mixed ratios (1.18/1.15/1.30/1.33) — readable but
+     incoherent. */
+  --text-xs:   0.72rem;   /* 11.5 px */
+  --text-sm:   0.87rem;   /* 13.9 px (was 0.85) */
+  --text-base: 1rem;      /* 16 px */
+  --text-lg:   1.2rem;    /* 19.2 px (was 1.15) */
+  --text-xl:   1.44rem;   /* 23.0 px (was 1.5) */
+  --text-2xl:  1.73rem;   /* 27.7 px (was 2.0) */
+  --text-3xl:  2.07rem;   /* 33.2 px — added for display numerics */
+}
+
+/* §DT3 craft signals — applied once at the body level so every
+   descendant inherits. Safe on every modern browser. */
+body {
+  font-feature-settings: "kern" 1, var(--num-feat);
+  font-variant-ligatures: common-ligatures;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* §DT4 voice — warm-editorial target. 1.5 reads comfortably for
+     body without feeling loose. Tight displays override to 1.15
+     via the rules below. */
+  line-height: 1.5;
+}
+
+/* §DT3: text-wrap: balance on display-level headings so dialog h2s
+   + scan-result titles don't leave single-word orphans. Progressive
+   enhancement; older browsers ignore and get the default wrap. */
+h1, h2,
+dialog.settings-dialog h2,
+.result h2,
+.grade-chip,
+.compare-grade,
+.result-score {
+  text-wrap: balance;
+  line-height: 1.15;
+}
