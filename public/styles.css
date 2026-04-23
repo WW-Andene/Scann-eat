@@ -4025,3 +4025,242 @@ details li.warn     { color: var(--warning); }
   gap: var(--sp-2);
   margin-top: var(--sp-3);
 }
+
+/* ==========================================================================
+   V2 REFINEMENT LAYER · 2026-04 — applied after the pre-existing cascade
+   so the tokens, components, and per-feature rules above keep their
+   contract. This layer:
+     - Adds a typography scale + elevation system.
+     - Dials the coral down one notch (energy axis 4 → 3).
+     - Standardises dialog chrome + chip patterns across 15+ surfaces.
+     - Tightens focus ring + motion consistency.
+   Rationale + findings live in docs/ui-ux-audit-v2.md.
+   ==========================================================================
+ */
+
+/* -- refreshed palette -- calmer coral, preserves brand recognition ------ */
+:root,
+[data-theme="dark"] {
+  --bg: #E84A5F;                       /* calmer than prior #F54B5E */
+  --bg-deep: #D94458;                  /* for gradient sweeps + variations */
+  /* type scale */
+  --text-xs:   0.72rem;   /* 11.5 px — metadata, counters, timestamps */
+  --text-sm:   0.85rem;   /* 13.6 px — secondary labels, chips */
+  --text-base: 1rem;      /* 16 px — body default */
+  --text-lg:   1.15rem;   /* 18.4 px — card headings */
+  --text-xl:   1.5rem;    /* 24 px — dashboard numerics */
+  --text-2xl:  2rem;      /* 32 px — scan grade, big numbers */
+  /* elevation — one step up from flat, used by cards + primary buttons */
+  --elev-1: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.06);
+  --elev-2: 0 2px 6px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.10);
+  /* motion — one speed everywhere */
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --speed-ui: 140ms;
+  /* type feature settings — enable numerics tabular everywhere values
+     are compared (dashboards, macros, grade scores) */
+  --num-feat: "tnum", "lnum";
+}
+[data-theme="light"] {
+  --bg: #F6D0D6;                       /* cooler than prior #F8C8CF */
+  --bg-deep: #F0B7BF;
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 3px 10px rgba(0, 0, 0, 0.05);
+  --elev-2: 0 2px 4px rgba(0, 0, 0, 0.08), 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  /* Subtle gradient ambiance instead of flat coral. Adds depth without
+     shouting. Reduce-motion users still see the static version. */
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+  background-attachment: fixed;
+  font-feature-settings: var(--num-feat);
+}
+body.reduce-motion { background: var(--bg); }
+
+/* -- cards earn elevation --------------------------------------------------
+   Every `.panel`-style surface gets the v2 elevation. Scoped tight so
+   small chips and progress bars stay flat. */
+.result,
+.pairings,
+.recent-scans,
+.daily-dashboard,
+.progress-dialog-card,
+dialog.settings-dialog,
+.hydration-tile,
+.activity-tile,
+.fasting-tile,
+.weight-summary {
+  box-shadow: var(--elev-1);
+}
+
+/* -- buttons: primary gets elevation + tighter tap feel ------------------ */
+button {
+  box-shadow: var(--elev-1);
+  transition:
+    transform var(--speed-ui) var(--ease-ui),
+    box-shadow var(--speed-ui) var(--ease-ui),
+    background var(--speed-ui) var(--ease-ui),
+    filter var(--speed-ui) var(--ease-ui);
+}
+button:hover:not(:disabled) { box-shadow: var(--elev-2); }
+button:active:not(:disabled) {
+  transform: scale(0.97) translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+button.secondary,
+button.chip-btn {
+  box-shadow: none;     /* outline variants stay flat by design */
+}
+button.secondary:hover:not(:disabled),
+button.chip-btn:hover:not(:disabled) {
+  box-shadow: var(--elev-1);
+}
+
+/* -- focus ring scales with control size ---------------------------------
+   2 px ring for chips + small buttons, 3 px for primary. Keeps a11y
+   intact without the visual "headlights on a matchbox" effect. */
+.chip-btn:focus-visible,
+.dash-entry-del:focus-visible,
+.dash-entry-edit:focus-visible,
+.rc-swap:focus-visible,
+.rc-remove:focus-visible,
+.settings-btn:focus-visible,
+.queue-remove:focus-visible,
+.recent-del:focus-visible {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+/* -- typography: cascade the scale into the most-trafficked surfaces ---- */
+header h1 { font-size: var(--text-xl); letter-spacing: -0.02em; }
+.tagline  { font-size: var(--text-sm); }
+dialog.settings-dialog h2 {
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--sp-3);
+}
+.dash-value,
+.dash-bar + strong,
+#dashboard-remaining,
+.ws-value,
+.tpl-kcal,
+.recent-summary,
+.pairings-sum,
+.recipe-totals {
+  font-feature-settings: var(--num-feat);
+}
+/* Big numbers — scan grade, daily kcal, weight — read first. */
+.grade-chip,
+.compare-grade,
+.result-score,
+.weight-summary strong {
+  font-size: var(--text-2xl);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-feature-settings: var(--num-feat);
+}
+
+/* -- dialog chrome standardised -------------------------------------------
+   Every settings-style dialog gets the same interior padding + action-row
+   rhythm. Pre-existing per-dialog overrides stay but can no longer drift
+   on the basics. */
+dialog.settings-dialog {
+  padding: var(--sp-5) var(--sp-4);
+}
+dialog.settings-dialog > form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+dialog.settings-dialog .dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+  justify-content: flex-end;
+}
+dialog.settings-dialog .dialog-actions button {
+  min-height: 44px;
+  padding: 10px 18px;
+}
+
+/* -- chip-btn unification -------------------------------------------------
+   Every chip-btn — regardless of nested context — renders at the same
+   height/weight/radius. The .compact modifier becomes a single source of
+   truth for list-density rows. */
+.chip-btn {
+  min-height: 40px;
+  border-radius: var(--r-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+.chip-btn.compact {
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: var(--text-xs);
+}
+.chip-btn.accent {
+  box-shadow: var(--elev-1);
+}
+
+/* -- row primitive: used anywhere list-like UI accreted ad-hoc spacing ---
+   Defined here so any new feature can compose on it. Existing rows keep
+   their rules; this layer just makes the pattern discoverable. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
+  min-height: 56px;
+}
+.row:last-child { border-bottom: none; }
+
+/* -- empty state component — surfaces a softer voice in empty lists ---
+   Existing .dash-entry-empty / .tpl-empty stay. This adds a shared
+   visual treatment so they read as "invited to act", not "broken". */
+.dash-entry-empty,
+.tpl-empty,
+.add-to-recipe-empty {
+  padding: var(--sp-5);
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--r-md);
+}
+
+/* -- sticky "apply" / "save" action patterns — tightened shadow --------- */
+.log-btn,
+#qa-save,
+#cf-save,
+#recipe-edit-save,
+#tpl-save-today {
+  box-shadow: var(--elev-1);
+}
+
+/* -- grade chip contrast fix for light theme --
+   F grade (#E54B5E) was near-identical to pale coral paper (#F8C8CF);
+   now that #F6D0D6 is slightly cooler + F grades still carry their
+   pattern overlay, add a subtle outline so the badge pops on the
+   light paper. Dark theme unchanged (already high contrast). */
+[data-theme="light"] .recent-grade[data-grade="F"],
+[data-theme="light"] .compare-grade[data-grade="F"],
+[data-theme="light"] .recipe-row-grade[data-grade="F"],
+[data-theme="light"] .recipe-edit-grade[data-grade="F"] {
+  outline: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* -- reduce-motion kill-switch applied once to the whole v2 layer ------ */
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .chip-btn,
+  .settings-btn,
+  .secondary,
+  .log-btn,
+  .capture-btn {
+    transition: none !important;
+  }
+  button:active { transform: none; }
+}

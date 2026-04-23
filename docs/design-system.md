@@ -4,6 +4,38 @@ Scann-eat's visual language is a token set + a small component vocabulary,
 defined entirely in `public/styles.css`. There's no Figma file and no
 framework; the CSS IS the design system.
 
+**v2 refinement landed 2026-04.** See `docs/ui-ux-audit-v2.md` for the
+findings that drove it. Key additions: explicit typography scale,
+elevation tokens, calmer coral backdrop, unified dialog chrome, scaled
+focus ring, shared motion speed.
+
+## Vision (one-sentence)
+
+> Scann-eat looks like a scientist's notebook at a farmer's market:
+> warm cream paper, precise typography, nothing decorative, every
+> number earns its pixel.
+
+## Aesthetic profile (5-axis, v2 targets)
+
+| Axis | v2 |
+|---|---|
+| Sophistication | 3 (warm, consumer-friendly, not clinical) |
+| Density | 3 (data-heavy but paced) |
+| Energy | 3 (calmer coral; brand recognition without shouting) |
+| Formality | 2 (playful tone, emoji-per-feature) |
+| Warmth | 4 (cream + coral = food-warm) |
+
+## Component DNA — three primitives
+
+- **Card** — `--panel` surface, `--r-md` radius, `var(--elev-1)` shadow,
+  `--sp-5` internal padding.
+- **Chip** — `--r-pill` shape, 40 px min-height (36 px `.compact`),
+  two variants: outline + `.accent`.
+- **Row** — 56 px min-height, `--sp-3` gap, single `--border` hairline
+  separator. `.row` utility available for new features.
+
+Everything else composes from these three.
+
 ## Tokens
 
 Defined as CSS custom properties on `[data-theme="dark"]` (default) and
@@ -82,12 +114,61 @@ third option ("auto") watches `prefers-color-scheme` via
 
 ## Typography
 
+### Scale (v2)
+
+| Token | Size | Use |
+|---|---|---|
+| `--text-xs`   | 0.72rem (≈11.5px) | metadata, counters, timestamps |
+| `--text-sm`   | 0.85rem (≈13.6px) | secondary labels, chips |
+| `--text-base` | 1rem (16px)       | body default |
+| `--text-lg`   | 1.15rem (≈18.4px) | card headings |
+| `--text-xl`   | 1.5rem (24px)     | dashboard numerics |
+| `--text-2xl`  | 2rem (32px)       | scan grade, big numbers |
+
+### Numerics
+`--num-feat: "tnum", "lnum"` is set on `body`. Every dashboard /
+summary / macro / score value inherits tabular-nums automatically;
+columns align without custom `font-variant-numeric` rules per site.
+
+### Letter-spacing rule of thumb
+- Display sizes (`--text-xl`/`--text-2xl`): `-0.02em`.
+- Small caps labels (uppercase section headers): `0.08em`.
+- Everything else: default (no manual tracking).
+
+### Fonts
 - Font stack: system UI primary with an optional `--font-lexend` opt-in
   (body can carry `.font-lexend` class — toggled from Settings).
 - Two size modifiers on `<body>`: `.font-size-large` (20px) and
   `.font-size-xlarge` (22px). Default inherits from the browser.
-- No custom web fonts shipped — first paint stays under the performance
-  budget that was informally set as "no layout shift visible on 4G".
+- No custom web fonts shipped by default — first paint stays under the
+  performance budget that was informally set as "no layout shift
+  visible on 4G".
+
+## Elevation (v2)
+
+Two shadow steps, computed for a fixed light source from above.
+
+- `--elev-1` — cards + primary buttons. Subtle physical lift.
+- `--elev-2` — hover / active state for cards that lift under pointer.
+
+Outline buttons (`.secondary`, `.chip-btn` without `.accent`) stay flat
+by design — they're information chrome, not affordances.
+
+## Motion (v2)
+
+One speed, one easing:
+- `--speed-ui: 140ms`
+- `--ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1)`
+
+Everything that transitions uses these. `prefers-reduced-motion: reduce`
+disables them via a single kill-switch block. No per-component duration
+drift.
+
+## Backdrop (v2)
+
+The body gets a calmer coral gradient (`--bg` → `--bg-deep`) instead of
+the previous flat vibrant coral. Reduce-motion users fall back to the
+flat `--bg` — parallax/gradient drift off for them.
 
 ## Motion
 
