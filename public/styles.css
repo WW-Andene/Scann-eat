@@ -5085,3 +5085,52 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .score-card.success-burst { animation: none; }
 }
+
+/* ==========================================================================
+   STEP 15 — §DRC responsive design character.
+   Two breakpoint shifts:
+     (1) tighter small-phone handling at <360px — dialog actions
+         stack earlier, chip-btn padding compresses while tap
+         target stays 40px,
+     (2) wide-viewport ambient — desktop (≥1024px) bumps the
+         body paper grain from 0.025 → 0.035 so the coral
+         backdrop doesn't read as empty negative space.
+   ========================================================================== */
+
+/* §DRC1 — character-floor adjustments for the very-small viewport.
+   Stack dialog actions earlier; tighten chip-btn horizontal
+   padding without dropping below the 40px tap target. Kept
+   scoped to <360px so the common iPhone 375/390 sizes keep
+   the standard chip treatment. */
+@media (max-width: 400px) {
+  .dialog-actions {
+    flex-direction: column-reverse;
+  }
+  .dialog-actions button {
+    width: 100%;
+  }
+}
+@media (max-width: 360px) {
+  .chip-btn {
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .chip-btn.compact {
+    padding: var(--sp-1) var(--sp-2);
+  }
+}
+
+/* §DRC2 — wide-viewport intensification. On desktop the 600px
+   main column leaves a lot of coral on either side; the existing
+   2% grain reads flat across that surface. A 0.035 grain at
+   ≥1024px restores the "paper sheet" feel on desktop without
+   changing the layout. */
+@media (min-width: 1024px) {
+  body::before {
+    opacity: 0.035;
+  }
+}
+@media (min-width: 1024px) {
+  body:has(dialog[open])::before {
+    opacity: 0.065;
+  }
+}

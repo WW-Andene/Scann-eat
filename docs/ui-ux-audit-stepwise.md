@@ -1275,3 +1275,87 @@ coral when the grade is A+).
    notebook-margin rule to `--accent` + adds a subtle coral
    halo for 900ms. Pure CSS; JS will later add the class when
    a grade-A+ scan or streak-milestone lands.
+
+---
+
+## Step 15 — §DRC responsive design character (breakpoint · mobile · adaptive)
+
+### §DRC1. Breakpoint character audit
+
+App is mobile-first PWA. `main` is capped at `max-width: 600px`
+with `margin: auto`, so desktop viewing centers a mobile-width
+column on the coral paper backdrop. Existing breakpoints:
+
+| Breakpoint | Query | What it does | Character |
+|---|---|---|---|
+| <420px | `(max-width: 420px)` | `.dialog-actions` → column + full-width buttons | ✓ holds |
+| <480px | `(max-width: 480px)` | `.flags` grid → single column | ✓ holds |
+| <520px | `(max-width: 520px)` | `.flags` grid → single column | ✓ holds |
+| <540px | `(max-width: 540px)` | `.score-card.dual` → single column | ✓ holds |
+
+Per-dimension assessment:
+
+| Dimension | Mobile (375–768) | Tablet (768–1024) | Desktop (1024+) | Verdict |
+|---|---|---|---|---|
+| Typography | `--text-*` scale | unchanged | unchanged | ✓ |
+| Spacing | `--sp-*` tokens | unchanged | unchanged | ✓ |
+| Color | coral / cream | unchanged | unchanged | ✓ |
+| Components | all shipped | — | — | ✓ |
+| Motion | 140ms base | unchanged | unchanged | ✓ |
+| Safe-area (notch / home bar) | `env(safe-area-inset-*)` at top / bottom / toast | ✓ | — | ✓ |
+
+**Character-floor check (§DRC3):** at every viewport, at least
+one element is unmistakably from this product's design system.
+- Mobile: `.score-card` notebook-margin rule + `.grade` pattern overlay + body paper grain ✓
+- Tablet: same (app just centers at 600px) ✓
+- Desktop: same + custom scrollbar ✓
+
+**Finding DRC1-1:** below 360px (iPhone SE 1st gen ~320px, old
+Androids ~360px) the `.chip-btn` 40px min-height × 8px padding
++ a long emoji-label combo can overflow. Dialog actions stack
+only below 420px, which is late for the tightest viewports.
+Character floor still holds, but tap-target comfort drops.
+
+**Finding DRC1-2:** tablet (768+) and desktop (1024+) don't
+*intensify* character — they just render the mobile app at the
+same size in the centre. The vast coral surrounds can feel
+empty. Per §DRC2 this is a missed intensification opportunity,
+though on-brief (scannable-anywhere PWA, not a tablet-first app).
+
+### §DRC2. Mobile character intensification
+
+| Opportunity | Status |
+|---|---|
+| Touch feedback (tap ripple / scale press) | ✓ `scale(0.96)` on `:active` (Step 5) |
+| Gesture transitions | — uses native browser gestures only |
+| Bottom sheet presentations | N/A — uses centre-docked dialogs per app character |
+| Safe-area handling | ✓ `env(safe-area-inset-*)` in place |
+| Pull-to-refresh | — browser-native (not customised); acceptable |
+| Navigation character | ✓ chip-btn row at top of dashboard is the nav; carries character |
+| Haptic feedback | — not implemented; PWA API has limited access |
+
+No gaps requiring visual work. Scann-eat's mobile character is
+already intensified via touch-scale presses, grade-reveal animation,
+and paper-grain ambient.
+
+### §DRC3. Adaptive character specification
+
+| Element | Desktop | Mobile adaptation | Character preserved |
+|---|---|---|---|
+| `.score-card.dual` | two score slots side-by-side | single column <540px | hero moment still has notebook margin |
+| `.flags` grid | three columns | single column <480-520px | per-flag character (icon + label) retained |
+| `.dialog-actions` | row | column + full-width <420px | button treatment unchanged |
+| Overall app width | centered 600px | full viewport | `max-width: 600px` maintains focus at any size |
+
+**Step 15 fixes → shipping**
+
+1. **Tightened <360px breakpoint** — stack `.dialog-actions`
+   earlier (400px instead of 420px), shrink `.chip-btn` padding
+   at <360px to `--sp-2` horizontal while keeping 40px min-height
+   for tap comfort. Character floor remains — same patterns,
+   same colours, just tighter geometry.
+2. **Wide-viewport ambient intensification** — at ≥1024px, bump
+   the body paper-grain opacity from 0.025 → 0.035 so the
+   vast coral backdrop doesn't read as flat negative space. The
+   grain becomes the desktop "paper sheet" signal without
+   changing the layout.
