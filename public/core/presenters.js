@@ -6,6 +6,8 @@
  * same logic instead of re-inventing it per feature.
  */
 
+import { dateFormatter } from './date-format.js';
+
 /**
  * Confidence level for a scan result. Used to tint the "source" chip so the
  * user can quickly gauge how much to trust the extracted data.
@@ -375,8 +377,8 @@ export function formatWeeklyShare(rollup, opts = {}) {
   const firstDay = new Date(rollup.days[0].date + 'T12:00:00');
   const lastDay = new Date(rollup.days[rollup.days.length - 1].date + 'T12:00:00');
   const sameMonth = firstDay.getUTCMonth() === lastDay.getUTCMonth();
-  const firstStr = firstDay.toLocaleDateString(locale, sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'short' });
-  const lastStr = lastDay.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  const firstStr = dateFormatter(locale, sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'short' }).format(firstDay);
+  const lastStr = dateFormatter(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(lastDay);
   const range = isFr ? `Semaine du ${firstStr} au ${lastStr}` : `Week of ${firstStr} to ${lastStr}`;
 
   const r = (n) => Math.round(n);
@@ -393,9 +395,10 @@ export function formatWeeklyShare(rollup, opts = {}) {
     : `Avg/day: ${r(avg.kcal)} kcal · ${r(avg.protein_g)} g prot · ${r(avg.carbs_g)} g carbs · ${r(avg.fat_g)} g fat`);
   lines.push(isFr ? `Total : ${r(total.kcal)} kcal` : `Total: ${r(total.kcal)} kcal`);
   lines.push('');
+  const dayFmt = dateFormatter(locale, { weekday: 'short', day: 'numeric' });
   for (const d of rollup.days) {
     const date = new Date(d.date + 'T12:00:00');
-    const dayStr = date.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' });
+    const dayStr = dayFmt.format(date);
     if (d.count === 0) {
       lines.push(isFr ? `${dayStr}  —` : `${dayStr}  —`);
     } else {
@@ -463,9 +466,9 @@ export function formatDailySummary(totals, targets, burned, opts = {}) {
   const r = (n) => Math.round(Number(n) || 0);
   const r1 = (n) => Math.round((Number(n) || 0) * 10) / 10;
   const date = dateISO
-    ? new Date(`${dateISO}T12:00:00Z`).toLocaleDateString(isFr ? 'fr-FR' : 'en-GB', {
+    ? dateFormatter(isFr ? 'fr-FR' : 'en-GB', {
         weekday: 'long', day: 'numeric', month: 'long',
-      })
+      }).format(new Date(`${dateISO}T12:00:00Z`))
     : null;
 
   const lines = [];

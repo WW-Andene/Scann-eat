@@ -7,8 +7,11 @@
  * Behaviour:
  *   - Prefers navigator.share (mobile native sheet).
  *   - On AbortError (user dismissed the sheet), stays silent.
- *   - Otherwise copies to clipboard and fires the `copied` toast.
- *   - If clipboard writeText fails (permission / http), fires `failed`.
+ *   - Otherwise copies to clipboard and fires the `copied` toast with the
+ *     `'ok'` variant — so the success-accent stripe makes the copy
+ *     feedback visually distinct from generic info toasts.
+ *   - If clipboard writeText fails (permission / http), fires `failed`
+ *     with the `'error'` variant.
  *
  * Contract:
  *   { title, text, toasts: { copied, failed }, toast(msg, variant) }
@@ -28,7 +31,7 @@ export async function shareOrCopy({ title, text, toasts, toast }) {
   }
   try {
     await navigator.clipboard?.writeText(text);
-    toast(toasts.copied);
+    toast(toasts.copied, 'ok');
   } catch {
     toast(toasts.failed, 'error');
   }

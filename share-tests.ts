@@ -74,7 +74,9 @@ describe('shareOrCopy', () => {
       toast: (m: string, v?: string) => toasts.push({ msg: m, variant: v }),
     });
     assert.deepEqual(writes, ['body']);
-    assert.deepEqual(toasts, [{ msg: 'C', variant: undefined }]);
+    // R8.2: clipboard fallback now emits the 'ok' variant so the toast
+    // stripes green — visually distinct from info / warn / error.
+    assert.deepEqual(toasts, [{ msg: 'C', variant: 'ok' }]);
   });
 
   it('falls back to clipboard when navigator.share is missing', async () => {
@@ -90,6 +92,19 @@ describe('shareOrCopy', () => {
     });
     assert.deepEqual(writes, ['body']);
     assert.deepEqual(toasts, ['C']);
+  });
+
+  it('passes the ok variant alongside the copied toast', async () => {
+    setNavigator({
+      clipboard: { writeText: async () => { /* swallow */ } },
+    });
+    const variants: Array<string | undefined> = [];
+    await shareOrCopy({
+      title: 't', text: 'body',
+      toasts: { copied: 'C', failed: 'F' },
+      toast: (_m: string, v?: string) => variants.push(v),
+    });
+    assert.deepEqual(variants, ['ok']);
   });
 
   it('fires `failed` toast when both share and clipboard fail', async () => {

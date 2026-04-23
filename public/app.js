@@ -24,6 +24,7 @@ import { initSettingsDialog } from '/features/settings-dialog.js';
 import { initKeybindings } from '/features/keybindings.js';
 import { initProfileDialog } from '/features/profile-dialog.js';
 import { initMenuScan, openMenuScan } from '/features/menu-scan.js';
+import { initTemplatesDialog } from '/features/templates-dialog.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -1042,7 +1043,7 @@ async function renderMealPlan() {
     applyBtn.addEventListener('click', async () => {
       await applyPlanDayToLog(date, day, recipes, templates);
       await renderDashboard();
-      toast(t('mealPlanApplyToast', { count: Object.keys(day).length, date }));
+      toast(t('mealPlanApplyToast', { count: Object.keys(day).length, date }), 'ok');
     });
     actions.appendChild(applyBtn);
 
@@ -1797,14 +1798,18 @@ clearHistoryBtn?.addEventListener('click', async () => {
 const exportHistoryBtn = $('export-history');
 exportHistoryBtn?.addEventListener('click', async () => {
   const items = await listScans().catch(() => []);
+  if (items.length === 0) { toast(t('exportHistoryEmpty'), 'warn'); return; }
   const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const date = new Date().toISOString().slice(0, 10);
+  // R8.4: todayISO() uses the user's local date via Intl.DateTimeFormat —
+  // replaces `new Date().toISOString().slice(0, 10)` which picks UTC and
+  // gave western-tz users a filename for tomorrow around midnight.
   a.href = url;
-  a.download = `scanneat-history-${date}.json`;
+  a.download = `scanneat-history-${todayISO()}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast(t('exportHistoryDone', { n: items.length }), 'ok');
 });
 
 historySearchInput?.addEventListener('input', () => renderRecentScans());
@@ -2040,14 +2045,14 @@ $('telemetry-export')?.addEventListener('click', () => {
   a.download = `scanneat-telemetry-${todayISO()}.txt`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
-  toast(t('telemetryExported'));
+  toast(t('telemetryExported'), 'ok');
 });
 $('telemetry-clear')?.addEventListener('click', () => {
   if (!window.confirm(t('telemetryClearConfirm'))) return;
   telemetryClear();
   const out = $('telemetry-output');
   if (out) { out.textContent = ''; hide(out); }
-  toast(t('telemetryCleared'));
+  toast(t('telemetryCleared'), 'ok');
 });
 
 $('profiles-delete')?.addEventListener('click', () => {
@@ -2380,7 +2385,7 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
     refreshRecipeFromPlateBtn();
     quickAddDialog?.close();
     await renderDashboard();
-    toast(t('identifyMultiToast', { n: items.length, db: dbHits }));
+    toast(t('identifyMultiToast', { n: items.length, db: dbHits }), 'ok');
   } catch (err) {
     console.warn('[identifyMultiFood]', err);
     setQaStatus(t('identifyFailed'), 'error');
@@ -2478,127 +2483,9 @@ qaNameInput?.addEventListener('focus', (e) => {
 // imported and called from the dashboard render loop; initWeight wires
 // up the dialog at boot.
 
-// ----- Meal templates -----
-const templatesBtn = $('templates-btn');
-const templatesDialog = $('templates-dialog');
-const tplClose = $('tpl-close');
-const tplSaveToday = $('tpl-save-today');
-
-templatesBtn?.addEventListener('click', async () => {
-  // Open the dialog first, then render. If the IDB read fails, the user
-  // still sees the dialog with an empty list instead of a dead button.
-  templatesDialog.showModal();
-  try { await renderTemplatesList(); }
-  catch (err) { console.warn('[templates] render failed', err); }
-});
-tplClose?.addEventListener('click', (e) => { e.preventDefault(); templatesDialog.close(); });
-const tplNameDialog = $('tpl-name-dialog');
-const tplNameInput = $('tpl-name-input');
-const tplNameConfirm = $('tpl-name-confirm');
-const tplNameCancel = $('tpl-name-cancel');
-
-/** Promise-based name prompt that opens a styled dialog instead of the
- *  blocking native prompt(). Resolves to the typed name or null on cancel. */
-function askTemplateName() {
-  if (!tplNameDialog || !tplNameInput) return Promise.resolve(null);
-  tplNameInput.value = '';
-  tplNameInput.placeholder = t('templateNamePlaceholder');
-  tplNameDialog.showModal();
-  tplNameInput.focus();
-  return new Promise((resolve) => {
-    const cleanup = () => {
-      tplNameConfirm?.removeEventListener('click', onConfirm);
-      tplNameCancel?.removeEventListener('click', onCancel);
-      tplNameDialog.removeEventListener('close', onClose);
-    };
-    const onConfirm = (e) => {
-      e.preventDefault();
-      const name = tplNameInput.value.trim();
-      // Cleanup BEFORE close — dialog.close() fires the 'close' event
-      // synchronously, so onClose would otherwise run first and resolve
-      // the promise with null before we get to resolve with the name.
-      cleanup();
-      tplNameDialog.close();
-      resolve(name || null);
-    };
-    const onCancel = (e) => {
-      e.preventDefault();
-      cleanup();
-      tplNameDialog.close();
-      resolve(null);
-    };
-    const onClose = () => { cleanup(); resolve(null); };
-    tplNameConfirm?.addEventListener('click', onConfirm);
-    tplNameCancel?.addEventListener('click', onCancel);
-    tplNameDialog.addEventListener('close', onClose);
-  });
-}
-
-tplSaveToday?.addEventListener('click', async () => {
-  const entries = await listByDate().catch(() => []);
-  if (entries.length === 0) {
-    toast(t('nothingLoggedToSave'));
-    return;
-  }
-  const name = await askTemplateName();
-  if (!name) return;
-  const saved = await saveTemplate({ name, items: entries });
-  await renderTemplatesList();
-  toast(t('templateSavedToast', { name: saved.name }));
-});
-
-async function renderTemplatesList() {
-  const ul = $('tpl-list');
-  if (!ul) return;
-  const all = await listTemplates().catch(() => []);
-  ul.innerHTML = '';
-  if (all.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'dash-entry-empty';
-    li.textContent = t('templateEmpty');
-    ul.appendChild(li);
-    return;
-  }
-  for (const tpl of all) {
-    const li = document.createElement('li');
-    li.className = 'tpl-item';
-    const head = document.createElement('div');
-    head.className = 'tpl-head';
-    const name = document.createElement('strong');
-    name.textContent = tpl.name;
-    const kcal = document.createElement('span');
-    kcal.className = 'tpl-kcal';
-    kcal.textContent = `${templateKcal(tpl)} kcal · ${tpl.items.length} items`;
-    head.appendChild(name);
-    head.appendChild(kcal);
-    li.appendChild(head);
-    const actions = document.createElement('div');
-    actions.className = 'tpl-actions';
-    const apply = document.createElement('button');
-    apply.type = 'button';
-    apply.className = 'chip-btn accent';
-    apply.textContent = t('templateApplyToday');
-    apply.addEventListener('click', async () => {
-      const entries = expandTemplate(tpl, todayISO());
-      for (const e of entries) await putEntry(e);
-      await renderDashboard();
-      toast(t('templateApplyToast', { n: entries.length, plural: entries.length > 1 ? 'ies' : 'y' }));
-    });
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'chip-btn';
-    del.textContent = '🗑';
-    del.setAttribute('aria-label', t('deleteTemplate'));
-    del.addEventListener('click', async () => {
-      await deleteTemplate(tpl.id);
-      await renderTemplatesList();
-    });
-    actions.appendChild(apply);
-    actions.appendChild(del);
-    li.appendChild(actions);
-    ul.appendChild(li);
-  }
-}
+// Meal-templates dialog extracted to /features/templates-dialog.js.
+// initTemplatesDialog is imported at the top; the wire-up happens in
+// the boot block alongside the other feature inits.
 
 // ============================================================================
 // Recipes — multi-component dishes that log as ONE aggregated entry.
@@ -2759,7 +2646,7 @@ async function renderRecipesList() {
     const agg = aggregateRecipe(r, r.servings || 1);
     const summary = document.createElement('span');
     summary.className = 'tpl-kcal';
-    summary.textContent = `${Math.round(agg.kcal)} kcal · ${r.components.length} ingr.`;
+    summary.textContent = `${Math.round(agg.kcal)} kcal · ${t('recipeIngrCount', { n: r.components.length })}`;
     head.appendChild(name);
     head.appendChild(summary);
     li.appendChild(head);
@@ -2784,7 +2671,7 @@ async function renderRecipesList() {
         await putEntry(entry);
         await renderDashboard();
         recipesDialog?.close();
-        toast(t('recipeAppliedToast', { name: r.name }));
+        toast(t('recipeAppliedToast', { name: r.name }), 'ok');
       } catch (err) { console.error('[recipe-apply]', err); }
     });
     const edit = document.createElement('button');
@@ -2985,7 +2872,7 @@ $('cf-save')?.addEventListener('click', () => {
     fat_g:     Number($('cf-fat')?.value)     || 0,
   });
   if (saved) {
-    toast(t('customFoodSavedToast', { name: saved.name }));
+    toast(t('customFoodSavedToast', { name: saved.name }), 'ok');
     for (const id of ['cf-name', 'cf-kcal', 'cf-protein', 'cf-carbs', 'cf-fat']) {
       const el = $(id); if (el) el.value = '';
     }
@@ -3048,6 +2935,11 @@ initSettingsDialog({
   },
 });
 initMenuScan({ t, defaultMealForHour, logQuickAdd, renderDashboard });
+initTemplatesDialog({
+  t, toast,
+  listByDate, saveTemplate, listTemplates, deleteTemplate,
+  expandTemplate, templateKcal, putEntry, todayISO, renderDashboard,
+});
 initProfileDialog({
   t, show, hide,
   getProfile, setProfile, hasMinimalProfile,
