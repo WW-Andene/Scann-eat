@@ -111,8 +111,26 @@ export function buildEntry(product, grams, opts = {}) {
     // product; the dashboard only renders a row when the daily total > 0.
     iron_mg: round2((n.iron_mg ?? 0) * f),
     calcium_mg: round2((n.calcium_mg ?? 0) * f),
+    magnesium_mg: round2((n.magnesium_mg ?? 0) * f),
+    potassium_mg: round2((n.potassium_mg ?? 0) * f),
+    zinc_mg: round2((n.zinc_mg ?? 0) * f),
+    sodium_mg: round2((n.sodium_mg ?? 0) * f),
+    vit_a_ug: round2((n.vit_a_ug ?? 0) * f),
+    vit_c_mg: round2((n.vit_c_mg ?? 0) * f),
     vit_d_ug: round2((n.vit_d_ug ?? 0) * f),
+    vit_e_mg: round2((n.vit_e_mg ?? 0) * f),
+    vit_k_ug: round2((n.vit_k_ug ?? 0) * f),
+    b1_mg: round2((n.b1_mg ?? 0) * f),
+    b2_mg: round2((n.b2_mg ?? 0) * f),
+    b3_mg: round2((n.b3_mg ?? 0) * f),
+    b6_mg: round2((n.b6_mg ?? 0) * f),
+    b9_ug: round2((n.b9_ug ?? 0) * f),
     b12_ug: round2((n.b12_ug ?? 0) * f),
+    polyunsaturated_fat_g: round2((n.polyunsaturated_fat_g ?? 0) * f),
+    monounsaturated_fat_g: round2((n.monounsaturated_fat_g ?? 0) * f),
+    omega_3_g: round2((n.omega_3_g ?? 0) * f),
+    omega_6_g: round2((n.omega_6_g ?? 0) * f),
+    cholesterol_mg: round2((n.cholesterol_mg ?? 0) * f),
   };
 }
 
@@ -214,13 +232,26 @@ export async function clearDate(date = todayISO()) {
   for (const e of entries) await deleteEntry(e.id);
 }
 
+// Feature 2: full micronutrient panel. Each field here is summed
+// across entries and surfaced in the dashboard conditionally (only
+// rendered when total > 0), so products that don't report a given
+// micro don't clutter the UI.
+const MICRO_FIELDS = [
+  'iron_mg', 'calcium_mg', 'magnesium_mg', 'potassium_mg', 'zinc_mg',
+  'sodium_mg',
+  'vit_a_ug', 'vit_c_mg', 'vit_d_ug', 'vit_e_mg', 'vit_k_ug',
+  'b1_mg', 'b2_mg', 'b3_mg', 'b6_mg', 'b9_ug', 'b12_ug',
+  'polyunsaturated_fat_g', 'monounsaturated_fat_g',
+  'omega_3_g', 'omega_6_g', 'cholesterol_mg',
+];
+
 /** Pure aggregation — exported for tests. */
 export function sumTotals(entries) {
   const t = {
     kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, fiber_g: 0,
-    iron_mg: 0, calcium_mg: 0, vit_d_ug: 0, b12_ug: 0,
     count: entries.length,
   };
+  for (const f of MICRO_FIELDS) t[f] = 0;
   for (const e of entries) {
     t.kcal += e.kcal || 0;
     t.carbs_g += e.carbs_g || 0;
@@ -230,12 +261,9 @@ export function sumTotals(entries) {
     t.salt_g += e.salt_g || 0;
     t.protein_g += e.protein_g || 0;
     t.fiber_g += e.fiber_g || 0;
-    t.iron_mg += e.iron_mg || 0;
-    t.calcium_mg += e.calcium_mg || 0;
-    t.vit_d_ug += e.vit_d_ug || 0;
-    t.b12_ug += e.b12_ug || 0;
+    for (const f of MICRO_FIELDS) t[f] += e[f] || 0;
   }
-  return {
+  const out = {
     kcal: round1(t.kcal),
     carbs_g: round2(t.carbs_g),
     fat_g: round2(t.fat_g),
@@ -244,12 +272,10 @@ export function sumTotals(entries) {
     salt_g: round3(t.salt_g),
     protein_g: round2(t.protein_g),
     fiber_g: round2(t.fiber_g),
-    iron_mg: round2(t.iron_mg),
-    calcium_mg: round2(t.calcium_mg),
-    vit_d_ug: round2(t.vit_d_ug),
-    b12_ug: round2(t.b12_ug),
     count: t.count,
   };
+  for (const f of MICRO_FIELDS) out[f] = round2(t[f]);
+  return out;
 }
 
 /**

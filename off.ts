@@ -110,7 +110,8 @@ function nutritionFromOFF(n: Record<string, unknown> | undefined): NutritionPer1
   const nut = n ?? {};
   // OFF stores micronutrients as grams per 100 g (e.g. 0.012 for 12 mg of
   // iron, 0.000002 for 2 µg of vitamin D). Convert to the app's preferred
-  // display units (mg for iron/calcium, µg for fat-/water-soluble vitamins).
+  // display units (mg for minerals + water-soluble vitamins typically
+  // reported in mg; µg for fat-soluble vitamins, B12, folate).
   const gToMg = (v: unknown) => num(v) * 1000;
   const gToUg = (v: unknown) => num(v) * 1_000_000;
   return {
@@ -124,10 +125,31 @@ function nutritionFromOFF(n: Record<string, unknown> | undefined): NutritionPer1
     protein_g: num(nut['proteins_100g']),
     salt_g: num(nut['salt_100g']),
     trans_fat_g: numNullable(nut['trans-fat_100g']),
-    iron_mg: gToMg(nut['iron_100g']),
-    calcium_mg: gToMg(nut['calcium_100g']),
-    vit_d_ug: gToUg(nut['vitamin-d_100g']),
-    b12_ug: gToUg(nut['vitamin-b12_100g']),
+    // Minerals
+    iron_mg:       gToMg(nut['iron_100g']),
+    calcium_mg:    gToMg(nut['calcium_100g']),
+    magnesium_mg:  gToMg(nut['magnesium_100g']),
+    potassium_mg:  gToMg(nut['potassium_100g']),
+    zinc_mg:       gToMg(nut['zinc_100g']),
+    sodium_mg:     gToMg(nut['sodium_100g']),
+    // Vitamins
+    vit_a_ug:      gToUg(nut['vitamin-a_100g']),
+    vit_c_mg:      gToMg(nut['vitamin-c_100g']),
+    vit_d_ug:      gToUg(nut['vitamin-d_100g']),
+    vit_e_mg:      gToMg(nut['vitamin-e_100g']),
+    vit_k_ug:      gToUg(nut['vitamin-k_100g']),
+    b1_mg:         gToMg(nut['vitamin-b1_100g']),
+    b2_mg:         gToMg(nut['vitamin-b2_100g']),
+    b3_mg:         gToMg(nut['vitamin-pp_100g'] ?? nut['vitamin-b3_100g']),
+    b6_mg:         gToMg(nut['vitamin-b6_100g']),
+    b9_ug:         gToUg(nut['vitamin-b9_100g'] ?? nut['folates_100g']),
+    b12_ug:        gToUg(nut['vitamin-b12_100g']),
+    // Fat subdivisions + cholesterol
+    polyunsaturated_fat_g: num(nut['polyunsaturated-fat_100g']),
+    monounsaturated_fat_g: num(nut['monounsaturated-fat_100g']),
+    omega_3_g:             num(nut['omega-3-fat_100g']),
+    omega_6_g:             num(nut['omega-6-fat_100g']),
+    cholesterol_mg:        gToMg(nut['cholesterol_100g']),
   };
 }
 

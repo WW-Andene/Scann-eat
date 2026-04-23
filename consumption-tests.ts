@@ -126,11 +126,35 @@ describe('sumTotals — daily aggregation', () => {
     assert.equal(total.sat_fat_g, 0.1 + 2.5); // 2.6
   });
 
-  it('empty list → zero totals', () => {
-    assert.deepEqual(sumTotals([]), {
-      kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, fiber_g: 0,
-      iron_mg: 0, calcium_mg: 0, vit_d_ug: 0, b12_ug: 0, count: 0,
-    });
+  it('empty list → zero totals for every macro + micro field', () => {
+    const out = sumTotals([]);
+    assert.equal(out.kcal, 0);
+    assert.equal(out.protein_g, 0);
+    assert.equal(out.iron_mg, 0);
+    assert.equal(out.calcium_mg, 0);
+    // Full micronutrient panel (feature 2): every declared field
+    // zeroes when there are no entries.
+    assert.equal(out.magnesium_mg, 0);
+    assert.equal(out.potassium_mg, 0);
+    assert.equal(out.zinc_mg, 0);
+    assert.equal(out.sodium_mg, 0);
+    assert.equal(out.vit_a_ug, 0);
+    assert.equal(out.vit_c_mg, 0);
+    assert.equal(out.vit_d_ug, 0);
+    assert.equal(out.vit_e_mg, 0);
+    assert.equal(out.vit_k_ug, 0);
+    assert.equal(out.b1_mg, 0);
+    assert.equal(out.b2_mg, 0);
+    assert.equal(out.b3_mg, 0);
+    assert.equal(out.b6_mg, 0);
+    assert.equal(out.b9_ug, 0);
+    assert.equal(out.b12_ug, 0);
+    assert.equal(out.polyunsaturated_fat_g, 0);
+    assert.equal(out.monounsaturated_fat_g, 0);
+    assert.equal(out.omega_3_g, 0);
+    assert.equal(out.omega_6_g, 0);
+    assert.equal(out.cholesterol_mg, 0);
+    assert.equal(out.count, 0);
   });
 
   it('micros (iron, calcium, vit D, B12) scale + sum', () => {

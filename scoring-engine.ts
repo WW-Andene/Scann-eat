@@ -89,11 +89,33 @@ export interface NutritionPer100g {
   protein_g: number;
   salt_g: number;
   trans_fat_g?: number | null;
-  // Key micros — optional because most OFF products don't report them.
+  // Minerals — optional because most OFF products don't report them.
   iron_mg?: number;
   calcium_mg?: number;
+  magnesium_mg?: number;
+  potassium_mg?: number;
+  zinc_mg?: number;
+  sodium_mg?: number;
+  // Vitamins (µg for fat-soluble + B12, mg for water-soluble except
+  // where convention prefers µg).
+  vit_a_ug?: number;    // retinol equivalents
+  vit_c_mg?: number;
   vit_d_ug?: number;
+  vit_e_mg?: number;
+  vit_k_ug?: number;
+  b1_mg?: number;       // thiamin
+  b2_mg?: number;       // riboflavin
+  b3_mg?: number;       // niacin
+  b6_mg?: number;
+  b9_ug?: number;       // folate
   b12_ug?: number;
+  // Macro subdivisions — useful for the advanced user + feeding the
+  // personal-score engine in future iterations.
+  polyunsaturated_fat_g?: number;
+  monounsaturated_fat_g?: number;
+  omega_3_g?: number;
+  omega_6_g?: number;
+  cholesterol_mg?: number;
 }
 
 /**

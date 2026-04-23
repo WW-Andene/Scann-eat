@@ -542,10 +542,41 @@ export function dashboardRowsFrom(totals, targets) {
     { key: 'dashSugars',  value: t.sugars_g   ?? 0, target: g?.free_sugars_g_max, unit: 'g' },
     { key: 'dashSalt',    value: t.salt_g     ?? 0, target: g?.salt_g_max,        unit: 'g' },
   ];
-  if ((t.iron_mg    ?? 0) > 0) rows.push({ key: 'dashIron',    value: t.iron_mg,    target: g?.iron_mg_target,    unit: 'mg' });
-  if ((t.calcium_mg ?? 0) > 0) rows.push({ key: 'dashCalcium', value: t.calcium_mg, target: g?.calcium_mg_target, unit: 'mg' });
-  if ((t.vit_d_ug   ?? 0) > 0) rows.push({ key: 'dashVitD',    value: t.vit_d_ug,   target: g?.vit_d_ug_target,   unit: 'µg' });
-  if ((t.b12_ug     ?? 0) > 0) rows.push({ key: 'dashB12',     value: t.b12_ug,     target: g?.b12_ug_target,     unit: 'µg' });
+  // Feature 2 — Full micronutrient panel. Every field is optional:
+  // rendered only when the day's total exceeds zero, so products that
+  // don't report a given micro don't fill the dashboard with empty
+  // rows. Target fields are looked up from dailyTargets() but default
+  // to undefined (= "no target" state) when not set.
+  const micro = (key, field, targetKey, unit) => {
+    if ((t[field] ?? 0) > 0) {
+      rows.push({ key, value: t[field], target: g?.[targetKey], unit });
+    }
+  };
+  // Minerals
+  micro('dashIron',       'iron_mg',       'iron_mg_target',       'mg');
+  micro('dashCalcium',    'calcium_mg',    'calcium_mg_target',    'mg');
+  micro('dashMagnesium',  'magnesium_mg',  'magnesium_mg_target',  'mg');
+  micro('dashPotassium',  'potassium_mg',  'potassium_mg_target',  'mg');
+  micro('dashZinc',       'zinc_mg',       'zinc_mg_target',       'mg');
+  micro('dashSodium',     'sodium_mg',     'sodium_mg_max',        'mg');
+  // Vitamins
+  micro('dashVitA',       'vit_a_ug',      'vit_a_ug_target',      'µg');
+  micro('dashVitC',       'vit_c_mg',      'vit_c_mg_target',      'mg');
+  micro('dashVitD',       'vit_d_ug',      'vit_d_ug_target',      'µg');
+  micro('dashVitE',       'vit_e_mg',      'vit_e_mg_target',      'mg');
+  micro('dashVitK',       'vit_k_ug',      'vit_k_ug_target',      'µg');
+  micro('dashB1',         'b1_mg',         'b1_mg_target',         'mg');
+  micro('dashB2',         'b2_mg',         'b2_mg_target',         'mg');
+  micro('dashB3',         'b3_mg',         'b3_mg_target',         'mg');
+  micro('dashB6',         'b6_mg',         'b6_mg_target',         'mg');
+  micro('dashB9',         'b9_ug',         'b9_ug_target',         'µg');
+  micro('dashB12',        'b12_ug',        'b12_ug_target',        'µg');
+  // Fat subdivisions + cholesterol
+  micro('dashPufa',       'polyunsaturated_fat_g', 'pufa_g_target', 'g');
+  micro('dashMufa',       'monounsaturated_fat_g', 'mufa_g_target', 'g');
+  micro('dashOmega3',     'omega_3_g',     'omega_3_g_target',     'g');
+  micro('dashOmega6',     'omega_6_g',     'omega_6_g_target',     'g');
+  micro('dashCholesterol','cholesterol_mg','cholesterol_mg_max',   'mg');
   return rows;
 }
 
