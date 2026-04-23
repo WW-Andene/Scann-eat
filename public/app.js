@@ -2613,7 +2613,7 @@ const customFoodsDialog = $('custom-foods-dialog');
 function renderCustomFoodsList() {
   const list = $('cf-list');
   if (!list) return;
-  list.innerHTML = '';
+  list.textContent = '';
   const all = listCustomFoods().slice().sort((a, b) => a.name.localeCompare(b.name));
   if (all.length === 0) {
     const empty = document.createElement('li');
@@ -2626,12 +2626,23 @@ function renderCustomFoodsList() {
     const li = document.createElement('li');
     li.className = 'tpl-item';
     const label = document.createElement('span');
-    label.textContent = `${f.name} · ${Math.round(f.kcal)} kcal · P ${Math.round(f.protein_g)} g / 100 g`;
+    // R17.3: full macro breakdown instead of protein-only. Matches
+    // the recipe / template row format the user already knows.
+    label.textContent = t('customFoodRow', {
+      name: f.name,
+      kcal: Math.round(f.kcal),
+      prot: Math.round(f.protein_g),
+      carb: Math.round(f.carbs_g),
+      fat: Math.round(f.fat_g),
+    });
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'secondary';
     del.textContent = t('customFoodDelete');
     del.addEventListener('click', () => {
+      // R17.2: confirm before deleting — previously a single
+      // misclick wiped the entry with no undo path.
+      if (!window.confirm(t('customFoodDeleteConfirm', { name: f.name }))) return;
       deleteCustomFood(f.id);
       renderCustomFoodsList();
     });
@@ -2648,6 +2659,9 @@ $('custom-foods-btn')?.addEventListener('click', () => {
     const el = $(id); if (el) el.value = '';
   }
   customFoodsDialog?.showModal();
+  // R17.4: pre-focus the name input so the user can start typing
+  // immediately. Defer one tick so showModal() finishes layout first.
+  setTimeout(() => $('cf-name')?.focus(), 0);
 });
 $('cf-close')?.addEventListener('click', (e) => { e.preventDefault(); customFoodsDialog?.close(); });
 $('cf-save')?.addEventListener('click', () => {
@@ -2667,6 +2681,9 @@ $('cf-save')?.addEventListener('click', () => {
       const el = $(id); if (el) el.value = '';
     }
     renderCustomFoodsList();
+    // R17.5: after-save focus back to name so the user can chain
+    // entries without touch-navigation between macros and name.
+    $('cf-name')?.focus();
   }
 });
 
