@@ -1175,3 +1175,103 @@ Elements present-but-neutral (could be character-positive at low cost):
    `::-webkit-scrollbar` + `scrollbar-color` on Firefox. Most-
    visible "character-neutral" element on any page with scroll
    overflow (§DP3.6).
+
+---
+
+## Step 14 — §DST state design (empty · loading · error · success · partial · saturated)
+
+### §DST1. Empty state audit
+
+| Location | Current | Character-consistent? | Gap |
+|---|---|---|---|
+| `.dash-entry-empty` (dashboard zero-entries) | dashed tile + italic muted copy | ✓ | **No CTA** |
+| `.tpl-empty` (saved meals list) | dashed tile + italic | ✓ | **No CTA** |
+| `.add-to-recipe-empty` | dashed tile + italic | ✓ | **No CTA** |
+| Recipes list empty (`t('recipeEmpty')`) | single `<li>` in dashed tile | ✓ | **No CTA — "Create first recipe" invite missing** |
+| Templates list empty | same | ✓ | **No CTA** |
+
+**Finding DST1-1:** every empty-list state has the paper-tile
+treatment but lacks the primary-action slot the skill requires.
+A user who lands on an empty recipes dialog reads "Aucune
+recette sauvegardée." and has to hunt for the way forward.
+
+### §DST2. Loading state audit
+
+| Location | Type | Geometry match | Palette match | Animation character |
+|---|---|---|---|---|
+| Dashboard first-paint `[aria-busy=true]` | Skeleton | ✓ 44–60px block | ✓ (Step 13 coral shimmer + grain) | ✓ 1.2s shimmer |
+| Voice-listening button | Pulse | — | ✓ --accent | ✓ (Step 5 retune to 1.0s) |
+| Camera scanning dots | Pulse | — | ✓ | ✓ |
+| Identify async (LLM call) | Pulse button state | — | ✓ | ✓ |
+
+✓ All loading states are character-consistent after Step 13. No
+new gaps.
+
+### §DST3. Error state audit
+
+| Error type | Current | Severity calibration | Gap |
+|---|---|---|---|
+| Toast 'warn' | `--danger` coral-red, short copy | Recoverable | ✓ |
+| Field validation (e.g. invalid qty) | HTML5 `:invalid` + coloured text | weak — relies on browser default | **Inline panel missing** |
+| System error (scan API fail) | Toast 'warn' | Recoverable | ✓ fallback to manual |
+| Unrecoverable (DB quota) | toast | Same weight as recoverable | **No severity differentiation** |
+
+**Finding DST3-1:** no inline-panel treatment for recoverable
+errors on form fields. Field-level errors rely on browser-native
+red highlight + text — inconsistent across browsers, not
+character-carrying.
+
+**Finding DST3-2:** unrecoverable errors (quota exceeded, DB
+corrupted) use the same toast as recoverable errors. Severity
+not visually distinguished.
+
+### §DST4. Success state audit
+
+| Moment | Intensity | Current | Gap |
+|---|---|---|---|
+| Auto-save entry | Micro | silent save, no signal | **Consider a 1-second colour pulse on the row** |
+| Log meal | Task | Toast 'ok' green | ✓ |
+| Scan completion (grade landed) | Task | grade-reveal opt-in animation (Step 5) | ✓ |
+| First-ever scan (onboarding) | Milestone | Same as any other scan | **Missed opportunity — no first-scan moment** |
+| Daily macro goals reached | Milestone | no visual celebration | **Missed — goal-reached should celebrate** |
+| Streak milestone (7d, 30d, 100d) | Milestone | streak counter just increments | **Missed** |
+
+**Finding DST4-1:** milestone moments render as task-level
+success. Per §DST4 the scoring engine just shipping an A+ grade,
+the user hitting their first 7-day streak, or closing all daily
+goals deserve a concentrated-character celebration — these are
+exactly the moments where Paper / notebook metaphor should
+intensify (e.g. the `.score-card` notebook margin briefly glows
+coral when the grade is A+).
+
+### §DST5. Partial state audit
+
+- Partial data on a scanned product (OFF returned some but not all fields) → renders as "—" placeholders. Character-consistent.
+- Recipe with missing macros → scorer gates at "inputs missing" state. ✓ handled.
+- No gap.
+
+### §DST6. Saturated state audit
+
+- Long ingredients list on a product → scrollable; saturation handled. ✓
+- Many recipes / templates → search filter provided. ✓
+- Dashboard with 22 micro rows → already paced with dash-row hierarchy. ✓
+- No gap.
+
+### Step 14 fixes → shipping
+
+1. **Empty-state CTA slot** — extend `.dash-entry-empty` /
+   `.tpl-empty` / `.add-to-recipe-empty` with a child `button`
+   slot styled as a compact accent chip. Empty paper-tile +
+   one inviting action. CSS-only — adoption is opt-in by adding
+   a `<button>` child to existing empty `<li>`s.
+2. **Inline `.error-panel` + `.warn-panel` + `.info-panel`
+   tokens** — three severity variants for form-field error
+   treatment. Each uses the corresponding semantic colour
+   (`--danger`, `--warning`, muted-coral for info) on a subtle
+   tinted background. Character-positive: warm severities,
+   never iOS-alert harsh.
+3. **Milestone success opt-in class `.success-burst`** — a
+   `.score-card` modifier that briefly intensifies the
+   notebook-margin rule to `--accent` + adds a subtle coral
+   halo for 900ms. Pure CSS; JS will later add the class when
+   a grade-A+ scan or streak-milestone lands.

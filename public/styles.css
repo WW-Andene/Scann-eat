@@ -4996,3 +4996,92 @@ html {
   background: var(--accent);
   background-clip: padding-box;
 }
+
+/* ==========================================================================
+   STEP 14 — §DST state design (empty, error severity, milestone success).
+   Three state-layer additions:
+     (1) empty-state CTA slot — any empty-list tile can now carry
+         an invite button as a child,
+     (2) .error-panel / .warn-panel / .info-panel — three-level
+         severity vocabulary for inline field-level messages,
+     (3) .success-burst opt-in modifier — milestone-level celebration
+         on the hero .score-card (grade A+, streak milestone, all-
+         goals-closed). JS will add the class when the moment lands.
+   ========================================================================== */
+
+/* §DST1 — CTA slot inside empty-state tiles. The existing paper-
+   tile treatment (Step 4226 block) keeps its shape; adding a
+   button child now renders an invite action centered below the
+   copy. Gap tuned to --sp-3. */
+.dash-entry-empty,
+.tpl-empty,
+.add-to-recipe-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.dash-entry-empty > button,
+.tpl-empty > button,
+.add-to-recipe-empty > button {
+  margin-top: var(--sp-1);
+}
+
+/* §DST3 — three severity variants for inline error/warn/info panels.
+   Each sits on a tinted background pulled from the semantic colour
+   + an opaque-border accent. Padding and radius match the card
+   primitive so they compose inside any surface. */
+.error-panel,
+.warn-panel,
+.info-panel {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-sm);
+  border-left: 3px solid transparent;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.error-panel {
+  background: color-mix(in oklch, var(--panel) 85%, var(--danger));
+  border-left-color: var(--danger);
+  color: var(--text);
+}
+.warn-panel {
+  background: color-mix(in oklch, var(--panel) 85%, var(--warning));
+  border-left-color: var(--warning);
+  color: var(--text);
+}
+.info-panel {
+  background: color-mix(in oklch, var(--panel) 88%, var(--accent-dim));
+  border-left-color: var(--accent-dim);
+  color: var(--text);
+}
+.error-panel strong,
+.warn-panel strong,
+.info-panel strong {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+/* §DST4 — milestone success modifier for the hero .score-card.
+   Briefly intensifies the notebook-margin rule to full --accent
+   + pulses a coral halo for 900ms. Opt-in: JS toggles this class
+   when a grade-A+ scan lands, a streak milestone triggers, or
+   all daily goals close. Reduced-motion users skip the pulse. */
+@keyframes scanneat-success-burst {
+  0%   { box-shadow: 0 0 0 rgba(232, 74, 95, 0);   }
+  40%  { box-shadow: 0 0 36px rgba(232, 74, 95, 0.40); }
+  100% { box-shadow: 0 0 0 rgba(232, 74, 95, 0);   }
+}
+.score-card.success-burst {
+  animation: scanneat-success-burst 900ms var(--ease-ui, ease) 1;
+}
+.score-card.success-burst::before {
+  background: var(--accent);
+  opacity: 0.9;
+  transition: background var(--motion-base, 140ms) var(--ease-ui),
+              opacity var(--motion-base, 140ms) var(--ease-ui);
+}
+@media (prefers-reduced-motion: reduce) {
+  .score-card.success-burst { animation: none; }
+}
