@@ -4267,3 +4267,71 @@ dialog.settings-dialog .dialog-actions button {
   }
   button:active { transform: none; }
 }
+
+/* ==========================================================================
+   STEP 2 — §DC2 palette role gaps. Five missing role tokens + one alias.
+   Keep the original names working so per-feature rules above don't break;
+   add the correct names the new rules should reach for.
+   ========================================================================== */
+:root,
+[data-theme="dark"] {
+  /* Disabled text — previously opacity-hacked via 0.45 on bg. Now a
+     real token so we don't trade contrast for cursor semantics. */
+  --text-disabled: rgba(245, 240, 232, 0.38);
+  /* Accent hover (lighter) vs pressed (darker). OKLCH shift ~8% L up
+     for hover, original --accent-dim covers the pressed state. */
+  --accent-hover:   #FF8867;     /* ≈ oklch(76% 0.17 37), 8% L above --accent */
+  --accent-pressed: var(--accent-dim);
+  /* Focus state distinct from hover — slightly warm-glow variant of
+     accent so focus ring doesn't confuse with hover. */
+  --accent-focus:   #FF7E5F;     /* ≈ oklch(72% 0.18 36) */
+  --border-focus:   var(--accent-focus);
+  /* Selection highlight — brand-warm instead of system-blue. */
+  --selection-bg:   rgba(255, 107, 69, 0.35);
+  --selection-fg:   var(--text);
+}
+[data-theme="light"] {
+  --text-disabled: rgba(27, 27, 31, 0.38);
+  --accent-hover:   #C94D25;     /* ≈ oklch(55% 0.15 32), lighter than --accent */
+  --accent-pressed: var(--accent-dim);
+  --accent-focus:   #B0431F;
+  --border-focus:   var(--accent-focus);
+  --selection-bg:   rgba(176, 67, 31, 0.25);
+  --selection-fg:   var(--text);
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+/* Disabled-text pattern. Existing .disabled or [disabled] contexts
+   now have a proper token to reach for instead of opacity math. */
+[aria-disabled="true"],
+:is(button, a, input, select, textarea, [role="button"]):disabled {
+  color: var(--text-disabled);
+}
+
+/* Focus-ring upgrade: use --border-focus so the ring is visually
+   distinct from a hover state. Chip-sized controls stay at 2px from
+   the v2 layer; primary controls upgrade to 3px + border-focus color. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible {
+  outline-color: var(--border-focus);
+}
+
+/* Primary-button hover uses the new --accent-hover instead of
+   `filter: brightness(1.05)`. Subtle but correct: the shift is in
+   OKLCH lightness, not HSL brightness. Press state keeps
+   --accent-pressed (= --accent-dim). */
+button:not(.secondary):not(.chip-btn):hover:not(:disabled) {
+  background: var(--accent-hover);
+  filter: none;
+}
+button:not(.secondary):not(.chip-btn):active:not(:disabled) {
+  background: var(--accent-pressed);
+}
