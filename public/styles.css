@@ -1054,7 +1054,13 @@ body.returning-user main > .capture         { order: 1; }
   margin-bottom: var(--sp-3);
 }
 .recent-filter input,
-.recent-filter select {
+.recent-filter select,
+/* R34 restructure: reuse the same search-input visual treatment
+   across every dialog-level filter, so templates-search and
+   recipes-search inherit the recent-filter look (48px tap target,
+   panel-2 background, strong border). */
+#recipes-search,
+#tpl-search {
   padding: 12px 14px;
   background: var(--panel-2);
   color: var(--text);
@@ -1064,6 +1070,31 @@ body.returning-user main > .capture         { order: 1; }
   font-family: inherit;
   min-height: 48px;
   box-sizing: border-box;
+  width: 100%;
+  margin-bottom: var(--sp-3);
+}
+.custom-food-label {
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  flex: 1;
+}
+.custom-food-label:hover,
+.custom-food-label:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0;
+  font-size: 0.9em;
+  color: var(--muted);
 }
 .recent-list {
   list-style: none;
