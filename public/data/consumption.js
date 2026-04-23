@@ -72,6 +72,7 @@ export async function putEntry(entry) {
 // Re-exported via /core/dateutil.js — kept here as the canonical name
 // the rest of the app imports from. See that file for why it's local
 // (not UTC) day.
+import { localDateISO } from '../core/dateutil.js';
 export { localDateISO as todayISO } from '../core/dateutil.js';
 
 export const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -88,7 +89,11 @@ export function buildEntry(product, grams, opts = {}) {
   const sugars = n.added_sugars_g ?? n.sugars_g ?? 0;
   return {
     id: (globalThis.crypto?.randomUUID?.() ?? `c${now}${Math.random().toString(36).slice(2)}`),
-    date: new Date(now).toISOString().slice(0, 10),
+    // R25.1: local-day ISO via Intl — previous toISOString().slice(0,10)
+    // returned the UTC day, so a user in UTC-5 logging a meal at 9 pm
+    // local saw it filed under tomorrow's date. Real data-integrity
+    // bug that corrupted the "today" dashboard count.
+    date: localDateISO(now),
     timestamp: now,
     product_name: product?.name || '—',
     category: product?.category || 'other',
@@ -123,7 +128,9 @@ export function buildQuickAdd({
 }, now = Date.now()) {
   return {
     id: (globalThis.crypto?.randomUUID?.() ?? `q${now}${Math.random().toString(36).slice(2)}`),
-    date: new Date(now).toISOString().slice(0, 10),
+    // R25.1: same local-ISO fix as buildEntry — Quick Add was the
+    // other path with the UTC-date bug.
+    date: localDateISO(now),
     timestamp: now,
     product_name: name?.trim() || 'Quick Add',
     category: 'other',
