@@ -1001,6 +1001,10 @@ async function renderMealPlan() {
         const o = document.createElement('option');
         o.value = `note:current`;
         o.textContent = `📝 ${slot.text.slice(0, 40)}`;
+        // R18.3: full note text in title attr so users can hover /
+        // long-press the select to see notes longer than 40 chars
+        // without opening the edit prompt.
+        if (slot.text.length > 40) o.title = slot.text;
         select.appendChild(o);
         select.value = 'note:current';
       }
@@ -1054,7 +1058,12 @@ async function renderMealPlan() {
     applyBtn.addEventListener('click', async () => {
       await applyPlanDayToLog(date, day, recipes, templates);
       await renderDashboard();
-      toast(t('mealPlanApplyToast', { count: Object.keys(day).length, date }), 'ok');
+      // R18.2: date in the toast is now locale-formatted ("Thu 23 Apr"
+      // instead of "2026-04-23") so the feedback reads naturally.
+      const prettyDate = dateFormatter(locale, {
+        weekday: 'short', day: 'numeric', month: 'short',
+      }).format(new Date(`${date}T12:00:00`));
+      toast(t('mealPlanApplyToast', { count: Object.keys(day).length, date: prettyDate }), 'ok');
     });
     actions.appendChild(applyBtn);
 
@@ -1062,7 +1071,14 @@ async function renderMealPlan() {
     clearBtn.type = 'button';
     clearBtn.className = 'secondary compact meal-plan-clear-day';
     clearBtn.textContent = t('mealPlanClearDay');
-    clearBtn.addEventListener('click', () => { clearDay(date); renderMealPlan(); });
+    // R18.1: confirm before wiping the day. Previously a stray tap
+    // would silently delete the whole day's plan. Only confirms when
+    // there is actually something to clear.
+    clearBtn.addEventListener('click', () => {
+      if (hasSlots && !window.confirm(t('mealPlanClearDayConfirm'))) return;
+      clearDay(date);
+      renderMealPlan();
+    });
     actions.appendChild(clearBtn);
 
     card.appendChild(actions);
