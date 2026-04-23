@@ -2025,6 +2025,19 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 .qa-suggestion[aria-selected="true"] { background: var(--panel-2); }
 .qa-suggestion .qs-name { color: var(--text); font-weight: 600; }
 .qa-suggestion .qs-kcal { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Gap fix #7: favourites header + row accent in the Quick Add
+   autocomplete dropdown. Distinct from plain FOOD_DB matches so
+   users can tell they're picking their own historical entry. */
+.qa-suggestion-header {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 0.75em;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  pointer-events: none;
+}
+.qa-favourite .qs-name { color: var(--accent); }
 
 /* Gap fix #5 — recipe component row ingredient autocomplete. Visually
    identical to the Quick Add version; positioned relative to the row

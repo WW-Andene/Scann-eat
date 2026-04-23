@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare, formatTemplateShare, filterScanHistory, summarizeScanHistory } from './public/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare, formatTemplateShare, filterScanHistory, summarizeScanHistory, topFoods } from './public/core/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -1010,5 +1010,71 @@ describe('summarizeScanHistory', () => {
     const out = summarizeScanHistory(null);
     assert.equal(out.total, 0);
     assert.deepEqual(out.byGrade, { 'A+': 0, A: 0, B: 0, C: 0, D: 0, F: 0 });
+  });
+});
+
+// ============================================================================
+// topFoods (gap fix #7 + #12)
+// ============================================================================
+
+describe('topFoods', () => {
+  const now = 1_714_000_000_000;
+  const e = (name: string, ts: number, kcal: number) => ({
+    id: `e${ts}`, product_name: name, timestamp: ts, kcal, date: '2026-04-23',
+  });
+
+  it('counts + sorts by frequency, then recency tiebreaker', () => {
+    const out = topFoods([
+      e('Yaourt',  now - 1000, 100),
+      e('Yaourt',  now - 500,  100),
+      e('Yaourt',  now,        100),
+      e('Banane',  now - 200,  100),
+      e('Banane',  now - 100,  100),
+      e('Pomme',   now,        80),
+    ], { limit: 3 });
+    assert.equal(out.length, 3);
+    assert.equal(out[0].name, 'Yaourt');
+    assert.equal(out[0].count, 3);
+    assert.equal(out[1].name, 'Banane');
+    assert.equal(out[1].count, 2);
+    assert.equal(out[2].name, 'Pomme');
+  });
+
+  it('computes avg_kcal across occurrences', () => {
+    const out = topFoods([
+      e('Yaourt', now, 100),
+      e('Yaourt', now, 120),
+      e('Yaourt', now, 110),
+    ]);
+    assert.equal(out[0].avg_kcal, 110);
+  });
+
+  it('honours sinceDays cutoff', () => {
+    const out = topFoods([
+      e('Ancien', now - 90 * 86_400_000, 100),
+      e('Récent', now, 100),
+    ], { sinceDays: 30, now });
+    assert.equal(out.length, 1);
+    assert.equal(out[0].name, 'Récent');
+  });
+
+  it('ignores empty / "—" names', () => {
+    const out = topFoods([
+      e('',   now, 100),
+      e('—',  now, 100),
+      e('ok', now, 100),
+    ]);
+    assert.equal(out.length, 1);
+    assert.equal(out[0].name, 'ok');
+  });
+
+  it('safe with non-array input', () => {
+    assert.deepEqual(topFoods(null), []);
+    assert.deepEqual(topFoods(undefined), []);
+  });
+
+  it('limit=0 returns an empty list', () => {
+    const out = topFoods([e('a', now, 1)], { limit: 0 });
+    assert.deepEqual(out, []);
   });
 });

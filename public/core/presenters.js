@@ -643,6 +643,49 @@ export function formatTemplateShare(template, opts = {}) {
 }
 
 /**
+ * Gap fix #7 + #12 — topFoods: most-logged product names from the
+ * consumption entries. Pure. Used by Quick Add autocomplete to
+ * surface the user's personal favourites on an empty query, and by
+ * the progress dialog to answer "what do I eat most?".
+ *
+ *   entries:  [{ product_name, kcal, ... }]
+ *   opts.limit: top N (default 5)
+ *   opts.sinceDays: only consider entries from the last N days (default
+ *     null = all time).
+ *
+ * Returns [{ name, count, avg_kcal, last_logged_ms }] sorted by count
+ * desc then last_logged_ms desc (recency tiebreaker).
+ */
+export function topFoods(entries, opts = {}) {
+  const list = Array.isArray(entries) ? entries : [];
+  const { limit = 5, sinceDays = null, now = Date.now() } = opts;
+  const cutoff = sinceDays != null ? now - sinceDays * 86_400_000 : 0;
+  const byName = new Map();
+  for (const e of list) {
+    if (!e?.product_name) continue;
+    const name = String(e.product_name).trim();
+    if (!name || name === '—') continue;
+    const ts = Number(e.timestamp) || 0;
+    if (cutoff && ts < cutoff) continue;
+    const key = name.toLowerCase();
+    const row = byName.get(key) ?? { name, count: 0, sum_kcal: 0, last_logged_ms: 0 };
+    row.count += 1;
+    row.sum_kcal += Number(e.kcal) || 0;
+    if (ts > row.last_logged_ms) row.last_logged_ms = ts;
+    byName.set(key, row);
+  }
+  const out = [...byName.values()]
+    .map((r) => ({
+      name: r.name,
+      count: r.count,
+      avg_kcal: Math.round(r.sum_kcal / r.count),
+      last_logged_ms: r.last_logged_ms,
+    }))
+    .sort((a, b) => b.count - a.count || b.last_logged_ms - a.last_logged_ms);
+  return out.slice(0, Math.max(0, limit));
+}
+
+/**
  * R13.1 — filterScanHistory: pure filter for the scan-history list.
  * Same shape the renderRecentScans loop applies inline; testable
  * without a DOM shim.

@@ -46,7 +46,7 @@ import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/re
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary, formatRecipeShare, formatTemplateShare, pctClass, dashboardRowsFrom, filterScanHistory, summarizeScanHistory } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary, formatRecipeShare, formatTemplateShare, pctClass, dashboardRowsFrom, filterScanHistory, summarizeScanHistory, topFoods } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
@@ -2968,7 +2968,11 @@ recipesDialog = initRecipesDialog({
   // editor rows.
   searchFoodDB, listCustomFoods,
 });
-initQaAutocomplete({ show, hide, searchFoodDB, listCustomFoods });
+initQaAutocomplete({
+  t, show, hide, searchFoodDB, listCustomFoods,
+  // Gap fix #7: user's top-5 logged foods as favourites.
+  listAllEntries, topFoods,
+});
 initProfileDialog({
   t, show, hide,
   getProfile, setProfile, hasMinimalProfile,
