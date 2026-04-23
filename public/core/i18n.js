@@ -1292,8 +1292,15 @@ const LS_LANG = 'scanneat.lang';
 function detectDefaultLang() {
   const saved = localStorage.getItem(LS_LANG);
   if (SUPPORTED_LANGS.includes(saved)) return saved;
+  // R33.1: only auto-select a navigator-matched lang if we actually
+  // have a STRINGS table for it. Otherwise new users in es/it/de
+  // locales landed on a beta config that fell through to English
+  // 99% of the time — worse UX than just defaulting to English.
+  // The language selector still offers the beta options with a
+  // clear "EN fallback" note for users who opt in explicitly.
   const nav = (navigator.language || 'fr').toLowerCase().slice(0, 2);
-  return SUPPORTED_LANGS.includes(nav) ? nav : 'en';
+  if (STRINGS[nav]) return nav;
+  return 'en';
 }
 
 export let currentLang = detectDefaultLang();
