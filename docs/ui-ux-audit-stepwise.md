@@ -1053,3 +1053,125 @@ position — and already does per the §DP0 extraction.
 2. **`docs/design-system.md` positioning line** — one sentence
    recording the chosen quadrant (warm × dense, "scientist's
    notebook at a farmer's market") so future work doesn't drift.
+
+---
+
+## Step 13 — §DP3 character deepening (techniques 1, 2, 3, 4, 6, 7)
+
+§DP3.5 "one unavoidable moment" shipped in Step 9. This step
+completes the deepening protocol with the remaining six techniques.
+
+### §DP3.1. Character token extraction
+
+**Tokens that EXPRESS the character correctly:**
+
+- `--bg` + `--bg-deep` coral gradient (warmth axis)
+- `--panel` cream `#FFFDF7` / near-black `#1B1B1F` (paper material)
+- Atkinson Hyperlegible + `--num-feat: tnum, lnum` (precision)
+- `.grade[data-grade=B..F]` pattern overlays (signature)
+- `body::before` 2% paper grain (atmosphere)
+- `.product h2` ledger underline via `--accent-dim` (Step 9)
+- `.score-card::before` notebook-margin rule (Step 12)
+- `#grade-el` focal grade glow (Step 10)
+- `--r-md 18px` cards — "slightly-rounded page corner"
+- `--sp-5 20px` section rhythm — consistent breathing
+- Emoji-one-per-feature rule (§DI3 Calibrated Signature)
+
+**Tokens that UNDERMINE the character (still-present):**
+
+- **Skeleton loader** uses flat `--panel-2 / --panel-3` with shimmer
+  — no grain continuation → character drops to "generic SaaS loading."
+- **Scrollbar** is browser-default on both themes → neutral grey
+  intrusion on a warm chromatic surface.
+- **Hard-coded literals** in a few spots (e.g. `font-size: 1.35em`
+  on `.product h2`, `font-size: 0.92em` on `.dashboard-header h2`)
+  — should use `--text-lg` / `--text-sm` per Step 4 scale.
+
+### §DP3.2. Character stress testing
+
+| Scenario | On-character? | Finding |
+|---|---|---|
+| Error state (toast 'warn' with `--danger`) | ✓ | coral-tinted, not generic red |
+| Empty state (`.dash-entry-empty`) | ✓ | dashed paper tile |
+| Loading skeleton | ✗ | **Gap — no grain, no coral trace, flat grey-on-grey shimmer** |
+| Tooltips | mixed | Browser default titles; only some have custom tooltip |
+| Date picker | platform | `input[type=date]` renders OS-native — unavoidable |
+| Mobile compression | ✓ | layout is mobile-first, vertical stack |
+| Reduced-motion | ✓ | all animations have a `prefers-reduced-motion` kill-switch |
+| Larger text (`.font-size-large`) | ✓ | scale preserves tabular-nums and rhythm |
+
+**Primary stress failure: loading skeleton.** For 100-500ms
+during first-paint, the app's character is *absent* — the user
+sees a generic data-loading app. Fix: overlay the same 2% grain
+on skeleton blocks + use a coral-tinted shimmer instead of
+grey-on-grey.
+
+### §DP3.3. Sensory vocabulary
+
+**Character:** "warm, precise food ledger"
+**Sensory reference:** *"Opening a moleskine notebook to find a
+page of hand-ruled nutrient tables, grades pencil-sketched in the
+margin, with a coral-ink smudge where the writer rested their
+hand. The paper has visible tooth; the ink is dim but precise."*
+
+**Design implications not yet expressed:**
+
+- Coral-tinted shimmer on loading (moleskine ink smudge)
+- Grain continuation during loading (paper never vanishes)
+- Scrollbar as thin coral-ink line (page-edge ink mark)
+- List-row hairlines with faint warmth (hand-ruled, not machine-ruled)
+- Timestamps in a slightly lighter-weight small-caps (marginalia)
+
+### §DP3.4. Character hierarchy
+
+| Tier | Elements | Investment |
+|---|---|---|
+| **Primary carriers** (max intensity) | `.score-card` + `.grade` + `#grade-el` focal glow + ledger underline + notebook-margin rule | Maximum: all Step 9-12 deepening landed here |
+| **Secondary carriers** | `.daily-dashboard` tiles (hydration, activity, fasting, weight), `.recent-scans` rows, dialog content | Moderate: v2 elevation + grade-pattern continuation |
+| **Background** | dividers, timestamps, scrollbars, skeleton loaders, focus rings | **Under-invested — Step 13 targets these** |
+
+Investment hierarchy is correct — hero moments carry the character,
+backgrounds recede. The under-investment in backgrounds is
+deliberate (focus on primary carriers first) but creates the
+neutral-audit gaps below.
+
+### §DP3.6. Character-neutral audit
+
+Elements present-but-neutral (could be character-positive at low cost):
+
+| Element | Current | Character-positive fix |
+|---|---|---|
+| Scrollbar | browser default grey | Thin `--accent-dim` coral rail |
+| Skeleton shimmer | `--panel-2` → `--panel-3` grey-on-grey | Coral-tinted shimmer + grain overlay |
+| `::selection` (Step 2) | shipped | ✓ already character-positive |
+| Toast container shadow | `--elev-1` neutral | optional `--elev-1-tonal` (Step 8) |
+| Timestamp text | `--muted` plain | small-caps with letter-spacing for "marginalia" feel |
+
+### §DP3.7. Character future-proofing
+
+**Character rules (non-negotiable):**
+
+1. Every new surface uses `--panel` or `--panel-2` — no pure `#ffffff`, no pure `#000000`.
+2. New transitions use `--motion-base 140ms` + `--ease-ui`.
+3. Type values come from `--text-*` scale. Adding a new size requires adding a token first.
+4. New grade-badge classes copy the `.grade[data-grade]` pattern rules — no solid-colour-only variants.
+5. New interactive elements use `.press` or `scale(0.96)` on `:active`.
+6. Shadow values on dark mode include an `inset 0 1px 0 rgba(255,255,255,0.06)` rim (Step 10).
+7. New scrim uses `rgba(232, 74, 95, ...)` coral tint, not `rgba(0,0,0,...)` neutral.
+
+**Character risks (watch as product scales):**
+
+- Third-party embeds (camera capture UI, chart libs, OAuth dialogs) revert to system chrome. Establish a wrapper or CSS override before adding any.
+- Admin / debug screens drift to UI-kit defaults. Apply the Character Brief explicitly on each new screen.
+- Accessibility modes (font-size-large, reduce-motion, forced-colors) must preserve character. Test every new component against all three.
+
+### Step 13 fixes → shipping
+
+1. **Skeleton grain + coral shimmer** — overlay `body::before` 2%
+   grain pattern onto `[aria-busy="true"]` pseudo-elements + shift
+   the shimmer gradient to `--accent-dim` at low alpha. Character
+   stays on during loading (§DP3.2 primary stress failure).
+2. **Custom scrollbar** — thin (6px) coral-dim rail via
+   `::-webkit-scrollbar` + `scrollbar-color` on Firefox. Most-
+   visible "character-neutral" element on any page with scroll
+   overflow (§DP3.6).

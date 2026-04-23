@@ -4940,3 +4940,59 @@ dialog::backdrop {
   top: var(--sp-4);
   bottom: var(--sp-4);
 }
+
+/* ==========================================================================
+   STEP 13 — §DP3 character deepening (techniques 1-4, 6-7).
+   Two character fixes targeting the under-invested background tier
+   (§DP3.4 hierarchy) and the primary stress failure (§DP3.2 loading):
+     (1) skeleton-loader carries coral-tinted shimmer + paper grain —
+         character survives the first-paint loading window,
+     (2) scrollbar becomes a thin coral-ink rail — eliminates the
+         most-visible neutral browser element.
+   ========================================================================== */
+
+/* §DP3.2 — skeleton grain continuation. Override the existing
+   skeleton-shimmer background so loading blocks keep the paper
+   material instead of dropping to generic grey-on-grey. Coral
+   hint at the shimmer peak + grain overlay pinned to the block. */
+.dashboard-rows[aria-busy="true"]::before,
+.dashboard-rows[aria-busy="true"]::after,
+.dashboard-entries[aria-busy="true"]::before {
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.5'/></svg>"),
+    linear-gradient(90deg,
+      var(--panel-2) 0,
+      color-mix(in oklch, var(--panel-2) 70%, var(--accent-dim)) 40px,
+      var(--panel-2) 80px);
+  background-size: 180px 180px, 200px 100%;
+  background-position: 0 0, 0 0;
+  background-repeat: repeat, no-repeat;
+  background-blend-mode: overlay, normal;
+}
+
+/* §DP3.6 — character-positive scrollbar. Thin coral-dim rail
+   replaces the browser default grey. WebKit + Blink via
+   ::-webkit-scrollbar pseudos; Firefox via the standard
+   scrollbar-color + scrollbar-width properties. Kept at --sp-2
+   (8px) so it reads as a page-edge ink line, not a utility bar. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-dim) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-dim);
+  border-radius: var(--r-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  background-clip: padding-box;
+}
