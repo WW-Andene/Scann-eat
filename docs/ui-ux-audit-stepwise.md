@@ -136,3 +136,81 @@ Ship five real token additions + one rename:
    instead of system-blue.
 6. Alias `--accent-pressed` = `--accent-dim` (keep the old name working,
    introduce the correct name).
+
+---
+
+## Step 3 — §DC3 dark-mode craft + §DC4 brand distinctiveness
+
+### §DC3. Dark Mode Craft Assessment
+
+Scann-eat's dark theme is atypical: `--bg` is a brand colour (coral),
+not a dark surface. Cards stack *on* the coral. So the
+elevation-as-lightness rule applies inside the card stack, not to
+page-level.
+
+Measured OKLCH lightness of the panel stack (dark theme):
+
+| Token | Hex | OKLCH L | Delta from prev |
+|---|---|---|---|
+| `--panel` | #1B1B1F | 18% | — |
+| `--panel-2` | #2A2A30 | 26% | **+8%** (skill target: +3–4%) |
+| `--panel-3` | #3A3A42 | 34% | **+8%** |
+
+**Finding DC3-1:** panel-2 and panel-3 each jump +8% in OKLCH
+lightness above the previous layer. Skill target is +3–4%. Current
+steps make the hover surface (panel-3) read as a different material
+rather than a lift. 15 rules reach for `--panel-3`; retuning in
+place risks breaking them.
+
+**Fix:** add `--surface-hover` + `--surface-pressed` tokens tuned
+to the skill spec (+3%, +6% over `--panel`) and migrate the hover
+call-sites to them over time. Leave `--panel-3` as-is for deepest
+nesting.
+
+**No pure black, no shadows in dark cards** — already correct.
+
+### §DC4. Brand Color Distinctiveness
+
+Competitive map of food-tracking accents:
+
+| App | Accent hue |
+|---|---|
+| MyFitnessPal | blue (220°) |
+| Cronometer | green (140°) |
+| Lifesum | green (135°) |
+| Yazio | teal (180°) |
+| OFF | green (135°) |
+| Bitesnap | orange (30°) |
+
+Scann-eat accent: `#FF6B45` → hue 37°. Closest competitor: Bitesnap
+(~30°). 7° apart — under the 15° confusion threshold the skill flags.
+
+**Finding DC4-1:** Accent hue lands near Bitesnap's. However the
+two-tone combo (coral-bg + orange-accent) has no analogue in the
+category — the page-level coral is the distinctive brand signature,
+not the accent alone. Calibration signature `oklch(69% 0.20 37)` is
+specific (not Tailwind orange-500 `#F97316`).
+
+Verdict: distinctive enough via page-level coral. No recalibration
+needed; if ever pressed, shift accent 10–15° warmer (toward hue 22°)
+to separate from Bitesnap.
+
+### §DC5 spillover — tension color
+
+No tension colour exists. The grade palette (green at 147°) is ~110°
+from the accent but it's already semantic (A+). Using it
+compositionally would dilute meaning.
+
+**Finding DC5-1:** add a `--tension` token at hue ~170° (teal-green)
+distinct from any grade, for rare-use celebration moments (streak
+milestones, "goal hit" confetti, compare-armed). Don't apply broadly;
+document the 3-5 appearances-per-app rule.
+
+### Step 3 fixes → shipping
+
+1. `--surface-hover` and `--surface-pressed` tokens tuned to the
+   skill's +3%/+6% OKLCH spec.
+2. `--tension` token + `--tension-ink` pair for rare-use accents.
+3. Documented brand-distinctiveness findings in the audit doc.
+4. No breaking rename: `--panel-3` stays in place for the 15 rules
+   already using it.

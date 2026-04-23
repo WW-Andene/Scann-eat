@@ -4335,3 +4335,57 @@ button:not(.secondary):not(.chip-btn):hover:not(:disabled) {
 button:not(.secondary):not(.chip-btn):active:not(:disabled) {
   background: var(--accent-pressed);
 }
+
+/* ==========================================================================
+   STEP 3 — §DC3 surface elevation + §DC5 tension color.
+   Adds refined hover/pressed surfaces tuned to the +3%/+6% OKLCH
+   lightness step the skill calls for, and a tension color reserved
+   for rare-use celebration moments (≤ 5 appearances app-wide).
+   ========================================================================== */
+:root,
+[data-theme="dark"] {
+  /* Refined hover/pressed surfaces — +3% and +6% OKLCH L from --panel.
+     Use these on NEW rules. Existing rules that reach for --panel-3
+     stay correct; panel-3 becomes "deepest nesting" semantically. */
+  --surface-hover:   #242429;     /* ≈ oklch(21% 0.005 280) */
+  --surface-pressed: #2D2D33;     /* ≈ oklch(24% 0.006 280) */
+
+  /* Tension color — hue 170° teal-green, ~130° from --accent (37°).
+     For rare celebration moments: milestone reached, streak chip on
+     a ≥7-day run, compare-armed indicator, onboarding "done" step.
+     Budget: ≤ 5 usages across the whole app. Diluting it loses the
+     power. */
+  --tension:     #2FC7B2;         /* ≈ oklch(72% 0.13 178) */
+  --tension-ink: #0F2B28;
+}
+[data-theme="light"] {
+  /* Light-mode elevation is shadow-driven, not lightness-driven.
+     Hover surfaces shift slightly to give press feedback but the
+     skill convention is: same or higher lightness on hover. Here
+     we pick a very slight warm shift so hover reads as a soft
+     tonal lift, not a push-down. */
+  --surface-hover:   #FFFDF7;
+  --surface-pressed: #F5EFDF;
+
+  --tension:     #0F8F7E;         /* ≈ oklch(53% 0.10 178), AA-safe on paper */
+  --tension-ink: #FFFFFF;
+}
+
+/* New rules targeting interactive elevation should reach for
+   --surface-hover / --surface-pressed (not --panel-3). Keep the
+   existing --panel-3 call-sites unchanged. */
+
+/* Optional tension-chip helper — a ready affordance for the rare
+   celebration moments. Opt in by adding .chip-tension; nothing
+   applies it automatically to avoid devaluation. */
+.chip-tension {
+  background: var(--tension);
+  color: var(--tension-ink);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: var(--elev-1);
+}
