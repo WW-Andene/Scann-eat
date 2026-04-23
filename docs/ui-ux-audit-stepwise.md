@@ -2126,3 +2126,92 @@ tiny refinement that reads as typographic care.
 3. **Link typography refinement** — global rule
    `a { text-decoration-thickness: 1px; text-underline-offset:
    3px; }`. Subtle craft detail.
+
+---
+
+## Step 27 — app-audit P6 / P7 / P8 coverage
+
+### P6 — Visual Design · Polish · Design System
+
+Cross-references Steps 1-26 in this stepwise audit. Every §E
+sub-chapter in app-audit has been covered:
+
+| §E chapter | Covered in Steps | Verdict |
+|---|---|---|
+| §E1 Design Token System | 4, 5, 6, 8, 10, 17, 18, 21, 23 | ✓ 3-layer token architecture, palette-hued shadows, tokenised scrim, `--r-modal-lg`, `--focus-ring-width`, `--motion-*` scale |
+| §E2 Visual Rhythm & Spatial Composition | 4, 6, 15, 24 | ✓ `main { gap }` bumped to --sp-5 for 1.67× section-to-component contrast |
+| §E3 Color Craft & Contrast | 2, 3, 23 | ✓ OKLCH 5-layer palette, palette-calibrated semantics, chromatic text, WCAG AA verified in brief |
+| §E4 Typography Craft | 4, 20, 26 | ✓ Atkinson + 1.2 ratio + tabular-nums + tracking rules + `.product h2`/`.dashboard-header h2` tokenised |
+| §E5 Component Visual Quality | 16, 17, 18 | ✓ button hierarchy, .btn-loading + .btn-destructive, modal entry anim, toast variants |
+
+No P6 gaps remain.
+
+### P7 — UX · Information Architecture · Copy
+
+| §F chapter | Covered in Steps | Verdict |
+|---|---|---|
+| Flow analysis (scan / quick-add / recipe) | Prior v2 + Step 14 | ✓ short flows, paper-tile empty states with CTA slots, .success-burst milestone hook |
+| IA audit | Step 15 (§DRC) + Step 17 (§DCO4) | ✓ mobile-first vertical stack, chip-btn toolbar nav, modal drill-down |
+| Copy quality | Step 19 (§DCVW) | ✓ voice-visual coherence aligned, empty-state strings rewritten to voiced+actionable |
+| Interaction patterns | Step 5 (§DM) + Step 18 (§DCO5) | ✓ single motion vocabulary, dialog entry animation, touch-scale press feedback |
+
+No P7 gaps remain.
+
+### P8 — Accessibility
+
+Systematic WCAG 2.1 AA audit — newly covered in this step.
+
+**Perceivable:**
+
+| Item | Status |
+|---|---|
+| `<img>` alt / `aria-label` on decorative vs meaningful images | ✓ emoji decorative; `aria-hidden` where needed |
+| Semantic structure (`<main>`, `<header>`, `<button>`, `<dialog>`) | ✓ |
+| Color independence (grade pattern overlays + icon + text) | ✓ (Step 8 extended to `.grade`) |
+| Text contrast | ✓ checked per-theme in tokens + design-system.md |
+| Text scaling (`.font-size-large`, `.font-size-xlarge`) | ✓ tested up to 22px body |
+| Touch targets (≥ 44×44 px) | ✓ button 56px, chip 40px, compact 40px min |
+| **`forced-colors` / Windows High Contrast** | **— gap, no media query** |
+
+**Operable:**
+
+| Item | Status |
+|---|---|
+| Skip link | ✓ `.skip-link → #main-content` (first focusable element) |
+| Focus-visible styling | ✓ on every interactive type (Step 21 tokenised, Step 25 calibrated) |
+| No focus traps | ✓ `<dialog>` focus management is browser-native |
+| Action labels on icon-only buttons | ✓ checked — most have text + emoji |
+| Reduced-motion | ✓ `@media (prefers-reduced-motion)` + `body.reduce-motion` toggle |
+
+**Understandable:**
+
+| Item | Status |
+|---|---|
+| `<html lang>` synced to user language | ✓ `applyStaticTranslations()` sets it + `setLang()` re-triggers |
+| Predictable behaviour | ✓ |
+| Error identification (inline error-panel in Step 14) | ✓ |
+| Input labels | ✓ `data-i18n` labels; §DST3 inline panels |
+
+**Robust:**
+
+| Item | Status |
+|---|---|
+| ARIA live regions | ✓ `#qa-ai-status`, `#dashboard-remaining`, toast `role="status"`, camera status |
+| Dynamic announcements | ✓ toast uses `role=status`; async results via aria-busy |
+| State changes communicated | partial — `aria-expanded` not used on chip-btns |
+
+**Primary P8 finding:** no `forced-colors` media query. In Windows
+High Contrast Mode, our custom `outline-color: var(--accent)` is
+replaced by the system's `CanvasText` — focus indicators can
+disappear or blend into background. A single media block fixes it.
+
+### Step 27 fixes → shipping
+
+1. **Forced-colors mode support** — `@media (forced-colors:
+   active)` block that re-asserts focus indicators using system
+   colours (`outline: 2px solid Highlight`) + preserves grade
+   badge backgrounds via `forced-color-adjust: none`. Single
+   block; covers WCAG 1.4.11 non-text contrast in HCM.
+2. **i18n `setLang` comment clarified** — noted in core/i18n.js
+   that `applyStaticTranslations()` handles the `<html lang>`
+   sync so future contributors don't add a redundant setter.

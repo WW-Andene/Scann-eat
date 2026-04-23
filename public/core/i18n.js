@@ -1525,6 +1525,9 @@ export function setLang(lang) {
   if (!SUPPORTED_LANGS.includes(lang)) return;
   currentLang = lang;
   localStorage.setItem(LS_LANG, lang);
+  // applyStaticTranslations() below already syncs
+  // document.documentElement.lang to currentLang (§G1
+  // accessibility — screen readers need matching lang attr).
   applyStaticTranslations();
 }
 

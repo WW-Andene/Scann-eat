@@ -5391,3 +5391,46 @@ a {
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
+
+/* ==========================================================================
+   STEP 27 — app-audit P8 accessibility: forced-colors (HCM) support.
+   Windows High Contrast Mode replaces custom outline-color with
+   system CanvasText, which can wash out --accent focus rings.
+   Re-assert the focus ring in system colours + keep grade badge
+   backgrounds intact so the pattern overlay + colour coding
+   survives the forced palette.
+   ========================================================================== */
+
+@media (forced-colors: active) {
+  /* Focus ring — use Highlight so it always reads above the
+     user's chosen high-contrast palette. */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible,
+  summary:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  /* Grade badges — keep the colour coding + pattern overlay
+     intact. Without this, HCM would strip the bg colour and
+     the grade disambiguation collapses to the letter alone. */
+  .grade,
+  .recent-grade,
+  .compare-grade,
+  .recipe-row-grade,
+  .recipe-edit-grade {
+    forced-color-adjust: none;
+  }
+
+  /* Chip-btn active state remains visible even when HCM
+     overrides the accent fill. */
+  .chip-btn[aria-current="page"],
+  .chip-btn[aria-current="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
