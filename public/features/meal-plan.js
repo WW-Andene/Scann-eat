@@ -17,6 +17,8 @@
  * migration to coordinate with the rest of the app.
  */
 
+import { localDateISO } from '../core/dateutil.js';
+
 const KEY = 'scanneat.mealPlan';
 const KEEP_DAYS_PAST = 7;
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -36,14 +38,18 @@ function writeAll(obj) {
   try { localStorage.setItem(KEY, JSON.stringify(obj)); } catch { /* quota */ }
 }
 
-export { localDateISO as isoToday } from '../core/dateutil.js';
+// R27.2: `isoToday` was only re-exported (no local binding), so the
+// `weekDates()` default branch on line below would have thrown a
+// ReferenceError at runtime whenever a caller omitted `startDate`.
+// Caught in tests only because every test passes a startDate.
+export { localDateISO as isoToday };
 
 /**
  * Yields the 7 ISO dates starting at `startDate` (inclusive), or today
  * by default. Pure — used by the UI to render the grid.
  */
 export function weekDates(startDate) {
-  const start = startDate ? new Date(`${startDate}T00:00:00Z`) : new Date(`${isoToday()}T00:00:00Z`);
+  const start = startDate ? new Date(`${startDate}T00:00:00Z`) : new Date(`${localDateISO()}T00:00:00Z`);
   const out = [];
   for (let i = 0; i < 7; i += 1) {
     const d = new Date(start);
@@ -71,7 +77,10 @@ export function buildSlot(input) {
 
 /** Strip dates older than KEEP_DAYS_PAST. Pure on its input copy. */
 export function pruneOld(plan, now = Date.now()) {
-  const cutoff = new Date(now - KEEP_DAYS_PAST * 86_400_000).toISOString().slice(0, 10);
+  // R27.1: local-day cutoff (was UTC via toISOString). A user in
+  // UTC-8 retaining yesterday's plan saw it pruned up to 8 hours
+  // early depending on when the write hit during the evening.
+  const cutoff = localDateISO(now - KEEP_DAYS_PAST * 86_400_000);
   const out = {};
   for (const [date, slots] of Object.entries(plan ?? {})) {
     if (date >= cutoff) out[date] = slots;
