@@ -4092,7 +4092,7 @@ dialog.settings-dialog,
 .activity-tile,
 .fasting-tile,
 .weight-summary {
-  box-shadow: var(--elev-1);
+  box-shadow: var(--elev-1-tonal, var(--elev-1));
 }
 
 /* -- buttons: primary gets elevation + tighter tap feel ------------------ */
@@ -5163,8 +5163,15 @@ select {
   font-size: inherit;
   min-height: 44px;
   box-sizing: border-box;
+  /* §TEXTURE inset surface — "recessed paper field" depth cue. */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: border-color var(--motion-base, 140ms) var(--ease-ui, ease),
               background var(--motion-base, 140ms) var(--ease-ui, ease);
+}
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 textarea {
   min-height: 88px;

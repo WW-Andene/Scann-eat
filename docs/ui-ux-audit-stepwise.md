@@ -1826,3 +1826,74 @@ Plus two meta-sections:
 No CSS changes this step — the brief consolidates prior Steps
 rather than introducing new rules. The deliverable is the
 document itself.
+
+---
+
+## Step 23 — art-direction §COLOR · §DEPTH · §TEXTURE craft techniques
+
+### §COLOR. OKLCH 5-layer palette audit
+
+| Layer | Target (skill) | Observed (Scann-eat) | Verdict |
+|---|---|---|---|
+| 1 — Background | `oklch(97.5% 0.005 H)` light / `oklch(13% 0.015 H)` dark — hue present, never pure white/black | coral `oklch(87% 0.06 12)` light / `oklch(55% 0.14 16)` dark + paper-grain overlay | ✓ bolder than skill suggestion, on-character for the "farmer's market" concept |
+| 2 — Surfaces | each elevation step shifts BOTH L and hue (~5°) | Scann-eat shifts lightness only; hue stays at ~280° (dark) or ~90° (light) across `--panel-2`/`--panel-3` | on-character deliberate — paper doesn't hue-shift per layer |
+| 3 — Text | chromatic, never pure gray | Dark `--text` `oklch(94.5% 0.014 80)` ✓. Light `--text` `oklch(20% 0.005 280)` — near-pure-black | **gap — light `--text` is too neutral for a warm-paper background** |
+| 4 — Accent | max chroma for its hue, restricted to CTA + active | `--accent` `oklch(68% 0.21 40)` warm orange, restricted | ✓ |
+| 5 — Semantic | calibrated to palette | `--danger` 20° coral-red, `--success` 140° warm lime, `--warning` 60° amber | ✓ harmonically related, not generic |
+
+**Color relationship:** accent at 40° + bg at 16° = ~24° spread = **Analogous** — "harmonious, calm" per the skill table. ✓ matches the "warm calm food ledger" intent.
+
+**Screenshot test:** 100×100 thumbnail shows coral bg + cream card + grade-pattern badge — unique to Scann-eat, not a generic tracker colour pattern. ✓
+
+### §DEPTH. Five-technique audit
+
+| # | Technique | Used? | Notes |
+|---|---|---|---|
+| 1 | Tonal surface elevation | ✓ | `--panel-2`/`--panel-3` lightness steps + dark-mode top-rim highlight (Step 10) |
+| 2 | Color-matched directional shadows | partial | `--elev-1-tonal` exists (Step 8) but unused by default — `--elev-1` is still `rgba(0,0,0,...)` neutral black |
+| 3 | Layered transparency | ✓ | `dialog::backdrop` 12px blur via `--blur-glass` |
+| 4 | Parallax | — | skipped intentionally (A4=2 Playful/casual, not "Aesthetic amplifies") |
+| 5 | Focus blur on dialog-open | ✓ | backdrop blurs content behind active dialog |
+
+**Finding DEPTH-2:** default card shadow uses pure-black alpha.
+Per skill "Shadow hue matches palette's dark tone. Never
+`rgba(0,0,0,...)`." `--elev-1-tonal` already exists but is
+opt-in. Promoting it to the default card shadow requires a
+one-line swap and no token churn.
+
+### §TEXTURE. Surface materiality audit
+
+| Technique | Used? | Where |
+|---|---|---|
+| Noise grain | ✓ | `body::before` 2% SVG turbulence (Step 6) |
+| Gradient mesh | — | off-character — would contradict Paper material |
+| Dot grid | ✓ (localised) | `.grade[data-grade="B"]` + `.recent-grade[data-grade="B"]` radial-gradient dot overlay |
+| Diagonal hatch | ✓ (localised) | grade C/D/F repeating-linear-gradient overlays |
+| Inset surface | **— absent** | inputs currently lack the "carved-in well" treatment — a low-cost paper-material deepening |
+
+**Material personality:** **Paper** — warm tint ✓, soft shadows
+✓, no blur on surfaces ✓, clean edges ✓. All four Paper
+criteria met. Tertiary **Glass** on dialog backdrop only
+(demoted per §DP2 brief).
+
+**Finding TEXTURE-1:** inputs don't use the inset-surface
+technique. A subtle `box-shadow: inset 0 1px 2px {shadow-hue}`
+on the global input baseline would sell "data entered into a
+recessed paper field" — deepens Paper character at zero other
+cost.
+
+### Step 23 fixes → shipping
+
+1. **Promote `--elev-1-tonal` to the default card shadow** —
+   the existing Step 4086 block that applies `--elev-1` to
+   `.result`, `.pairings`, `.recent-scans`, `.daily-dashboard`,
+   tiles, etc. switches to `--elev-1-tonal`. Shadow hue now
+   derives from the coral palette (per §DEPTH technique 2
+   "never rgba(0,0,0,...)"). Buttons keep `--elev-1` since
+   they sit on `.panel` not on `--bg`.
+2. **Inset-surface shadow on global inputs** — add `box-shadow:
+   inset 0 1px 2px rgba(0,0,0,0.04)` to the Step 16 baseline.
+   Sells "recessed paper field" without darkening the input
+   visibly. Dark theme uses `rgba(0,0,0,0.25)` for a more
+   visible inset since dark inputs on dark panels need stronger
+   depth cueing.
