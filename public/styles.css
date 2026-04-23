@@ -111,7 +111,7 @@
   border-radius: var(--r-pill);
   font-weight: 600;
   font-size: 0.95em;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--elev-2);
   opacity: 0;
   pointer-events: none;
   transition: opacity 180ms ease, transform 180ms ease;
@@ -2065,7 +2065,7 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   background: var(--panel);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-sm);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--elev-2);
   max-height: 220px;
   overflow-y: auto;
   position: absolute;
@@ -2354,7 +2354,7 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   background: var(--panel);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-sm);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--elev-2);
   position: absolute;
   top: 44px;
   left: 0;
@@ -2438,7 +2438,7 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   background: var(--panel);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-sm);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--elev-2);
   max-height: 220px;
   overflow-y: auto;
   position: absolute;
@@ -5286,4 +5286,52 @@ dialog.settings-dialog {
   padding-bottom: var(--sp-3);
   border-bottom: 1px solid var(--border);
   margin-bottom: var(--sp-2);
+}
+
+/* ==========================================================================
+   STEP 18 — §DCO5 modal entry animation · §DCO6 toast token.
+   Two additions:
+     (1) @starting-style-driven dialog entry: opacity + scale +
+         translateY animation when a <dialog> opens, matching the
+         app's --motion-enter 220ms motion vocabulary.
+         Browsers without @starting-style get the current
+         snap-open fallback — graceful degrade.
+     (2) Toast shadow tokenised (done via the .app-toast edit
+         above — global replace from hard-coded rgba to --elev-2).
+   ========================================================================== */
+
+/* §DCO5 — dialog enter animation. The open transition runs when
+   [open] is applied; @starting-style provides the "from"
+   snapshot. Uses the app's motion tokens so timing stays
+   coherent with every other UI transition. */
+@supports (transition-behavior: allow-discrete) {
+  dialog {
+    transition:
+      opacity var(--motion-enter, 220ms) var(--ease-ui, ease),
+      transform var(--motion-enter, 220ms) var(--ease-ui, ease),
+      overlay var(--motion-enter, 220ms) allow-discrete,
+      display var(--motion-enter, 220ms) allow-discrete;
+  }
+  dialog:not([open]) {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  @starting-style {
+    dialog[open] {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog {
+    transition: none;
+  }
+  @starting-style {
+    dialog[open] {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }

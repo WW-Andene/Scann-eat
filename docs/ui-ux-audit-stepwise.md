@@ -1533,3 +1533,68 @@ the container context. HTML-level change; not a CSS ship.
    `--border` token, so the nav reads as a dedicated rail
    distinct from the dashboard content below. Attribute-gated
    so it activates when the HTML is upgraded.
+
+---
+
+## Step 18 — §DCO5 modal & overlay · §DCO6 toast & notification
+
+### §DCO5. Modal & overlay audit
+
+| Aspect | Current | Verdict |
+|---|---|---|
+| Backdrop colour | coral gradient + 12px blur (Steps 6-7-11) + paper grain bump when open (Step 9) | ✓ chromatic, character-positive |
+| Backdrop opacity | 0.55–0.78 per theme | ✓ |
+| Corner radius | `--r-modal-lg` 36px (Step 17) | ✓ |
+| Padding | `--sp-6` | ✓ generous |
+| Header typography | per-dialog (no shared rule) | ✓ adequate |
+| Action zone | `.dialog-actions` standardised (v2) + stacks <400px (Step 15) | ✓ |
+| Dismiss by backdrop click | browser-native `<dialog>` handles Escape; backdrop click varies per implementation | adequate |
+| Entry animation | **— none** | **Gap** |
+
+**Finding DCO5-1:** modals have no entry animation. They
+snap-appear with the backdrop fade the browser provides.
+Per §DCO5 and the app's motion vocabulary (`--motion-enter
+220ms` + `--ease-ui`), a subtle scale-from-0.98 + fade would
+match character. Modern CSS `@starting-style` lets us animate
+`<dialog>` open without JS; older browsers get the current
+snap-open behaviour (graceful fallback).
+
+### §DCO6. Toast & notification audit
+
+Toast anatomy (`.app-toast`):
+
+| Aspect | Current | Verdict |
+|---|---|---|
+| Background | `--panel` | ✓ character-positive (not generic green/red fill) |
+| Variant treatment | 4px inset left stripe (`warn` / `error` / `ok`) | ✓ distinctive, not a blanket fill |
+| Radius | `--r-pill` | ✓ approachable |
+| Shadow | hard-coded `rgba(0,0,0,0.25)` | **Gap — should use `--elev-2` token** |
+| Entry motion | 180ms `translateY(16px)` + fade | ✓ |
+| Exit motion | same 180ms | ⚠ skill wants 150ms (faster on exit than entry) |
+| Duration | ~2.5s ok / longer for errors | ✓ |
+| Stacking | replaces previous | acceptable for mobile |
+| Position | bottom-centre + `env(safe-area-inset-bottom)` | ✓ mobile-native |
+| Written voice | plural-aware i18n, warm register | ✓ (§DCVW1 to deepen later) |
+
+**Finding DCO6-1:** toast shadow is the only hard-coded
+rgba value left in the production-level component chrome.
+Swap to `--elev-2` for token coherence.
+
+**Finding DCO6-2:** exit motion could drop to `--motion-exit
+180ms` (already 180ms in practice) — no code change actually
+needed; the existing value equals the token. Mark as
+"already aligned."
+
+### Step 18 fixes → shipping
+
+1. **Modal entry animation via `@starting-style`** — dialogs
+   animate from `opacity: 0 + transform: translateY(8px)
+   scale(0.98)` to the resting state across `--motion-enter
+   220ms` with `--ease-ui`. Browsers without `@starting-style`
+   support (older Safari, older Firefox) get the snap-open
+   fallback — graceful degrade. Reduced-motion users skip
+   the animation entirely.
+2. **Toast shadow tokenised** — replace the hard-coded
+   `rgba(0,0,0,0.25)` with `--elev-2`. Token coherence; no
+   visual change for the standard case, but now one knob to
+   tune if the shadow family ever shifts.
