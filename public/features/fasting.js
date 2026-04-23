@@ -77,7 +77,7 @@ function renderStreak() {
     if (hist.length === 0) {
       hide(wrap);
     } else {
-      list.innerHTML = '';
+      list.textContent = '';
       for (const r of hist.slice().reverse()) { // newest first
         const li = document.createElement('li');
         const hours = Math.floor(r.duration_ms / 3_600_000);
@@ -163,6 +163,22 @@ export function initFasting(injected) {
     renderFasting();
   });
   $('fasting-stop')?.addEventListener('click', () => {
+    // R19.1: stopping a fast that hasn't completed marks it as a
+    // failed attempt in history. A stray tap after 12 h of a 16 h
+    // fast used to silently break the streak — confirm now gates
+    // any incomplete stop.
+    const { t: t2 } = deps;
+    const s = getState();
+    if (s) {
+      const hours = (Date.now() - s.start_ms) / 3_600_000;
+      if (hours < s.target_hours) {
+        if (!window.confirm(t2('fastingStopConfirm', {
+          h: Math.floor(hours),
+          m: String(Math.floor((hours - Math.floor(hours)) * 60)).padStart(2, '0'),
+          target: s.target_hours,
+        }))) return;
+      }
+    }
     stop();
     renderFasting();
   });
