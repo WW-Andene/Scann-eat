@@ -50,6 +50,7 @@ import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, es
 import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary, formatRecipeShare, formatTemplateShare, pctClass, dashboardRowsFrom, filterScanHistory, summarizeScanHistory, topFoods, weekOverWeekDelta } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
+import { checkRecipeWarnings, checkTemplateWarnings, checkQuickAddWarnings } from '/core/user-content-checks.js';
 
 // Safari private mode + some embedded WebViews disable localStorage writes
 // (getItem returns null silently, but setItem/removeItem throw). Shim the
@@ -2857,6 +2858,17 @@ qaSave?.addEventListener('click', async (e) => {
     } else {
       await logQuickAdd(f);
     }
+    // Gap fixes #24 + #25: after logging, surface a non-blocking
+    // warning if the typed name triggers allergen or diet rules. Does
+    // not prevent the save — respects user autonomy, just informs.
+    try {
+      const warn = checkQuickAddWarnings(f.name, getProfile(), currentLang);
+      if (warn.allergens.length > 0) {
+        toast(t('qaAllergenWarn', { items: warn.allergens.map((a) => a.label).join(' · ') }), 'warn');
+      } else if (warn.dietViolations.length > 0) {
+        toast(t('qaDietWarn', { items: warn.dietViolations.slice(0, 2).join(' · ') }), 'warn');
+      }
+    } catch { /* never block the save */ }
     quickAddDialog.close();
     await renderDashboard();
   } catch (err) {
@@ -3133,6 +3145,8 @@ initTemplatesDialog({
   expandTemplate, templateKcal, putEntry, todayISO, renderDashboard,
   shareOrCopy, formatTemplateShare,
   currentLang: () => currentLang,
+  // Gap fixes #24 + #25: allergen + diet warnings.
+  checkTemplateWarnings, getProfile,
 });
 recipesDialog = initRecipesDialog({
   t, toast,
@@ -3148,6 +3162,8 @@ recipesDialog = initRecipesDialog({
   // Gap fix 1 — recipe scoring: synthesise ProductInput for
   // scoreProduct.
   buildRecipeProductInput,
+  // Gap fixes #24 + #25: per-recipe allergen + diet warnings.
+  checkRecipeWarnings, getProfile,
 });
 initQaAutocomplete({
   t, show, hide, searchFoodDB, listCustomFoods,

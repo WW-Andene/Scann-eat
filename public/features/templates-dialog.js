@@ -29,6 +29,8 @@ export function initTemplatesDialog(deps) {
     listByDate, saveTemplate, listTemplates, deleteTemplate,
     expandTemplate, templateKcal, putEntry, todayISO, renderDashboard,
     shareOrCopy, formatTemplateShare, currentLang,
+    // Gap fixes #24 + #25 — warn on allergens / diet violations.
+    checkTemplateWarnings, getProfile,
   } = deps;
 
   const templatesBtn = $('templates-btn');
@@ -128,6 +130,23 @@ export function initTemplatesDialog(deps) {
       kcal.textContent = `${templateKcal(tpl)} kcal · ${t('tplItemsCount', { n: tpl.items.length })}`;
       head.appendChild(name);
       head.appendChild(kcal);
+      // Gap fixes #24 + #25 — allergen + diet warning chip per row.
+      if (checkTemplateWarnings && getProfile) {
+        try {
+          const profile = getProfile();
+          const warnings = checkTemplateWarnings(tpl, profile, currentLang ? currentLang() : 'fr');
+          if (warnings.allergens.length > 0 || warnings.dietViolations.length > 0) {
+            const chip = document.createElement('span');
+            chip.className = 'recipe-warn-chip';
+            const parts = [];
+            if (warnings.allergens.length > 0) parts.push(`⚠ ${warnings.allergens.map((a) => a.label).join(' · ')}`);
+            if (warnings.dietViolations.length > 0) parts.push(`🚫 ${warnings.dietViolations.slice(0, 2).join(' · ')}`);
+            chip.textContent = parts.join(' · ');
+            chip.title = parts.join(' · ');
+            head.appendChild(chip);
+          }
+        } catch { /* best-effort */ }
+      }
       li.appendChild(head);
       const actions = document.createElement('div');
       actions.className = 'tpl-actions';

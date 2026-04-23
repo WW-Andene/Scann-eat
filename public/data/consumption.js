@@ -13,6 +13,12 @@
  * FAO/WHO/UNU PAL + WHO energy-percent conversions.
  */
 
+import { localDateISO } from '../core/dateutil.js';
+import { MICRO_KEYS } from '../core/nutrition-fields.js';
+// Single-source micro list. Fiber is included; sumTotals handles it
+// through the loop, no explicit per-field addition.
+const MICRO_FIELDS = MICRO_KEYS;
+
 const DB_NAME = 'scanneat';
 const DB_VERSION = 6;
 const STORE = 'consumption';
@@ -72,7 +78,6 @@ export async function putEntry(entry) {
 // Re-exported via /core/dateutil.js — kept here as the canonical name
 // the rest of the app imports from. See that file for why it's local
 // (not UTC) day.
-import { localDateISO } from '../core/dateutil.js';
 export { localDateISO as todayISO } from '../core/dateutil.js';
 
 export const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -232,23 +237,13 @@ export async function clearDate(date = todayISO()) {
   for (const e of entries) await deleteEntry(e.id);
 }
 
-// Feature 2: full micronutrient panel. Each field here is summed
-// across entries and surfaced in the dashboard conditionally (only
-// rendered when total > 0), so products that don't report a given
-// micro don't clutter the UI.
-const MICRO_FIELDS = [
-  'iron_mg', 'calcium_mg', 'magnesium_mg', 'potassium_mg', 'zinc_mg',
-  'sodium_mg',
-  'vit_a_ug', 'vit_c_mg', 'vit_d_ug', 'vit_e_mg', 'vit_k_ug',
-  'b1_mg', 'b2_mg', 'b3_mg', 'b6_mg', 'b9_ug', 'b12_ug',
-  'polyunsaturated_fat_g', 'monounsaturated_fat_g',
-  'omega_3_g', 'omega_6_g', 'cholesterol_mg',
-];
-
 /** Pure aggregation — exported for tests. */
 export function sumTotals(entries) {
+  // MACRO keys are summed explicitly. MICRO keys (includes fiber_g)
+  // go through the loop below — single source of truth; no
+  // double-counting because fiber is NOT in the explicit list.
   const t = {
-    kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0, fiber_g: 0,
+    kcal: 0, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0, protein_g: 0,
     count: entries.length,
   };
   for (const f of MICRO_FIELDS) t[f] = 0;
@@ -260,7 +255,6 @@ export function sumTotals(entries) {
     t.sugars_g += e.sugars_g || 0;
     t.salt_g += e.salt_g || 0;
     t.protein_g += e.protein_g || 0;
-    t.fiber_g += e.fiber_g || 0;
     for (const f of MICRO_FIELDS) t[f] += e[f] || 0;
   }
   const out = {
@@ -271,9 +265,9 @@ export function sumTotals(entries) {
     sugars_g: round2(t.sugars_g),
     salt_g: round3(t.salt_g),
     protein_g: round2(t.protein_g),
-    fiber_g: round2(t.fiber_g),
     count: t.count,
   };
+  // Rounded micro outputs (fiber_g included via the shared list).
   for (const f of MICRO_FIELDS) out[f] = round2(t[f]);
   return out;
 }

@@ -2408,6 +2408,25 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 .add-to-recipe-item:hover,
 .add-to-recipe-item:focus-visible { background: var(--panel-2); outline: none; }
 
+/* Gap fixes #24 + #25 — allergen / diet warning chip on recipe &
+   template list rows. Muted-orange so it reads as "attention" not
+   "error". */
+.recipe-warn-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-left: var(--sp-2);
+  border-radius: var(--r-md);
+  background: rgba(245, 180, 80, 0.15);
+  color: var(--warning);
+  border: 1px solid rgba(245, 180, 80, 0.35);
+  font-size: 0.75em;
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .recipe-component { position: relative; }
 .rc-suggestions {
   list-style: none;

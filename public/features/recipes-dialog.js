@@ -43,6 +43,9 @@ export function initRecipesDialog(deps) {
     // Gap fix 1 — recipe scoring: the engine's scoreProduct runs on
     // a synthesised ProductInput from buildRecipeProductInput.
     buildRecipeProductInput,
+    // Gap fixes #24 + #25 — allergen + diet warnings on user-typed
+    // recipes. Pure helpers; getProfile is the reactive source.
+    checkRecipeWarnings, getProfile,
   } = deps;
 
   const recipesBtn = $('recipes-btn');
@@ -386,6 +389,28 @@ export function initRecipesDialog(deps) {
       const summary = document.createElement('span');
       summary.className = 'tpl-kcal';
       summary.textContent = `${Math.round(agg.kcal)} kcal · ${t('recipeIngrCount', { n: r.components.length })}`;
+      // Gap fixes #24 + #25 — surface allergen + diet warnings on
+      // each row before the user applies it.
+      if (checkRecipeWarnings && getProfile) {
+        try {
+          const profile = getProfile();
+          const warnings = checkRecipeWarnings(r, profile, currentLang ? currentLang() : 'fr');
+          if (warnings.allergens.length > 0 || warnings.dietViolations.length > 0) {
+            const chip = document.createElement('span');
+            chip.className = 'recipe-warn-chip';
+            const parts = [];
+            if (warnings.allergens.length > 0) {
+              parts.push(`⚠ ${warnings.allergens.map((a) => a.label).join(' · ')}`);
+            }
+            if (warnings.dietViolations.length > 0) {
+              parts.push(`🚫 ${warnings.dietViolations.slice(0, 2).join(' · ')}`);
+            }
+            chip.textContent = parts.join(' · ');
+            chip.title = parts.join(' · ');
+            head.appendChild(chip);
+          }
+        } catch { /* best-effort — never block the list render */ }
+      }
       head.appendChild(name);
       head.appendChild(summary);
       li.appendChild(head);

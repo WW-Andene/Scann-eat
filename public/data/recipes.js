@@ -70,18 +70,8 @@ export function ensureStores(db) {
  * `servings` divides the total, so the same recipe can be reused as
  * "1 serving" or "half a serving" at apply time.
  */
-// Gap fix 1: every micronutrient the consumption entry carries is
-// also summed through recipe aggregation. Single source of truth so
-// adding a new field means one list edit here instead of hunting
-// through aggregateRecipe call sites.
-const RECIPE_MICRO_FIELDS = [
-  'fiber_g',
-  'iron_mg', 'calcium_mg', 'magnesium_mg', 'potassium_mg', 'zinc_mg', 'sodium_mg',
-  'vit_a_ug', 'vit_c_mg', 'vit_d_ug', 'vit_e_mg', 'vit_k_ug',
-  'b1_mg', 'b2_mg', 'b3_mg', 'b6_mg', 'b9_ug', 'b12_ug',
-  'polyunsaturated_fat_g', 'monounsaturated_fat_g',
-  'omega_3_g', 'omega_6_g', 'cholesterol_mg',
-];
+// Single source of truth — shared with consumption aggregation.
+import { MICRO_KEYS as RECIPE_MICRO_FIELDS } from '../core/nutrition-fields.js';
 
 export function aggregateRecipe(recipe, servings = 1) {
   const s = Math.max(0.1, Number(servings) || 1);
@@ -143,14 +133,24 @@ export function buildRecipeProductInput(recipe) {
     const total = items.reduce((acc, it) => acc + (Number(it?.[key]) || 0), 0);
     return (total * 100) / basis;
   };
+  // Fix #18: don't blanket-flag every component as a whole food.
+  // The scoring engine's isWholeFood() already does keyword-matching
+  // on ingredient names (pomme, tomate, poulet, riz, …). Letting it
+  // infer naturally means a recipe of "bacon + processed cheese +
+  // white flour" correctly scores LOW on ingredient-integrity
+  // instead of getting max points from a blanket `true`.
   const ingredients = items.map((c) => {
     const grams = Number(c.grams) || 0;
     const pct = totalGrams > 0 ? Math.round((grams / totalGrams) * 1000) / 10 : null;
     return {
       name: String(c.product_name || '').trim() || '—',
       percentage: pct,
-      is_whole_food: true,
       category: 'food',
+      // Let scoring-engine.isWholeFood() decide via the keyword list.
+      // Only supply `is_whole_food` explicitly if the caller already
+      // knows (e.g. the component came from FOOD_DB via the R5
+      // autocomplete — the UI could stash that on the component row
+      // in a future pass).
     };
   });
   return {

@@ -135,7 +135,10 @@ export function summarize(entries, days = 30) {
   if (!entries || entries.length === 0) return null;
   const sorted = entries.slice().sort((a, b) => a.date.localeCompare(b.date));
   const latest = sorted[sorted.length - 1];
-  const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  // Fix #29: local-day cutoff, not UTC. Entries are stamped with
+  // localDateISO (R25.1) so the cutoff comparison must be on the
+  // same scale — previously drifted by up to a day at tz edges.
+  const cutoff = localDateISO(Date.now() - days * 86400000);
   const recent = sorted.filter((e) => e.date >= cutoff);
   const first = recent[0] || sorted[0];
   const delta = Math.round((latest.weight_kg - first.weight_kg) * 10) / 10;

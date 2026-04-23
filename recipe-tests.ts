@@ -129,7 +129,9 @@ describe('buildRecipeProductInput', () => {
     assert.equal(input.ingredients[0].name, 'a');
     assert.equal(input.ingredients[0].percentage, 25);
     assert.equal(input.ingredients[1].percentage, 75);
-    assert.ok(input.ingredients[0].is_whole_food);
+    // #18: no blanket is_whole_food — scoring-engine's keyword
+    // matching decides per-name.
+    assert.equal(input.ingredients[0].is_whole_food, undefined);
   });
 
   it('falls back to 100g basis when no grams are declared', () => {
