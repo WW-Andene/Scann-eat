@@ -2,7 +2,7 @@
 // Missing modules used to hydrate via stale-while-revalidate on first
 // online use, but first-launch-offline-after-install crashed on their
 // imports. Every module the app reaches at boot now precaches.
-const CACHE = 'scann-eat-shell-r32';
+const CACHE = 'scann-eat-shell-r35';
 const SHELL = [
   '/',
   '/index.html',
@@ -25,6 +25,7 @@ const SHELL = [
   '/core/share.js',
   '/core/date-format.js',
   '/core/dateutil.js',
+  '/core/unit-convert.js',
   // /data/
   '/data/queue-store.js',
   '/data/scan-history.js',

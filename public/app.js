@@ -20,6 +20,7 @@ import { initAppearance, applyAppearance, applyTheme, applyReadingPrefs } from '
 import { shareOrCopy } from '/core/share.js';
 import { dateFormatter, localeFor } from '/core/date-format.js';
 import { localDateISO } from '/core/dateutil.js';
+import { toGrams, parseUnitInput } from '/core/unit-convert.js';
 import { initRecipeIdeas, openRecipeIdeas, openPantryIdeas } from '/features/recipe-ideas.js';
 import { initSettingsDialog } from '/features/settings-dialog.js';
 import { initKeybindings } from '/features/keybindings.js';
@@ -2417,6 +2418,41 @@ $('portion-panel')?.addEventListener('click', (e) => {
   if (!btn) return;
   portionInput.value = btn.dataset.portion;
   if (lastData) updateLogPreview(lastData.product);
+});
+
+// Unit conversion — cup/tbsp/oz → grams, density-aware via the
+// current scan's product name when available.
+function applyUnitConvert() {
+  const input = $('unit-convert-input');
+  const out = $('unit-convert-result');
+  const raw = (input?.value || '').trim();
+  if (!raw) return;
+  const parsed = parseUnitInput(raw);
+  const foodName = parsed?.name || lastData?.product?.name || '';
+  const grams = parsed ? toGrams(parsed.amount, parsed.unit, foodName) : null;
+  if (!grams || grams <= 0) {
+    if (out) {
+      out.textContent = t('unitConvertBadInput');
+      out.dataset.state = 'warn';
+      out.hidden = false;
+    }
+    return;
+  }
+  portionInput.value = String(Math.round(grams));
+  if (lastData) updateLogPreview(lastData.product);
+  if (out) {
+    out.textContent = t('unitConvertResult', {
+      amount: parsed.amount, unit: parsed.unit,
+      name: foodName || t('unitConvertNoName'),
+      grams: Math.round(grams),
+    });
+    delete out.dataset.state;
+    out.hidden = false;
+  }
+}
+$('unit-convert-apply')?.addEventListener('click', applyUnitConvert);
+$('unit-convert-input')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); applyUnitConvert(); }
 });
 
 logBtn?.addEventListener('click', async () => {

@@ -2159,6 +2159,40 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   gap: var(--sp-2);
   margin-top: var(--sp-2);
 }
+/* Feature 1 — unit-convert widget inside the portion panel. Same
+   collapsible affordance as the manual-barcode escape hatch. */
+.unit-convert-wrap {
+  margin-top: var(--sp-2);
+  font-size: 0.9em;
+}
+.unit-convert-wrap summary {
+  cursor: pointer;
+  color: var(--muted);
+  padding: var(--sp-2) 0;
+  list-style: none;
+}
+.unit-convert-wrap summary::-webkit-details-marker { display: none; }
+.unit-convert-wrap summary:hover,
+.unit-convert-wrap summary:focus-visible { color: var(--text); outline: none; }
+.unit-convert-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.unit-convert-form input {
+  padding: 10px 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-md);
+  font-size: 1em;
+  font-family: inherit;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+#unit-convert-result[data-state="warn"] { color: var(--warning); }
+
 .manual-barcode-form input {
   padding: 10px 12px;
   background: var(--panel-2);

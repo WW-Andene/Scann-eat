@@ -1005,6 +1005,14 @@
                 <input id="portion-grams" type="number" min="1" max="2000" step="1" inputmode="decimal" value="100" />
                 <span>g</span>
               </span>
+              <details class="unit-convert-wrap">
+                <summary data-i18n="unitConvertToggle">⚖️ Convertir depuis cup/tbsp/oz…</summary>
+                <div class="unit-convert-form">
+                  <input id="unit-convert-input" type="text" data-i18n-placeholder="unitConvertPlaceholder" placeholder="ex : 1/2 cup flour" autocomplete="off" />
+                  <button id="unit-convert-apply" type="button" class="chip-btn compact" data-i18n="unitConvertApply">→ g</button>
+                </div>
+                <p id="unit-convert-result" class="hint" hidden></p>
+              </details>
             </label>
             <label class="portion-input">
               <span data-i18n="mealLabel">Repas</span>
