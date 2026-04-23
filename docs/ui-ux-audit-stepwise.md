@@ -396,3 +396,141 @@ signature. **Low-risk, opt-in via a CSS class.**
    applied to chip-btn, dash-entry-edit/-del, hydration +/-.
 3. Grade-chip signature reveal — opt-in keyframe `.grade-chip-reveal`.
 4. Retune the 1.2s pulses → 1.0s (within warm-responsive feel).
+
+---
+
+## Step 6 — §DH visual hierarchy + §DSA surface & atmosphere
+
+### §DH1. Hierarchy engineering — squint test
+
+Primary screens evaluated:
+
+**Scan result** (`#result`):
+- First landing: grade chip (large, colored, pattern-overlaid). ✓
+  intentional dominance.
+- Second: product name (bold, large). ✓
+- Third: per-pillar scores (chips). ✓
+- **Gap:** "Log this portion" button sits BELOW the score audit,
+  visually smaller than the grade chip. Intended primary action is
+  less prominent than the information display. Acceptable — this
+  is an audit tool first, logger second — but worth noting.
+
+**Dashboard** (`#daily-dashboard`):
+- First landing: date + "Remaining" line. ✓
+- Second: streak chip (when visible, gets color attention). ✓
+- Third: hydration / activity / fasting tiles. Each tile competes
+  equally — **accidental equal-weight**. User who logs daily reads
+  the same three tiles in the same order every morning; hierarchy
+  could emphasise whichever has the most urgent state today.
+- Remaining rows (macros + micros): uniform row height with
+  progress bar. Reading depth-only — no anchor to scan ahead. ✓
+  (intentional — dense data panel).
+
+**Recipes / templates lists:**
+- Title + kcal + ingredient-count line dominates. ✓
+- Action chips (apply / edit / dup / share / del) all at same
+  weight. Apply is the primary action but not visually emphasized.
+  Previous v2 layer made `.chip-btn.accent` carry elevation —
+  that's the distinguishing affordance now. ✓ after v2.
+
+### §DH2. Reading pattern compliance
+
+App layout is a single-column 600px max — **F-pattern only**.
+Dashboard rows render label→bar→value→pct in that order, matching
+left-to-right scan. ✓. Recipe/template rows render name→kcal→
+chips, also left-first. ✓.
+
+**Mobile thumb zones:** primary action chips (Quick Add, Templates,
+Recipes, Weight) live in the dashboard middle-band. Works on
+scroll-down; not a thumb-zone placement, but this is a PWA, not a
+native chrome, so no system-bottom-nav to compete with. ✓.
+
+### §DH3. Visual weight distribution
+
+**80/20 test** for the daily-use flow (log a meal, check remaining):
+- Primary task surfaces: Quick Add button (top-right chip row),
+  scan button (top-hero), dashboard "Remaining" line.
+- Visual surface = ~15% of the pixel real estate.
+- Pass.
+
+**Heavy corner audit:** no corner accumulates weight
+disproportionately. Header has two small icon-only buttons
+top-right; nothing else. ✓.
+
+### §DH4. Contrast as composition tool
+
+- **Value contrast:** cards (#1B1B1F) on coral (#E84A5F) —
+  near-maximum value contrast. Cards "pop" strongly. ✓.
+- **Scale contrast:** v2 tokens now provide six steps. Dashboard
+  numerics are `--text-xl` / `--text-2xl` vs labels at `--text-sm`
+  / `--text-xs`. ✓ after Step 4.
+- **Chroma contrast:** grade palette is the only truly saturated
+  area. Everything else desaturates to cream/near-black. Grades
+  therefore command attention — intentional.
+- **Form contrast:** all cards and chips use rounded corners
+  (`--r-md` / `--r-pill`). No sharp form contrast. Acceptable —
+  consistent style signal.
+
+**Isolation principle:** dashboard uses plenty of quiet muted
+labels so the current-day numerics pop. ✓.
+
+### §DSA1. Background as material
+
+v2 set `body` to `linear-gradient(180deg, --bg → --bg-deep)`.
+Direction: top-light → bottom-weight. ✓ natural gravity.
+
+**Finding DSA1-1:** the gradient is applied only to body. Dialog
+backdrops (`dialog::backdrop`) default to a near-opaque rgba(10,10,10,0.65)
+which feels system-generic against the warm bg. Fix: use the same
+coral gradient at reduced opacity for dialog backdrops so the
+atmosphere is consistent when a dialog opens.
+
+### §DSA2. Elevation system
+
+v2 added `--elev-1` / `--elev-2`. Single light source (0 1px 3px
+rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06)) = top-down light. ✓.
+
+**Finding DSA2-1:** dark theme uses the same shadow values as
+light. Skill says dark-mode elevation should come from lightness,
+not shadow (shadows ~invisible on dark). But here `--panel` cards
+sit on a *coral* bg (not dark bg), so shadows ARE visible. The
+rule ("no shadow in dark") is for dark-on-dark; our case is
+card-on-coral which is different. **Acceptable.**
+
+### §DSA3. Atmosphere signals
+
+| Signal | State |
+|---|---|
+| Grain/noise overlay | ✗ missing (skill: 0-4% opacity, most styles) |
+| Gradient directionality | ✓ 180deg top→bottom |
+| Color temperature shift with depth | partial — cards are cool-tinted near-black, bg is warm coral |
+| Border opacity treatment | ✓ `--border` uses rgba, adapts to surface |
+
+**Finding DSA3-1:** no grain/noise. A 2% opacity noise overlay on
+the body bg would add warm "paper" feel without distracting — matches
+the "scientist's notebook" vision statement.
+
+### §DSA4. Light physics
+
+Single light source, top-down (shadows all drop). ✓ consistent.
+No luminous/glow effects (none needed — not cyberpunk). ✓.
+
+### §DSA5. Focal vs ambient atmosphere
+
+**Ambient** = body gradient. **Focal** candidates:
+- Scan grade chip — the celebration moment.
+- Streak chip when active.
+- Apply-recipe success.
+
+Currently only the grade chip has a distinguishing element (the
+pattern overlay added in R13). Other focal moments land in plain
+toasts. **Acceptable** — focal restraint is correct for warm
+editorial.
+
+### Step 6 fixes → shipping
+
+1. Dialog backdrop: warm coral tint instead of generic black.
+2. Paper-grain noise overlay at 2% on body (via SVG data URI).
+3. Reduce-motion + reduce-contrast branches honoured.
+4. Document DH findings — dashboard tile-equal-weight and
+   scan "log" button placement are intentional trade-offs.
