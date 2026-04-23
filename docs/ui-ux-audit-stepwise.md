@@ -1722,3 +1722,68 @@ no font injection problem). Tabular-nums propagates through.
    last per-rule em literals on the data-viz surfaces.
 3. **`.wbar-col` transition duration → `--motion-enter`** —
    240ms → 220ms, aligned to the canonical enter duration.
+
+---
+
+## Step 21 — §DTA design token architecture (layers · character-carrying gaps)
+
+### §DTA1. Token layer audit
+
+Scann-eat's token architecture:
+
+| Layer | Present? | Evidence |
+|---|---|---|
+| **Layer 1 — Primitives** (named by value) | **absent** | Hex values like `#F54B5E`, `#1B1B1F` sit directly on semantic tokens |
+| **Layer 2 — Semantic** (meaning assigned) | ✓ extensive | `--bg`, `--panel`, `--accent`, `--text-xs..3xl`, `--sp-1..8`, `--r-xs..xl`, `--motion-*`, `--elev-1..3`, `--grade-*` |
+| **Layer 3 — Component** (context-specific) | ✓ partial | `--r-btn 14`, `--r-input 10`, `--r-card`, `--r-badge`, `--r-modal`, `--r-modal-lg 36`, `--blur-glass`, `--elev-1-tonal` (added across Steps 8, 11, 17, 18) |
+
+**Two-layer architecture** is intentional for the codebase size
+(~5200 lines, single main CSS file). Layer 1 primitives would
+add abstraction cost without a clear win — the hue `#F54B5E` is
+only used by `--bg`, so there's no "sandstone-50" primitive
+waiting to be reused. Verdict per skill's §DTA1 threshold: pass.
+
+### §DTA1 — "find and replace" test
+
+| Scenario | Files to touch | Verdict |
+|---|---|---|
+| Change the accent colour globally | 2 (`:root` dark + light `[data-theme]`) | ✓ 1 token group |
+| Shift the grade palette warmer | 1 (`:root` + light overrides) | ✓ |
+| Retune motion speed | 1 (`:root`) | ✓ |
+| Adjust radius family | 1 (`:root` — semantic + component aliases) | ✓ |
+
+Architecture passes. One-knob reconfiguration works.
+
+### §DTA2. Character-carrying token gaps
+
+| Item | Tokenized? | Gap |
+|---|---|---|
+| Background surface lightness step | ✓ | — |
+| Primary accent + variants (hover/pressed/focus) | ✓ | — (Step 2 delivered) |
+| Component border-radius | ✓ | — (Step 8 delivered) |
+| Typography scale | ✓ | — (Step 4 delivered) |
+| Transition durations | ✓ | — (Step 5 delivered) |
+| Shadow definitions | ✓ | — (Steps 8, 10 delivered) |
+| Focus ring width | **hardcoded `3px` + `2px` offset in rule** | **gap — `--focus-ring-width` / `--focus-ring-offset` missing** |
+| Spacing base unit | ✓ | — |
+| Grade palette | ✓ | — |
+| Scrim alpha (dialog backdrop) | **hardcoded `rgba(232, 74, 95, 0.55)` etc.** | **gap — `--scrim-*` tokens missing** |
+| Stroke weights (1/1.5/2px scattered) | **hardcoded literals** | low-priority gap; many call-sites, risk-vs-reward not great |
+
+### Step 21 fixes → shipping
+
+1. **Focus ring tokens** — `--focus-ring-width 3px` +
+   `--focus-ring-offset 2px`. Apply via the existing
+   `:focus-visible` rule. Width scales easily if the focus
+   indicator ever needs to be dimmed (e.g. compact chips
+   could use a narrower ring at their size — the token lets
+   that be a follow-up).
+2. **Scrim tokens** — `--scrim-top` + `--scrim-bottom` for
+   the dialog backdrop gradient, per theme. Two call-sites
+   (dark default + light override) now reference the tokens.
+   Future reduced-chroma scrim or reduced-opacity scrim
+   becomes a one-line token tune.
+3. **Stroke widths** (noted, not shipped) — 1/1.5/2px scattered
+   across 30+ rules. Migrating is a moderate refactor with
+   limited design payoff; flagged for later if the app ever
+   switches to hairline-heavy redesign.
