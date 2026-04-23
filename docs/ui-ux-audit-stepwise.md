@@ -1787,3 +1787,42 @@ Architecture passes. One-knob reconfiguration works.
    across 30+ rules. Migrating is a moderate refactor with
    limited design payoff; flagged for later if the app ever
    switches to hairline-heavy redesign.
+
+---
+
+## Step 22 — art-direction-engine §BRIEF (canonical one-page brief)
+
+### Goal
+
+`art-direction-engine-SKILL.md §BRIEF` calls for a single
+canonical one-page document that captures every design decision
+before visual code is written. Scann-eat grew its design
+character iteratively, so the brief is produced *after* the fact
+as a consolidation of Steps 1–21 into the exact template the
+skill prescribes.
+
+### Shipped
+
+**New file: `docs/art-direction-brief.md`** — the canonical brief
+with every section the skill requires:
+- SUBJECT / AUDIENCE / EMOTIONAL TARGET / VALUES / VISUAL CONCEPT
+- PALETTE (every semantic colour in OKLCH + hex + role)
+- TYPOGRAPHY (fonts, scale, weights, tracking, numerals)
+- SHAPE (radius scale, geometry, border strategy)
+- DEPTH & SURFACE (elevation, shadow colour, material, texture,
+  light source, backdrop)
+- MOTION (durations, easing, signature animation, reduced-motion)
+- ICONS (library, style, personality, calibration)
+- COMPONENTS (buttons, cards, inputs, nav, empty, loading, errors)
+- IDENTITY (signature element, competitive position)
+- PROPORTIONS (layout model, spacing base, first-impression)
+
+Plus two meta-sections:
+- **Source of truth** — when the brief and `design-system.md`
+  conflict, the brief wins and the design-system is amended.
+- **Change protocol** — character changes touch this file first,
+  then cascade into tokens / components.
+
+No CSS changes this step — the brief consolidates prior Steps
+rather than introducing new rules. The deliverable is the
+document itself.
