@@ -104,3 +104,36 @@ describe('telemetry clearEvents()', () => {
     assert.equal(isEnabled(), true);
   });
 });
+
+describe('telemetry formatEvents() contract edges', () => {
+  it('survives a corrupted localStorage payload (returns []) — no throw', () => {
+    store.clear();
+    store.set('scanneat.telemetry.events', '{{ not valid json');
+    // listEvents / formatEvents must defend against hand-edited LS.
+    assert.doesNotThrow(() => formatEvents());
+    assert.deepEqual(listEvents(), []);
+  });
+
+  it('caps message + context to the stored size limit', () => {
+    store.clear();
+    setEnabled(true);
+    const longMsg = 'x'.repeat(1000);
+    const longCtx = 'y'.repeat(1000);
+    logEvent('info', longMsg, longCtx);
+    const [e] = listEvents();
+    // Contract: message ≤ 500 chars, context ≤ 300 chars.
+    assert.ok(e.message.length <= 500);
+    assert.ok(e.context.length <= 300);
+  });
+
+  it('never serialises personal-sounding payloads verbatim (caller-enforced)', () => {
+    store.clear();
+    setEnabled(true);
+    // Non-string types get coerced via String(); objects become
+    // "[object Object]". This is the contract: the telemetry log is a
+    // string log, not a structured dump.
+    logEvent('info', { secret: 'do not log' } as unknown as string);
+    const [e] = listEvents();
+    assert.equal(e.message, '[object Object]');
+  });
+});

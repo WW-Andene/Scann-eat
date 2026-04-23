@@ -600,6 +600,18 @@ describe('inferNovaClass fresh-produce exception', () => {
     assert.equal(cls, 1);
   });
 
+  it('handles FR plural forms: pommes, bananes, courgettes → NOVA 1', () => {
+    for (const name of ['pommes', 'bananes', 'courgettes', 'carottes', 'fraises']) {
+      const cls = inferNovaClass({
+        name,
+        category: 'fruit',
+        ingredients: [],
+        nutrition: { energy_kcal: 50, fat_g: 0, saturated_fat_g: 0, carbs_g: 12, sugars_g: 10, fiber_g: 2, protein_g: 1, salt_g: 0 },
+      });
+      assert.equal(cls, 1, `"${name}" should match as fresh produce`);
+    }
+  });
+
   it('unknown product name with empty ingredients still falls back to NOVA 4', () => {
     const cls = inferNovaClass({
       name: 'Mystery Branded Snack Co.',

@@ -123,6 +123,13 @@
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+/* Variant accents — a left stripe + text color so the user can see at
+   a glance whether a toast is informational, a warning, or an error.
+   Contrast-safe on both dark and light themes because the tokens come
+   from the top-of-file palette. */
+.app-toast[data-variant="warn"]  { box-shadow: inset 4px 0 0 var(--warning), 0 10px 30px rgba(0, 0, 0, 0.25); }
+.app-toast[data-variant="error"] { box-shadow: inset 4px 0 0 var(--danger),  0 10px 30px rgba(0, 0, 0, 0.25); }
+.app-toast[data-variant="ok"]    { box-shadow: inset 4px 0 0 var(--success), 0 10px 30px rgba(0, 0, 0, 0.25); }
 
 /* ========== NOSCRIPT FALLBACK ===========================================
    Shown only when JavaScript is disabled — the rest of the UI is driven

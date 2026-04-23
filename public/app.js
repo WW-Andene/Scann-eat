@@ -18,10 +18,12 @@ import { initBackupIO } from '/features/backup-io.js';
 import { initFasting, renderFasting } from '/features/fasting.js';
 import { initAppearance, applyAppearance, applyTheme, applyReadingPrefs } from '/features/appearance.js';
 import { shareOrCopy } from '/core/share.js';
+import { dateFormatter, localeFor } from '/core/date-format.js';
 import { initRecipeIdeas, openRecipeIdeas, openPantryIdeas } from '/features/recipe-ideas.js';
 import { initSettingsDialog } from '/features/settings-dialog.js';
 import { initKeybindings } from '/features/keybindings.js';
 import { initProfileDialog } from '/features/profile-dialog.js';
+import { initMenuScan, openMenuScan } from '/features/menu-scan.js';
 import { buildFastCompletion, saveFastCompletion, listFastHistory, computeFastStreak, clearFastHistory } from '/features/fasting-history.js';
 import { getDayNote, setDayNote, DAY_NOTE_MAX_CHARS } from '/features/day-notes.js';
 import { searchFoodDB, reconcileWithFoodDB } from '/data/food-db.js';
@@ -167,7 +169,20 @@ function hide(el) { if (el) el.hidden = true; }
  */
 let toastEl = null;
 let toastTimer = null;
-function toast(text, ms = 2600) {
+/**
+ * Fire a transient toast. Second arg can be EITHER a variant string
+ * ('ok' | 'warn' | 'error') or a numeric ms duration. Most callers pass
+ * a variant; the legacy ms form is still honoured for the few tests /
+ * sites that rely on it. Variant drives a `data-variant` attribute the
+ * stylesheet can hook into (e.g. warning/error accent stripe).
+ *
+ * Prior to R7.9, the signature was `toast(text, ms=2600)` but ~10 sites
+ * called `toast(text, 'error')`, passing a string where a number was
+ * expected. setTimeout silently coerced it to NaN → inconsistent auto-
+ * hide behavior across browsers. Unified signature fixes the silent
+ * bug while staying backward-compatible.
+ */
+function toast(text, variantOrMs) {
   if (!toastEl) {
     toastEl = document.createElement('div');
     toastEl.className = 'app-toast';
@@ -175,7 +190,13 @@ function toast(text, ms = 2600) {
     toastEl.setAttribute('aria-live', 'polite');
     document.body.appendChild(toastEl);
   }
+  let variant = '';
+  let ms = 2600;
+  if (typeof variantOrMs === 'number') ms = variantOrMs;
+  else if (typeof variantOrMs === 'string') variant = variantOrMs;
   toastEl.textContent = String(text);
+  if (variant) toastEl.dataset.variant = variant;
+  else delete toastEl.dataset.variant;
   toastEl.dataset.visible = 'true';
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
@@ -1998,16 +2019,35 @@ $('telemetry-view')?.addEventListener('click', () => {
   show(out);
 });
 $('telemetry-copy')?.addEventListener('click', async () => {
-  try {
-    await navigator.clipboard?.writeText(telemetryFormat());
-    setBackupStatus(t('telemetryCopied'));
-  } catch (err) { setBackupStatus(err.message || String(err), 'error'); }
+  // Route via shareOrCopy so a native share sheet is offered on mobile
+  // (iOS Mail / Android messenger = easy way for the user to file a bug
+  // report). Clipboard is the fallback everywhere else.
+  await shareOrCopy({
+    title: t('telemetryTitle'),
+    text: telemetryFormat(),
+    toasts: { copied: t('telemetryCopied'), failed: t('telemetryCopyFailed') },
+    toast,
+  });
+});
+// R7.3: Export as a downloadable .txt file. Useful when the user wants
+// to attach the log to an email or issue report without copy-paste.
+$('telemetry-export')?.addEventListener('click', () => {
+  const text = telemetryFormat();
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `scanneat-telemetry-${todayISO()}.txt`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast(t('telemetryExported'));
 });
 $('telemetry-clear')?.addEventListener('click', () => {
+  if (!window.confirm(t('telemetryClearConfirm'))) return;
   telemetryClear();
   const out = $('telemetry-output');
   if (out) { out.textContent = ''; hide(out); }
-  setBackupStatus(t('telemetryCleared'));
+  toast(t('telemetryCleared'));
 });
 
 $('profiles-delete')?.addEventListener('click', () => {
@@ -2347,59 +2387,9 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
   }
 });
 
-// ----- Restaurant menu scan: picks dishes, user taps one to log -----
-//
-// Different semantics from identify-multi: nothing is logged
-// automatically. We extract dishes from the menu photo, open the
-// picker dialog, and each dish becomes a button "Ajouter au journal".
-//
-const menuScanDialog = $('menu-scan-dialog');
-
-async function openMenuScan(dishes) {
-  const list = $('menu-scan-list');
-  const status = $('menu-scan-status');
-  if (!menuScanDialog || !list) return;
-  list.textContent = '';
-  if (status) status.textContent = dishes.length ? '' : t('menuScanEmpty');
-  const meal = $('qa-meal')?.value || defaultMealForHour(new Date().getHours());
-  for (const d of dishes) {
-    const li = document.createElement('li');
-    li.className = 'menu-scan-item';
-    const label = document.createElement('span');
-    label.className = 'menu-scan-dish';
-    label.textContent = d.name;
-    const meta = document.createElement('span');
-    meta.className = 'menu-scan-meta';
-    meta.textContent = t('menuScanMeta', {
-      kcal: Math.round(d.kcal),
-      prot: Math.round(d.protein_g),
-      carb: Math.round(d.carbs_g),
-      fat: Math.round(d.fat_g),
-    });
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'chip-btn accent compact';
-    btn.textContent = t('menuScanLog');
-    btn.addEventListener('click', async () => {
-      await logQuickAdd({
-        name: d.name, meal,
-        kcal: Math.round(d.kcal) || 0,
-        protein_g: Math.round(d.protein_g) || 0,
-        carbs_g: Math.round(d.carbs_g) || 0,
-        fat_g: Math.round(d.fat_g) || 0,
-        sat_fat_g: 0, sugars_g: 0, salt_g: 0,
-      });
-      btn.disabled = true;
-      btn.textContent = t('menuScanLogged');
-      await renderDashboard();
-    });
-    li.appendChild(label);
-    li.appendChild(meta);
-    li.appendChild(btn);
-    list.appendChild(li);
-  }
-  menuScanDialog.showModal();
-}
+// Menu-scan dialog + picker extracted to /features/menu-scan.js.
+// openMenuScan is imported at the top; initMenuScan wires the close
+// button in the boot block below.
 
 $('qa-photo-menu-input')?.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
@@ -2428,10 +2418,7 @@ $('qa-photo-menu-input')?.addEventListener('change', async (e) => {
   }
 });
 
-$('menu-scan-close')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  menuScanDialog?.close();
-});
+// menu-scan-close handled inside initMenuScan().
 
 // Reset AI status when the dialog opens (via the quick-add button).
 quickAddBtn?.addEventListener('click', () => hide(qaAiStatus));
@@ -3050,8 +3037,17 @@ initSettingsDialog({
   renderProfilesUI, telemetryEnabled,
   setTelemetryEnabled: telemetrySetEnabled,
   getKey,
-  onLangChange: () => renderDashboard(),
+  onLangChange: () => {
+    // Close any dialog whose contents were rendered dynamically (not
+    // via data-i18n) so the user doesn't see stale strings. Explain +
+    // pillar dialogs are both body-text from t() snapshots; reopen is
+    // one tap away, so the UX cost is zero.
+    $('explain-dialog')?.close();
+    $('pillar-dialog')?.close();
+    renderDashboard();
+  },
 });
+initMenuScan({ t, defaultMealForHour, logQuickAdd, renderDashboard });
 initProfileDialog({
   t, show, hide,
   getProfile, setProfile, hasMinimalProfile,
@@ -3186,7 +3182,7 @@ async function renderWeeklyView() {
 
   // Bar chart — one column per day
   bars.textContent = '';
-  const dayFmt = new Intl.DateTimeFormat(currentLang === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'narrow' });
+  const dayFmt = dateFormatter(localeFor(currentLang), { weekday: 'narrow' });
   for (const d of roll.days) {
     const wrap = document.createElement('div');
     wrap.className = 'wbar';
@@ -3264,6 +3260,17 @@ async function renderMonthlyView() {
   summary.appendChild(mkChip('weeklyAvgKcal', `${Math.round(roll.avg.kcal)} kcal`));
   summary.appendChild(mkChip('weeklyTotalKcal', `${Math.round(roll.total.kcal)} kcal`));
   summary.appendChild(mkChip('monthlyDaysLogged', t('monthlyDaysLogged', { n: roll.days_logged })));
+  // On-goal chip — same ±10% math the share presenter uses (R6.4) so
+  // the view and the share block always agree.
+  if (kcalTarget > 0 && roll.days_logged > 0) {
+    const onGoal = roll.days.filter(
+      (d) => d.count > 0 && Math.abs(d.kcal - kcalTarget) <= kcalTarget * 0.1,
+    ).length;
+    summary.appendChild(mkChip(
+      'monthlyOnGoal',
+      `${onGoal}/${roll.days_logged}`,
+    ));
+  }
 
   bars.textContent = '';
   bars.classList.add('wbars-30');

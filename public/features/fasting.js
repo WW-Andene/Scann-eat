@@ -143,6 +143,17 @@ export function renderFasting() {
 
 export function initFasting(injected) {
   deps = injected;
+  // Battery-friendly: pause the per-minute tick when the tab is hidden.
+  // A 16-hour fast doesn't need wall-clock updates while the user has
+  // another tab focused; we re-render on visibilitychange back to
+  // visible so the chip catches up immediately.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (tick) { clearInterval(tick); tick = null; }
+    } else {
+      renderFasting();
+    }
+  });
   const { clearFastHistory } = deps;
   $('fasting-start')?.addEventListener('click', () => {
     const target = Number($('fasting-target')?.value) || 16;

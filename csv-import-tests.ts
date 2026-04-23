@@ -115,4 +115,30 @@ describe('parseCsvImport — error paths', () => {
     assert.equal(entries.length, 1);
     assert.equal(entries[0].product_name, 'Toast');
   });
+
+  it('handles CRLF line endings (Windows exports)', () => {
+    const csv = 'Date,Meal,Item,Calories\r\n2026-04-22,Breakfast,Toast,200\r\n';
+    const { format, entries } = parseCsvImport(csv);
+    assert.equal(format, 'mfp');
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].kcal, 200);
+  });
+
+  it('handles trailing blank line + BOM', () => {
+    const csv = '﻿Date,Meal,Item,Calories\n2026-04-22,Breakfast,Toast,200\n\n';
+    const { format, entries } = parseCsvImport(csv);
+    assert.equal(format, 'mfp');
+    assert.equal(entries.length, 1);
+  });
+
+  it('quoted field with embedded comma + quote does not split mid-field', () => {
+    const csv = [
+      'Date,Meal,Item,Calories',
+      '2026-04-22,Breakfast,"Nutella, 15g, ""spoon""",80',
+    ].join('\n');
+    const { entries } = parseCsvImport(csv);
+    assert.equal(entries.length, 1);
+    assert.ok(entries[0].product_name.includes('Nutella'));
+    assert.equal(entries[0].kcal, 80);
+  });
 });

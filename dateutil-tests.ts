@@ -12,6 +12,8 @@ import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS
 import { localDateISO } from './public/core/dateutil.js';
+// @ts-expect-error — plain JS
+import { dateFormatter, localeFor } from './public/core/date-format.js';
 
 describe('localDateISO', () => {
   it('returns a valid YYYY-MM-DD shape', () => {
@@ -45,5 +47,45 @@ describe('localDateISO', () => {
     const out = localDateISO(jan5);
     assert.equal(out.length, 10);
     assert.equal(out.slice(0, 7), '2026-01');
+  });
+});
+
+describe('dateFormatter cache', () => {
+  it('returns the same instance for identical (lang, shape)', () => {
+    const a = dateFormatter('fr-FR', { weekday: 'short' });
+    const b = dateFormatter('fr-FR', { weekday: 'short' });
+    assert.equal(a, b, 'identical args must yield the same cached instance');
+  });
+
+  it('returns different instances for different langs', () => {
+    const a = dateFormatter('fr-FR', { weekday: 'short' });
+    const b = dateFormatter('en-GB', { weekday: 'short' });
+    assert.notEqual(a, b);
+  });
+
+  it('returns different instances for different shapes', () => {
+    const a = dateFormatter('fr-FR', { weekday: 'short' });
+    const b = dateFormatter('fr-FR', { weekday: 'narrow' });
+    assert.notEqual(a, b);
+  });
+
+  it('key is stable regardless of options-object key order', () => {
+    const a = dateFormatter('fr-FR', { weekday: 'short', day: 'numeric' });
+    const b = dateFormatter('fr-FR', { day: 'numeric', weekday: 'short' });
+    assert.equal(a, b);
+  });
+
+  it('localeFor maps the app lang to BCP-47 tags used in UI', () => {
+    assert.equal(localeFor('en'), 'en-GB');
+    assert.equal(localeFor('fr'), 'fr-FR');
+    assert.equal(localeFor('xx'), 'fr-FR'); // fallback
+  });
+
+  it('actually formats a date (smoke test)', () => {
+    const fmt = dateFormatter('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    const out = fmt.format(new Date(Date.UTC(2026, 3, 22, 12)));
+    assert.match(out, /Wednesday/);
+    assert.match(out, /April/);
+    assert.match(out, /22/);
   });
 });
