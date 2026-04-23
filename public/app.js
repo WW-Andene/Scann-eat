@@ -2725,6 +2725,46 @@ $('qa-save-tpl')?.addEventListener('click', async (e) => {
   }
 });
 
+// Gap fix #6: copy yesterday's entries into today. Skips the step
+// of re-applying templates one by one for users with a repeating
+// routine. Gracefully no-ops when yesterday was empty. Entries get
+// fresh ids + today's date + current timestamp so they look like
+// freshly-logged rows, but keep their product_name / grams /
+// macros / meal so the "shape" of the day comes forward.
+$('copy-yesterday')?.addEventListener('click', async () => {
+  const today = todayISO();
+  const yesterday = localDateISO(Date.now() - 86_400_000);
+  const src = await listByDate(yesterday).catch(() => []);
+  if (src.length === 0) { toast(t('copyYesterdayEmpty'), 'warn'); return; }
+  const existing = await listByDate(today).catch(() => []);
+  if (existing.length > 0) {
+    if (!window.confirm(t('copyYesterdayConfirm', { n: src.length, existing: existing.length }))) return;
+  }
+  const now = Date.now();
+  const copied = [];
+  for (let i = 0; i < src.length; i++) {
+    const e = src[i];
+    const copy = {
+      ...e,
+      id: globalThis.crypto?.randomUUID?.() ?? `c${now}${i}${Math.random().toString(36).slice(2)}`,
+      date: today,
+      timestamp: now + i,
+    };
+    await putEntry(copy);
+    copied.push(copy);
+  }
+  await renderDashboard();
+  // Undo-safe: deleting every freshly-added copy reverses the action.
+  toastWithUndo(
+    t('copyYesterdayDone', { n: copied.length }),
+    async () => {
+      for (const e of copied) await deleteEntry(e.id);
+      await renderDashboard();
+      toast(t('copyYesterdayReverted'), 'ok');
+    },
+  );
+});
+
 clearTodayBtn?.addEventListener('click', async () => {
   // Tier-2 destructive: wipes all entries logged today. Show a count
   // in the confirm so the user knows the magnitude before nuking.
