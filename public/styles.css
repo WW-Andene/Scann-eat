@@ -5680,3 +5680,84 @@ a {
   height: 10px;
   background: color-mix(in oklch, var(--muted) 60%, transparent);
 }
+
+/* ==========================================================================
+   MOVE 3 — Dashboard nav hierarchy.
+   The .dashboard-actions row had 8-10 visually-equal chip-btns with
+   no visual weight distinction between Quick Add (the hero), the
+   feature dialogs (templates/recipes/etc.), and meta actions
+   (copy-yesterday/clear-today). This move establishes three
+   distinct tiers via scoped selectors — no HTML changes:
+     • Hero:     #quick-add-btn gets own full-width row, bolder,
+                 with a hairline halo.
+     • Features: default .chip-btn becomes outline-ghost — flat,
+                 grouped, hover lifts.
+     • Meta:     .secondary shrinks + pushes to the end with a
+                 faint divider above.
+   ========================================================================== */
+
+.dashboard-actions {
+  align-items: center;
+}
+
+/* Hero: Quick Add takes its own line at the top of the nav. */
+.dashboard-actions #quick-add-btn {
+  flex-basis: 100%;
+  min-height: 52px;
+  font-size: var(--text-base, 1rem);
+  font-weight: 700;
+  padding: 12px 20px;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--accent) 25%, transparent),
+    var(--elev-1-tonal, var(--elev-1));
+}
+.dashboard-actions #quick-add-btn:hover:not(:disabled) {
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--accent) 35%, transparent),
+    var(--elev-2);
+}
+
+/* Features: every .chip-btn in .dashboard-actions that isn't the
+   hero, isn't explicitly accent, isn't .secondary. Outline ghost
+   treatment — flat, unified, hover reveals coral tint. */
+.dashboard-actions .chip-btn:not(#quick-add-btn):not(.accent):not(.secondary) {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border-strong);
+  box-shadow: none;
+  font-weight: 500;
+}
+.dashboard-actions .chip-btn:not(#quick-add-btn):not(.accent):not(.secondary):hover:not(:disabled) {
+  background: color-mix(in oklch, var(--panel-2) 80%, var(--accent-dim));
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: var(--elev-1-tonal, var(--elev-1));
+}
+
+/* Meta: copy-yesterday + clear-today. Push to the end of the
+   wrap line and dim visual weight so they recede. */
+.dashboard-actions .secondary.compact {
+  margin-left: auto;
+  opacity: 0.78;
+  font-weight: 500;
+  font-size: var(--text-sm, 0.85rem);
+  min-height: 36px;
+  padding: 6px 12px;
+}
+.dashboard-actions .secondary.compact:hover:not(:disabled) {
+  opacity: 1;
+}
+
+/* Separator strip: a faint hairline above the meta tier when
+   the row wraps to a new line. Achieved via a tiny pseudo on
+   the first meta button. */
+.dashboard-actions #copy-yesterday::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin-right: var(--sp-2);
+  vertical-align: middle;
+}
