@@ -2060,6 +2060,28 @@ compareClear?.addEventListener('click', () => {
 
 if (getBarcodeDetector()) show(barcodeLiveBtn);
 barcodeLiveBtn?.addEventListener('click', () => openCameraScanner());
+// Gap fix #13 — manual barcode entry. When camera is denied / fails
+// or the barcode is unreadable, the user can type 8-13 digits and
+// push the queue into the same pipeline as a live scan.
+$('manual-barcode-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = $('manual-barcode-input');
+  const raw = (input?.value || '').replace(/\D/g, '');
+  if (raw.length !== 8 && raw.length !== 12 && raw.length !== 13) {
+    toast(t('manualBarcodeInvalid'), 'warn');
+    input?.focus();
+    return;
+  }
+  // Reuse the same path as the live-scanner success handler: enqueue a
+  // barcode-only queue item, then kick scanImage() which resolves
+  // through OFF (or LLM fallback if the barcode is unknown).
+  addBarcodeOnly(raw);
+  await scanImage();
+  if (input) input.value = '';
+  // Collapse the <details> so the input isn't still sitting open.
+  const details = input?.closest('details');
+  if (details) details.open = false;
+});
 cameraClose?.addEventListener('click', () => closeCameraScanner());
 // Tear down the MediaStream + detection loop regardless of how the dialog
 // closes — Escape key, backdrop click, or programmatic close from a

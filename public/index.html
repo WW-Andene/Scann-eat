@@ -411,6 +411,23 @@
         </div>
         <button id="scan-btn" type="button" disabled data-i18n="analyse">Analyser</button>
         <p class="hint" data-i18n="hintCapture">Jusqu'à 4 photos (face + ingrédients + nutrition).</p>
+        <details class="manual-barcode-wrap">
+          <summary data-i18n="manualBarcode">⌨️ Saisir un code-barres</summary>
+          <form id="manual-barcode-form" class="manual-barcode-form">
+            <input
+              id="manual-barcode-input"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]{8,13}"
+              maxlength="13"
+              autocomplete="off"
+              data-i18n-placeholder="manualBarcodePlaceholder"
+              placeholder="8-13 chiffres"
+              aria-label="Code-barres"
+            />
+            <button id="manual-barcode-submit" type="submit" class="chip-btn accent compact" data-i18n="manualBarcodeSubmit">Analyser</button>
+          </form>
+        </details>
       </section>
 
       <section id="status" class="status" role="status" aria-live="polite" hidden>

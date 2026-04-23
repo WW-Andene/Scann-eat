@@ -818,12 +818,35 @@ body.returning-user main > .capture         { order: 1; }
   color: var(--on-muted);
   line-height: 1;
 }
-.compare-grade[data-grade="A+"] { background: var(--grade-aplus); }
-.compare-grade[data-grade="A"]  { background: var(--grade-a); }
-.compare-grade[data-grade="B"]  { background: var(--grade-b); }
-.compare-grade[data-grade="C"]  { background: var(--grade-c); }
-.compare-grade[data-grade="D"]  { background: var(--grade-d); }
-.compare-grade[data-grade="F"]  { background: var(--grade-f); }
+/* Gap fix #14 — same color-blind pattern overlay as .recent-grade. */
+.compare-grade { background-repeat: repeat; border: 2px solid transparent; }
+.compare-grade[data-grade="A+"] { background-color: var(--grade-aplus); border-color: rgba(0,0,0,0.25); }
+.compare-grade[data-grade="A"]  { background-color: var(--grade-a);     border-color: rgba(0,0,0,0.2); }
+.compare-grade[data-grade="B"]  {
+  background-color: var(--grade-b);
+  background-image: radial-gradient(rgba(0,0,0,0.2) 1px, transparent 1px);
+  background-size: 4px 4px;
+  border-color: rgba(0,0,0,0.25);
+}
+.compare-grade[data-grade="C"]  {
+  background-color: var(--grade-c);
+  background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+  border-color: rgba(0,0,0,0.3);
+}
+.compare-grade[data-grade="D"]  {
+  background-color: var(--grade-d);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+  border-color: rgba(0,0,0,0.35);
+}
+.compare-grade[data-grade="F"]  {
+  background-color: var(--grade-f);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 7px);
+  border-color: rgba(255,255,255,0.35);
+}
 .compare-name {
   font-size: 0.95em;
   font-weight: 600;
@@ -1399,13 +1422,48 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   background: var(--muted);
   color: var(--on-muted);
   font-size: 1em;
+  /* Gap fix #14 — color-blind-safe grade palette. The letter itself
+     is the primary disambiguator; the pattern overlay (via
+     background-image + border ring) gives a second visual channel
+     so deuteranopic / protanopic users can still tell A from C at
+     a glance. Patterns differ per grade: solid (A+/A), dots (B),
+     diagonal stripes (C), cross-hatch (D), dense X (F). */
+  background-repeat: repeat;
+  border: 2px solid transparent;
 }
-.recent-grade[data-grade="A+"] { background: var(--grade-aplus); }
-.recent-grade[data-grade="A"]  { background: var(--grade-a); }
-.recent-grade[data-grade="B"]  { background: var(--grade-b); }
-.recent-grade[data-grade="C"]  { background: var(--grade-c); }
-.recent-grade[data-grade="D"]  { background: var(--grade-d); }
-.recent-grade[data-grade="F"]  { background: var(--grade-f); }
+.recent-grade[data-grade="A+"] {
+  background-color: var(--grade-aplus);
+  border-color: rgba(0, 0, 0, 0.25);
+}
+.recent-grade[data-grade="A"] {
+  background-color: var(--grade-a);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+.recent-grade[data-grade="B"] {
+  background-color: var(--grade-b);
+  background-image: radial-gradient(rgba(0,0,0,0.2) 1px, transparent 1px);
+  background-size: 4px 4px;
+  border-color: rgba(0, 0, 0, 0.25);
+}
+.recent-grade[data-grade="C"] {
+  background-color: var(--grade-c);
+  background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+.recent-grade[data-grade="D"] {
+  background-color: var(--grade-d);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+  border-color: rgba(0, 0, 0, 0.35);
+}
+.recent-grade[data-grade="F"] {
+  background-color: var(--grade-f);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 7px);
+  border-color: rgba(255, 255, 255, 0.35);
+}
 .recent-name {
   font-size: 1em;
   font-weight: 500;
@@ -2038,6 +2096,41 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   pointer-events: none;
 }
 .qa-favourite .qs-name { color: var(--accent); }
+
+/* Gap fix #13 — manual barcode entry (collapsible, sits under the
+   Analyse button). Intentionally understated: most users scan, this
+   is the escape hatch. */
+.manual-barcode-wrap {
+  margin-top: var(--sp-2);
+  font-size: 0.9em;
+}
+.manual-barcode-wrap summary {
+  cursor: pointer;
+  color: var(--muted);
+  padding: var(--sp-2) 0;
+  list-style: none;
+}
+.manual-barcode-wrap summary::-webkit-details-marker { display: none; }
+.manual-barcode-wrap summary:hover,
+.manual-barcode-wrap summary:focus-visible { color: var(--text); outline: none; }
+.manual-barcode-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.manual-barcode-form input {
+  padding: 10px 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-md);
+  font-size: 1em;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  min-height: 44px;
+  box-sizing: border-box;
+}
 
 /* Gap fix #5 — recipe component row ingredient autocomplete. Visually
    identical to the Quick Add version; positioned relative to the row
