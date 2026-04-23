@@ -631,3 +631,75 @@ shout". No neumorphism. No flashy trends maintained-for-legacy.
    for glassmorphism).
 3. Document Twemoji as the biggest pending iconography lever (not
    shipped — product decision).
+
+---
+
+## Step 8 — §DBI brand identity (archetype · DNA · anti-genericness)
+
+### §DBI1. Brand personality archetype
+
+- **Projected by current design:** Sage (calm authority, clean
+  information) + Lover (warm, sensory, intimate) + Caregiver
+  (warm, soft, unhurried) as tertiary.
+- **Intended per §DP2 vision statement:** Sage + Caregiver —
+  trustworthy nutrition guidance with warmth.
+- **Alignment:** ✓ close. Lover tertiary is a bonus, not a gap.
+
+No archetype pivot needed.
+
+### §DBI2. Design DNA — signature extraction
+
+Candidates (distinctiveness × visibility):
+
+| Candidate | Dist. | Visibility | Character | Action |
+|---|---|---|---|---|
+| Coral bg + near-black card two-tone | HIGH | every screen | ✓ | already the primary signature |
+| Grade chip with pattern overlay | HIGH | every scan + recipe + history | ✓ | **gap — missing from `.grade`** (main scan-result badge, `#grade-el` / `#personal-grade-el`) |
+| Paper-grain 2% overlay | MED | ambient | ✓ | keep as-is |
+| Scan-reveal grade land | MED | opt-in | ✓ | keep opt-in |
+| EU-allergen detection in ingredient rows | HIGH (functional) | scan-result | ✓ | already-shipped, not a visual signature |
+
+**Finding DBI2-1:** the scan-result grade badge `.grade`
+(`#grade-el` and `#personal-grade-el`) is the single most-seen
+grade instance. The pattern-overlay rule we applied to
+`.recent-grade` / `.compare-grade` / `.recipe-row-grade` /
+`.recipe-edit-grade` (R13.7 + R14) was **not** extended to
+`.grade`. Fix: apply the same overlay-by-grade rules to `.grade`
+so the "Scann-eat grade badge" is recognisable everywhere as the
+same element.
+
+### §DBI3. Anti-genericness audit (12 signals)
+
+| # | Signal | Current | Verdict |
+|---|---|---|---|
+| 1 | Default Tailwind blue | `--accent` #FF6B45 orange | ✓ |
+| 2 | Inter default weight everywhere | system stack + Atkinson/Lexend opt-in | ✓ |
+| 3 | rounded-lg on everything | single `--r-md` 18px for cards + buttons + inputs | **gap — add semantic radius** |
+| 4 | 16px grid only | `--sp-*` scale with 4/8/12/16/20/24/32/48 | ✓ |
+| 5 | shadow-sm (generic gray) | v2 `--elev-1` uses `rgba(0,0,0,.08)` | **gap — use tonal shadow** |
+| 6 | Default Heroicons / Lucide | Unicode emoji | ✓ |
+| 7 | Gray-900/500/400 text stack | chromatic cream + brown-gray muted | ✓ |
+| 8 | White #ffffff as bg (light) | `--panel` light = `#FFFFFF` pure | **gap — tint warm** |
+| 9 | transition: all 0.2s ease-in-out | specific property transitions | ✓ |
+| 10 | Full-width buttons everywhere | sized to content; form-submits full-width (correct) | ✓ |
+| 11 | Single `<hr>` separator style | multiple `--border` / `--border-strong` | ✓ |
+| 12 | Placeholder #9ca3af default | no `::placeholder` rule — browser default | **gap — add token-tied rule** |
+
+### Step 8 fixes → shipping
+
+1. **`.grade` pattern overlay** — apply the same grade-letter
+   pattern system as the other grade badges. Covers the primary
+   scan-result badge (`#grade-el`) and the personal-score badge
+   (`#personal-grade-el`).
+2. **Semantic radius tokens** — `--r-btn` 14px, `--r-card` 18px
+   (existing `--r-md`), `--r-input` 10px, `--r-badge` 999
+   (existing `--r-pill`), `--r-modal` 24px (existing `--r-lg`).
+   Buttons, cards, inputs no longer share the same radius.
+3. **Tonal shadow** — `--elev-1-tonal` using the coral bg at low
+   opacity instead of pure black. Applied to the elevation
+   default without breaking existing call-sites that reach for
+   `--elev-1`.
+4. **Light-theme panel warm tint** — `#FFFFFF` → `#FFFDF7`
+   (oklch ≈ 99% 0.005 90). Pure-white removed.
+5. **`::placeholder` rule** — placeholder text pulled from the
+   muted token, not browser default gray.

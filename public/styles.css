@@ -4609,3 +4609,115 @@ dialog::backdrop {
 @media (prefers-reduced-motion: reduce) {
   dialog::backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* ==========================================================================
+   STEP 8 — §DBI brand identity (design DNA + anti-genericness).
+   Five shifts that push the app away from generic defaults:
+     (1) extend the grade pattern signature to the main scan badge,
+     (2) introduce semantic radius tokens so buttons/cards/inputs/modals
+         no longer collapse onto the same shape,
+     (3) tonal shadow option that carries the coral hue instead of
+         pure black,
+     (4) warm-tint the light-theme panel off the default #FFFFFF,
+     (5) bind placeholder text to the muted token (replaces browser
+         default gray).
+   ========================================================================== */
+
+/* §DBI2 — grade pattern overlay for the primary scan-result badge.
+   Mirrors the rule applied to .recent-grade / .compare-grade /
+   .recipe-row-grade / .recipe-edit-grade so the "Scann-eat grade"
+   is the same recognisable object everywhere it appears. The letter
+   is the primary disambiguator; the pattern is the second visual
+   channel for color-blind users. */
+.grade {
+  background-repeat: repeat;
+  border: 2px solid transparent;
+}
+.grade[data-grade="A+"] {
+  background-color: var(--grade-aplus);
+  border-color: rgba(0, 0, 0, 0.25);
+}
+.grade[data-grade="A"] {
+  background-color: var(--grade-a);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+.grade[data-grade="B"] {
+  background-color: var(--grade-b);
+  background-image: radial-gradient(rgba(0,0,0,0.2) 1.5px, transparent 1.5px);
+  background-size: 6px 6px;
+  border-color: rgba(0, 0, 0, 0.25);
+}
+.grade[data-grade="C"] {
+  background-color: var(--grade-c);
+  background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 3px, transparent 3px 9px);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+.grade[data-grade="D"] {
+  background-color: var(--grade-d);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 3px, transparent 3px 9px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.18) 0 3px, transparent 3px 9px);
+  border-color: rgba(0, 0, 0, 0.35);
+}
+.grade[data-grade="F"] {
+  background-color: var(--grade-f);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 4px, transparent 4px 10px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.25) 0 4px, transparent 4px 10px);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* §DBI3-3 — semantic radius tokens. Buttons, cards, inputs, modals
+   and badges stop sharing the same radius. Each alias points at an
+   existing scale value so call-sites can migrate gradually; no
+   pre-existing rule breaks. */
+:root {
+  --r-btn: 14px;                 /* buttons — between chip and card */
+  --r-card: var(--r-md);         /* 18px — card alias */
+  --r-input: 10px;               /* inputs — tighter than buttons */
+  --r-badge: var(--r-pill);      /* 999 — chip/badge alias */
+  --r-modal: var(--r-lg);        /* 24px — dialog alias */
+}
+
+/* §DBI3-5 — tonal shadow. Uses the coral bg hue at low opacity so
+   the lift picks up the page colour instead of reading as generic
+   shadow-sm gray. Opt-in via --elev-1-tonal; call-sites that want
+   neutral depth keep --elev-1. */
+:root {
+  --elev-1-tonal:
+    0 1px 2px rgba(232, 74, 95, 0.10),
+    0 4px 14px rgba(232, 74, 95, 0.14);
+}
+[data-theme="light"] {
+  --elev-1-tonal:
+    0 1px 2px rgba(176, 67, 31, 0.08),
+    0 4px 12px rgba(176, 67, 31, 0.10);
+}
+
+/* §DBI3-8 — warm-tint the light-theme panel. Pure #FFFFFF reads
+   as "generic system white" on the coral-paper ambiance; the warm
+   cream tint keeps the card feeling of the vision statement. The
+   shift is small (L ≈ 99.4%), so contrast with --text stays at
+   AAA; only the "stickiness" against the coral bg is tuned. */
+[data-theme="light"] {
+  --panel: #FFFDF7;
+}
+
+/* §DBI3-12 — placeholder text reads from the muted token instead
+   of the browser default #9ca3af gray. Binds input hints to the
+   app's palette so inputs feel like part of the product, not a
+   browser form. Applied across input, textarea, [contenteditable]. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 1; /* Firefox defaults to 0.54; normalise */
+}
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  color: var(--muted);
+}
+[contenteditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
