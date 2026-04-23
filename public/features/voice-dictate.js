@@ -13,7 +13,7 @@
  *   { t, currentLang, parseVoiceQuickAdd }
  */
 
-export function initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }) {
+export function initVoiceDictate({ t, currentLang, parseVoiceQuickAdd, logEvent }) {
   const SpeechRecognitionImpl =
     globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
   const btn = document.getElementById('qa-voice-btn');
@@ -21,6 +21,8 @@ export function initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }) {
 
   btn.removeAttribute('hidden');
   let recognizer = null;
+  // Expose deps object to nested handlers.
+  const deps = { t, currentLang, parseVoiceQuickAdd, logEvent };
 
   btn.addEventListener('click', () => {
     // Toggle: if already listening, stop.
@@ -60,6 +62,12 @@ export function initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }) {
         setField('qa-protein', parsed.protein_g);
         setField('qa-carbs',   parsed.carbs_g);
         setField('qa-fat',     parsed.fat_g);
+        // Fix #11 — extended parser now catches sat-fat / sugars /
+        // salt / fiber. Populate whatever the user actually uttered.
+        setField('qa-satfat',  parsed.sat_fat_g);
+        setField('qa-sugars',  parsed.sugars_g);
+        setField('qa-salt',    parsed.salt_g);
+        setField('qa-fiber',   parsed.fiber_g);
         // Meal slot override — only when the user clearly said a meal
         // word ("petit-déjeuner", "dinner", "snack"). Stays on the
         // time-of-day default otherwise.
@@ -81,6 +89,12 @@ export function initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }) {
           status.textContent = msg;
           status.dataset.state = 'warn';
           status.hidden = false;
+        }
+        // Fix #30 — capture voice-dictate failures in telemetry so
+        // the user (via Settings → telemetry) can debug why voice
+        // isn't working.
+        if (deps.logEvent) {
+          try { deps.logEvent('voice_error', ev?.error || 'unknown'); } catch { /* noop */ }
         }
       };
       rec.onend = () => {

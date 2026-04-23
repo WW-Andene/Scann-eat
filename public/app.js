@@ -2572,6 +2572,21 @@ $('unit-convert-input')?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); applyUnitConvert(); }
 });
 
+// Fix #26 — check if a fast is in progress. Reads the same LS keys
+// as /features/fasting.js. Used by logBtn + qaSave to surface a
+// non-blocking warn so the user can still log if they choose (app
+// respects autonomy — the fasting feature is self-reported, not a
+// hard constraint).
+function isFastingInProgress() {
+  const start = Number(localStorage.getItem('scanneat.fasting.start')) || 0;
+  if (start <= 0) return false;
+  const targetH = Number(localStorage.getItem('scanneat.fasting.target')) || 16;
+  const elapsedH = (Date.now() - start) / 3_600_000;
+  // Consider "in progress" only while still within the target window;
+  // past target is "completion window" where logging shouldn't nag.
+  return elapsedH >= 0 && elapsedH < targetH;
+}
+
 logBtn?.addEventListener('click', async () => {
   // R10.3: tell the user *why* the log button is a no-op when they
   // click it without a scanned product. Previously silent — looked
@@ -2590,6 +2605,8 @@ logBtn?.addEventListener('click', async () => {
     const entry = await logEntry(lastData.product, effectiveGrams, meal);
     logToast.textContent = t('logged', { grams: effectiveGrams, kcal: Math.round(entry.kcal) });
     show(logToast);
+    // Fix #26 — warn (non-blocking) when logging during a fast.
+    if (isFastingInProgress()) toast(t('fastingActiveWarn'), 'warn');
     await renderDashboard();
   } catch (err) {
     console.error('[log]', err);
@@ -2847,6 +2864,28 @@ let editingEntry = null;
 qaSave?.addEventListener('click', async (e) => {
   e.preventDefault();
   const f = readQaForm();
+  // Fix #22 — reconcile typed Quick Add against the built-in food DB
+  // when kcal is empty. A user who typed "pomme" + left macros blank
+  // used to see the save rejected; now we try a FOOD_DB match and
+  // fill in per-100 g macros (defaulting portion to 100 g). Matches
+  // the existing LLM-identify reconciliation path.
+  if (f.kcal <= 0 && f.name && f.name.trim().length >= 2) {
+    const reconciled = reconcileWithFoodDB(
+      { name: f.name, estimated_grams: 100 },
+      listCustomFoods(),
+    );
+    if (reconciled?.source === 'db') {
+      f.kcal = Math.round(reconciled.kcal) || 0;
+      f.protein_g = Math.round(reconciled.protein_g) || 0;
+      f.carbs_g = Math.round(reconciled.carbs_g) || 0;
+      f.fat_g = Math.round(reconciled.fat_g) || 0;
+      // Reflect in the form so the user sees what got filled.
+      $('qa-kcal').value    = String(f.kcal);
+      $('qa-protein').value = String(f.protein_g);
+      $('qa-carbs').value   = String(f.carbs_g);
+      $('qa-fat').value     = String(f.fat_g);
+    }
+  }
   if (f.kcal <= 0) { $('qa-kcal')?.focus(); return; }
   try {
     if (editingEntry) {
@@ -2883,6 +2922,8 @@ qaSave?.addEventListener('click', async (e) => {
         toast(t('qaDietWarn', { items: warn.dietViolations.slice(0, 2).join(' · ') }), 'warn');
       }
     } catch { /* never block the save */ }
+    // Fix #26 — fasting-window warn (non-blocking).
+    if (isFastingInProgress()) toast(t('fastingActiveWarn'), 'warn');
     quickAddDialog.close();
     await renderDashboard();
   } catch (err) {
@@ -3118,7 +3159,12 @@ initWeight({
   renderDashboard, todayISO, round1,
 });
 initReminders({ t, toast, nextOccurrenceMs, listWeight });
-initVoiceDictate({ t, currentLang: () => currentLang, parseVoiceQuickAdd });
+initVoiceDictate({
+  t,
+  currentLang: () => currentLang,
+  parseVoiceQuickAdd,
+  logEvent: telemetryLog,
+});
 initScanner({ t, errorEl, show, getBarcodeDetector, scanImage, addBarcodeOnly });
 initInstallBanner({ show, hide });
 initBackupIO({
@@ -3468,7 +3514,15 @@ $('daily-share')?.addEventListener('click', async () => {
   const targets = dailyTargets(profile);
   const burnedForDate = await listActivityByDate(todayISO()).catch(() => []);
   const burned = { kcal: sumBurned(burnedForDate) };
-  const text = formatDailySummary(totals, targets, burned, { lang: currentLang, dateISO: todayISO() });
+  // Fix #14 + #15 — fold hydration + day note into the share.
+  const hydrationMl = Number(localStorage.getItem(`scanneat.hydration.${todayISO()}`)) || 0;
+  const hydrationGoalMl = waterGoalMl(getProfile()) || 0;
+  const dayNote = getDayNote(todayISO()) || '';
+  const text = formatDailySummary(totals, targets, burned, {
+    lang: currentLang,
+    dateISO: todayISO(),
+    hydrationMl, hydrationGoalMl, dayNote,
+  });
   if (!text) { toast(t('dailyShareEmpty'), 'warn'); return; }
   await shareOrCopy({
     title: t('dailyShareTitle'),
@@ -3729,6 +3783,28 @@ async function renderDashboard() {
           if ($('qa-meal')) $('qa-meal').value = e.meal || 'snack';
           const title = $('quick-add-dialog-title');
           if (title) title.textContent = t('editEntryTitle');
+          // Fix #7 — read-only micros line when the entry carries
+          // any. Users see that editing won't erase micros; the
+          // save path still preserves them on the upserted record.
+          const microLine = $('qa-micros-readonly');
+          if (microLine) {
+            const MICRO_SUMMARY = [
+              ['iron_mg', 'Fe', 'mg'], ['calcium_mg', 'Ca', 'mg'],
+              ['magnesium_mg', 'Mg', 'mg'], ['potassium_mg', 'K', 'mg'],
+              ['zinc_mg', 'Zn', 'mg'], ['vit_c_mg', 'C', 'mg'],
+              ['vit_d_ug', 'D', 'µg'], ['b12_ug', 'B12', 'µg'],
+              ['omega_3_g', 'ω3', 'g'],
+            ];
+            const parts = MICRO_SUMMARY
+              .filter(([k]) => (Number(e[k]) || 0) > 0)
+              .map(([k, label, unit]) => `${label} ${Math.round(e[k] * 10) / 10} ${unit}`);
+            if (parts.length > 0) {
+              microLine.textContent = t('qaMicrosReadOnly', { items: parts.join(' · ') });
+              microLine.hidden = false;
+            } else {
+              microLine.hidden = true;
+            }
+          }
           quickAddDialog.showModal();
         });
         const del = document.createElement('button');

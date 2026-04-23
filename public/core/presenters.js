@@ -133,6 +133,13 @@ export function parseVoiceQuickAdd(transcript) {
   const protein = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:prot[eé]ines?|protein)\\b`, 'i'));
   const carbs = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:glucides?|carbs?|carbohydrates?)\\b`, 'i'));
   const fat = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:lipides?|fat|mati[eè]res? grasses?)\\b`, 'i'));
+  // Fix #11 — expanded: sat-fat / sugars / salt / fiber. Uses the
+  // same grammar. Matches "3 g de graisses saturées", "12 g sucres",
+  // "0.5 g sel", "4 g fibres", and the English equivalents.
+  const satFat = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:graisses? satur[eé]es?|sat(?:urated)?[- ]?fat|saturées)\\b`, 'i'));
+  const sugars = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:sucres?|sugars?)\\b`, 'i'));
+  const salt   = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:sel|salt)\\b`, 'i'));
+  const fiber  = grab(new RegExp(`${num}\\s*g(?:rammes?)?\\s+${conn}(?:fibres?|fiber|fibre)\\b`, 'i'));
 
   // Portion (grams OR ml). Only take if no macro claimed the same number —
   // tested last and excluded when the nutrient labels are adjacent.
@@ -155,6 +162,10 @@ export function parseVoiceQuickAdd(transcript) {
   if (Number.isFinite(protein)) out.protein_g = protein;
   if (Number.isFinite(carbs))   out.carbs_g = carbs;
   if (Number.isFinite(fat))     out.fat_g = fat;
+  if (Number.isFinite(satFat))  out.sat_fat_g = satFat;
+  if (Number.isFinite(sugars))  out.sugars_g = sugars;
+  if (Number.isFinite(salt))    out.salt_g = salt;
+  if (Number.isFinite(fiber))   out.fiber_g = fiber;
   if (Number.isFinite(grams))   out.grams = grams;
 
   // Meal slot — users commonly say "petit-déjeuner bananes" or
@@ -170,7 +181,7 @@ export function parseVoiceQuickAdd(transcript) {
   // the food name. Trim punctuation + whitespace.
   let name = text
     .replace(new RegExp(`${num}\\s*(?:kcal|calories?|cal|kilocalories?)\\b`, 'gi'), ' ')
-    .replace(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:prot[eé]ines?|protein|glucides?|carbs?|carbohydrates?|lipides?|fat|mati[eè]res? grasses?)\\b`, 'gi'), ' ')
+    .replace(new RegExp(`${num}\\s*g(?:rammes?)?\\s+(?:de\\s+)?(?:prot[eé]ines?|protein|glucides?|carbs?|carbohydrates?|lipides?|fat|mati[eè]res? grasses?|graisses? satur[eé]es?|sat(?:urated)?[- ]?fat|saturées|sucres?|sugars?|sel|salt|fibres?|fiber|fibre)\\b`, 'gi'), ' ')
     .replace(new RegExp(`${num}\\s*(?:g(?:rammes?)?|ml|millilitres?)(?![a-zà-ÿ])`, 'gi'), ' ')
     // Meal labels handled separately into out.meal; strip from name so
     // the food-name field doesn't contain the meal word.
@@ -461,7 +472,10 @@ export function formatMonthlyShare(rollup, opts = {}) {
  */
 export function formatDailySummary(totals, targets, burned, opts = {}) {
   if (!totals || !(totals.count > 0)) return '';
-  const { lang = 'fr', dateISO } = opts;
+  // Fix #14 + #15 — opts extended with optional hydration + dayNote.
+  // Backward-compatible: existing callers passing only { lang, dateISO }
+  // get the same output.
+  const { lang = 'fr', dateISO, hydrationMl = null, hydrationGoalMl = null, dayNote = null } = opts;
   const isFr = lang !== 'en';
   const r = (n) => Math.round(Number(n) || 0);
   const r1 = (n) => Math.round((Number(n) || 0) * 10) / 10;
@@ -488,11 +502,50 @@ export function formatDailySummary(totals, targets, burned, opts = {}) {
   if (r1(totals.fiber_g)) {
     lines.push(isFr ? `Fibres : ${r1(totals.fiber_g)} g` : `Fiber: ${r1(totals.fiber_g)} g`);
   }
+  // Fix #9 — surface micronutrients when present. Only emits rows
+  // where the day's total exceeds the EU "source of" threshold
+  // (keeps the share compact on a day of mostly-packaged scans).
+  // Matches the NRV_15_PCT list from scoring-engine so what's
+  // called a "source" in the score is a "source" in the share.
+  const SOURCES = [
+    ['iron_mg',       'Fer',        'Iron',        2.1,  'mg'],
+    ['calcium_mg',    'Calcium',    'Calcium',     120,  'mg'],
+    ['magnesium_mg',  'Magnésium',  'Magnesium',   56,   'mg'],
+    ['potassium_mg',  'Potassium',  'Potassium',   300,  'mg'],
+    ['zinc_mg',       'Zinc',       'Zinc',        1.5,  'mg'],
+    ['vit_a_ug',      'Vit A',      'Vit A',       120,  'µg'],
+    ['vit_c_mg',      'Vit C',      'Vit C',       12,   'mg'],
+    ['vit_d_ug',      'Vit D',      'Vit D',       0.75, 'µg'],
+    ['vit_e_mg',      'Vit E',      'Vit E',       1.8,  'mg'],
+    ['b9_ug',         'Folates',    'Folate',      30,   'µg'],
+    ['b12_ug',        'Vit B12',    'Vit B12',     0.375,'µg'],
+    ['omega_3_g',     'Oméga-3',    'Omega-3',     0.3,  'g'],
+  ];
+  const hits = SOURCES
+    .filter(([key, _fr, _en, threshold]) => (Number(totals[key]) || 0) >= threshold)
+    .map(([key, frLab, enLab, _t, unit]) => `${isFr ? frLab : enLab} ${r1(totals[key])} ${unit}`);
+  if (hits.length > 0) {
+    lines.push(isFr ? `Micros : ${hits.join(' · ')}` : `Micros: ${hits.join(' · ')}`);
+  }
   if (targets) {
     const pct = targets.kcal > 0 ? Math.round((totals.kcal / targets.kcal) * 100) : 0;
     lines.push(isFr
       ? `${pct}% de l'objectif (${r(targets.kcal)} kcal cible)`
       : `${pct}% of daily goal (${r(targets.kcal)} kcal target)`);
+  }
+  // Fix #14 — hydration line in the daily share.
+  if (typeof hydrationMl === 'number' && hydrationMl > 0) {
+    const suffix = typeof hydrationGoalMl === 'number' && hydrationGoalMl > 0
+      ? ` / ${hydrationGoalMl} ml`
+      : '';
+    lines.push(isFr
+      ? `💧 Hydratation : ${hydrationMl} ml${suffix}`
+      : `💧 Water: ${hydrationMl} ml${suffix}`);
+  }
+  // Fix #15 — day note carries forward in the share when present.
+  if (typeof dayNote === 'string' && dayNote.trim()) {
+    const truncated = dayNote.length > 200 ? dayNote.slice(0, 200) + '…' : dayNote;
+    lines.push(isFr ? `📝 Note : ${truncated}` : `📝 Note: ${truncated}`);
   }
   lines.push('— Scann-eat');
   return lines.join('\n');
@@ -983,14 +1036,25 @@ export function sharpnessVerdict(variance) {
  */
 export function entriesToDailyCSV(entries) {
   const byDate = new Map();
+  // Fix #8 — full micronutrient panel in the CSV. The column set
+  // matches what consumption entries actually carry after R34's
+  // expansion; new fields are appended so existing downstream
+  // importers that parse by header name keep working.
+  const EXTRA_KEYS = [
+    'fiber_g', 'iron_mg', 'calcium_mg', 'magnesium_mg', 'potassium_mg',
+    'zinc_mg', 'sodium_mg', 'vit_a_ug', 'vit_c_mg', 'vit_d_ug',
+    'vit_e_mg', 'vit_k_ug', 'b1_mg', 'b2_mg', 'b3_mg', 'b6_mg',
+    'b9_ug', 'b12_ug', 'polyunsaturated_fat_g', 'monounsaturated_fat_g',
+    'omega_3_g', 'omega_6_g', 'cholesterol_mg',
+  ];
   for (const e of entries ?? []) {
     if (!e?.date) continue;
     const key = e.date;
     const row = byDate.get(key) ?? {
       date: key, entries: 0, kcal: 0, carbs_g: 0, protein_g: 0,
       fat_g: 0, sat_fat_g: 0, sugars_g: 0, salt_g: 0,
-      fiber_g: 0, iron_mg: 0, calcium_mg: 0, vit_d_ug: 0, b12_ug: 0,
     };
+    for (const k of EXTRA_KEYS) if (row[k] == null) row[k] = 0;
     row.entries += 1;
     row.kcal      += Number(e.kcal) || 0;
     row.carbs_g   += Number(e.carbs_g) || 0;
@@ -999,29 +1063,21 @@ export function entriesToDailyCSV(entries) {
     row.sat_fat_g += Number(e.sat_fat_g) || 0;
     row.sugars_g  += Number(e.sugars_g) || 0;
     row.salt_g    += Number(e.salt_g) || 0;
-    row.fiber_g    += Number(e.fiber_g) || 0;
-    row.iron_mg    += Number(e.iron_mg) || 0;
-    row.calcium_mg += Number(e.calcium_mg) || 0;
-    row.vit_d_ug   += Number(e.vit_d_ug) || 0;
-    row.b12_ug     += Number(e.b12_ug) || 0;
+    for (const k of EXTRA_KEYS) row[k] += Number(e[k]) || 0;
     byDate.set(key, row);
   }
   const rows = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
-  // NEW columns appended at the end so existing CSV importers that parse
-  // by column index or header prefix keep working. Order: fiber then the
-  // four tracked micronutrients.
   const header = [
     'date', 'entries', 'kcal', 'carbs_g', 'protein_g',
     'fat_g', 'sat_fat_g', 'sugars_g', 'salt_g',
-    'fiber_g', 'iron_mg', 'calcium_mg', 'vit_d_ug', 'b12_ug',
+    ...EXTRA_KEYS,
   ];
   const round1 = (v) => Math.round(v * 10) / 10;
   const round3 = (v) => Math.round(v * 1000) / 1000;
   const fmt = (r) => [
     r.date, r.entries, round1(r.kcal), round1(r.carbs_g), round1(r.protein_g),
     round1(r.fat_g), round1(r.sat_fat_g), round1(r.sugars_g), round3(r.salt_g),
-    round1(r.fiber_g), round1(r.iron_mg), round1(r.calcium_mg),
-    round1(r.vit_d_ug), round1(r.b12_ug),
+    ...EXTRA_KEYS.map((k) => round1(r[k])),
   ];
   // CSV quoting: fields don't contain commas or quotes given our data, but
   // wrap in quotes anyway for Excel safety.

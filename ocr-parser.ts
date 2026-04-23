@@ -508,16 +508,24 @@ const IDENTIFY_RECIPE_PROMPT = `Tu analyses la photo d'une carte de recette, d'u
 Règles strictes :
 1. Transcris fidèlement le nom du plat, le nombre de personnes (si indiqué), les ingrédients (avec leurs quantités telles qu'écrites), et les étapes.
 2. Garde les quantités dans leur format original ("1 tasse", "200 g", "2 c. à soupe"). Ne convertis PAS.
-3. Si une info n'est PAS visible, renvoie une chaîne vide ou 0 — n'invente rien.
-4. Si c'est pas une recette (carte de restaurant, étiquette, autre), renvoie { "recipes": [] } (pluriel).
-5. Réponds UNIQUEMENT en JSON valide, pas de markdown.`;
+3. Si la recette indique ou permet d'inférer kcal + macros pour l'ensemble ou par portion, remplis "nutrition". Sinon laisse à 0 — n'invente pas de valeurs.
+4. Si une info n'est PAS visible, renvoie une chaîne vide ou 0 — n'invente rien.
+5. Si c'est pas une recette (carte de restaurant, étiquette, autre), renvoie des champs vides.
+6. Réponds UNIQUEMENT en JSON valide, pas de markdown.`;
 
 const IDENTIFY_RECIPE_SCHEMA = `{
   "name": "string (ex: 'Salade niçoise')",
   "servings": number (ex: 4, ou 0 si inconnu),
   "ingredients": ["string", ...],
   "steps": ["string", ...],
-  "cook_time_min": number (ex: 30, ou 0 si inconnu)
+  "cook_time_min": number (ex: 30, ou 0 si inconnu),
+  "nutrition": {
+    "kcal": number,
+    "protein_g": number,
+    "carbs_g": number,
+    "fat_g": number,
+    "per_serving": boolean
+  }
 }`;
 
 export interface IdentifiedRecipe {
@@ -526,6 +534,13 @@ export interface IdentifiedRecipe {
   ingredients: string[];
   steps: string[];
   cook_time_min: number;
+  nutrition?: {
+    kcal: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    per_serving: boolean;
+  };
 }
 
 /**
@@ -563,12 +578,30 @@ export async function identifyRecipe(
   const steps = Array.isArray(parsed.steps)
     ? (parsed.steps as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
     : [];
+  // Fix #13 — nutrition block extraction. Optional; keep it off the
+  // return shape when the LLM said zeros across the board so the
+  // caller knows to fall back to per-ingredient fill.
+  let nutrition: IdentifiedRecipe['nutrition'];
+  if (parsed.nutrition && typeof parsed.nutrition === 'object') {
+    const nb = parsed.nutrition as Record<string, unknown>;
+    const kcal = Math.max(0, coerceNumber(nb.kcal));
+    const protein_g = Math.max(0, coerceNumber(nb.protein_g));
+    const carbs_g = Math.max(0, coerceNumber(nb.carbs_g));
+    const fat_g = Math.max(0, coerceNumber(nb.fat_g));
+    if (kcal > 0 || protein_g > 0 || carbs_g > 0 || fat_g > 0) {
+      nutrition = {
+        kcal, protein_g, carbs_g, fat_g,
+        per_serving: nb.per_serving === true,
+      };
+    }
+  }
   return {
     name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : '',
     servings: Math.max(0, Math.round(coerceNumber(parsed.servings))),
     ingredients,
     steps,
     cook_time_min: Math.max(0, Math.round(coerceNumber(parsed.cook_time_min))),
+    nutrition,
   };
 }
 

@@ -153,9 +153,23 @@ export function buildRecipeProductInput(recipe) {
       // in a future pass).
     };
   });
+  // Fix #19 — infer a rough category from the ingredient list so
+  // the scoring engine can pick the right threshold set (beverages
+  // vs snacks vs prepared dishes). Pure heuristic; falls back to
+  // 'prepared' which is the closest generic fit for home cooking.
+  const nameBlob = items.map((c) => (c.product_name || '').toLowerCase()).join(' ');
+  let inferredCategory = 'prepared';
+  if (/\b(lait|milk|boisson|drink|soda|jus|juice|smoothie|infusion|tisane)\b/.test(nameBlob)
+      && items.length <= 4) {
+    inferredCategory = 'beverage';
+  } else if (/\b(biscuit|cookie|chocolat|chocolate|bonbon|candy|chips)\b/.test(nameBlob)) {
+    inferredCategory = 'snack';
+  } else if (/\b(pain|bread|baguette|brioche)\b/.test(nameBlob) && items.length <= 5) {
+    inferredCategory = 'bread';
+  }
   return {
     name: recipe?.name || '',
-    category: 'other',
+    category: inferredCategory,
     weight_g: totalGrams || null,
     ingredients,
     nutrition: {
