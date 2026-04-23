@@ -4721,3 +4721,51 @@ textarea::-webkit-input-placeholder {
   color: var(--muted);
   pointer-events: none;
 }
+
+/* ==========================================================================
+   STEP 9 — §DP character deepening (one unavoidable moment + material coherence).
+   Two character shifts:
+     (1) `.product h2` ledger underline — the single most-visible
+         product-name heading gets a fountain-pen-style accent rule
+         under the baseline, expressing the "scientist's notebook"
+         material in ONE deliberate type moment (§DP3.5).
+     (2) Paper-grain bumped visible when a dialog is open — the
+         backdrop's coral scrim sits over grain (not over a plain
+         blur), pushing the dialog from "premium iOS glass" back
+         into the Paper material dominant.
+   ========================================================================== */
+
+/* §DP3.5 — "one unavoidable moment." Thin accent rule under the
+   scan-result product name. 1px via linear-gradient so it feathers
+   at both ends (not a hard link underline). Uses the dim accent
+   so it reads as ink, not as a link affordance. */
+.product h2 {
+  display: inline-block;
+  padding-bottom: 0.12em;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-dim) 12%,
+    var(--accent-dim) 88%,
+    transparent 100%
+  );
+  background-size: 100% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+}
+
+/* §DP3 material coherence — when a dialog is open, make the body's
+   paper grain more visible so the backdrop reads as "paper cover
+   with a coral wash" rather than "frosted glass." The grain's
+   0.025 default stays untouched at rest; the :has() query bumps
+   it to 0.05 only while a dialog is open. Supported browsers
+   only; fallback leaves the base behaviour. */
+@supports selector(:has(*)) {
+  body:has(dialog[open])::before {
+    opacity: 0.05;
+    transition: opacity var(--motion-enter, 220ms) var(--ease-ui, ease);
+  }
+}
+body.reduce-motion:has(dialog[open])::before {
+  transition: none;
+}

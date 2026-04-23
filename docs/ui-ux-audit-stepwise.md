@@ -703,3 +703,103 @@ same element.
    (oklch ≈ 99% 0.005 90). Pure-white removed.
 5. **`::placeholder` rule** — placeholder text pulled from the
    muted token, not browser default gray.
+
+---
+
+## Step 9 — §DP design character system (extract · assess · brief)
+
+### §DP0. Character extraction (read from code, not from intent)
+
+| Signal | Extracted value(s) |
+|---|---|
+| **Background** | Dark: `#E84A5F → #D94458` coral gradient. Light: `#F6D0D6 → #F0B7BF` coral paper. Gradient body (v2), 2% SVG-noise paper grain overlay. |
+| **Surface** | Dark panel `#1B1B1F` near-black. Light panel `#FFFDF7` warm cream (Step 8). Nested `--panel-2` cream/charcoal, `--panel-3` deeper. |
+| **Accent** | Dark `#FF6B45` orange. Light `#B0431F` burnt sienna. Plus `--accent-hover`, `--accent-pressed`, `--accent-focus` (Step 2). |
+| **Grade palette** | 6-stop green→red diverging scale with B dots / C diagonals / D hatch / F dense X overlay on every badge (Step 8 extended to `.grade`). |
+| **Spacing scale** | `--sp-1..8` = 4/8/12/16/20/24/32/48. Dominant section rhythm `--sp-5` 20px. No ad-hoc values. |
+| **Radii** | `--r-xs 8`, `--r-sm 12`, `--r-md 18` (cards), `--r-lg 24` (modals), `--r-xl 32`, `--r-pill 999` (chips). Plus semantic aliases `--r-btn 14`, `--r-input 10`, `--r-card`, `--r-badge`, `--r-modal` (Step 8). |
+| **Typography** | Atkinson Hyperlegible primary + optional Lexend. Minor-third scale `--text-xs..3xl` = 11.5/13.9/16/19.2/23/27.7/33.2 (Step 4). tabular-nums + lining-nums on `body`. |
+| **Weight range** | 400 body → 700 grade/display. No ultra-light, no black. |
+| **Motion durations** | `--motion-fast 100ms`, `--motion-base 140ms`, `--motion-enter 220ms`, `--motion-exit 180ms`, `--motion-nav 260ms`, `--motion-loop 1000ms`. One easing `cubic-bezier(0.2, 0.8, 0.2, 1)`. |
+| **Elevation** | `--elev-1` neutral shadow + `--elev-1-tonal` coral-hued option (Step 8). `--elev-2` hover/active. |
+| **Borders** | Hairline `--border` low-contrast + `--border-strong` for dim-bg dividers. 1.5px dashed on empty-state tiles. |
+| **Icons** | Unicode emoji only. `.icon-glyph` helper normalises baseline/size (Step 7). One emoji per feature. |
+| **Surface atmosphere** | Coral-gradient dialog backdrop @ 12px blur + 2% paper-grain body overlay + grade-pattern overlays on badges. |
+| **Voice (microcopy)** | French/English, plural-aware i18n. Verbose-but-warm ("Aucune recette sauvegardée.") — casual register, emoji-accented. |
+
+**Emergent personality statement (read from the above, not from intent):**
+> *The design reads as a **warm, precise food ledger** — coral paper,
+> cream card-stock, numbers that line up like an accountant's
+> columns, soft notebook-grain texture, diverging-scale badges that
+> feel like handwritten grades. Strongest signals: (1) coral+cream
+> two-tone; (2) tabular-numerals scientific feel; (3) emoji-per-feature
+> casual tone. Weakest signals: (1) dialog backdrop leans
+> "premium glassmorphism" against the paper identity; (2) main
+> product heading `.product h2` has no distinguishing type moment;
+> (3) empty states still read as "missing data" rather than
+> "notebook page waiting to be filled".*
+
+### §DP1. Six-dimension character analysis
+
+| Dimension | Observed (§DP0) | Target (§0 / v2 vision) | Gap |
+|---|---|---|---|
+| **D1 Voice — Terse↔Expansive** | 3 (slightly expansive: paper grain, grade overlays) | 3 | ✓ |
+| **D1 Voice — Cold↔Warm** | 4 (coral + cream + emoji) | 4 | ✓ |
+| **D1 Voice — Formal↔Casual** | 2 (emoji + plural-aware voice + rounded corners) | 2 | ✓ |
+| **D1 Voice — Restrained↔Expressive** | 3 (grade patterns, reveal anim) | 3 | ✓ |
+| **D2 Space — Dense↔Airy** | 2 (dashboard stacks macros+micros+tiles+meals) | 3 (target) | -1 (manageable) |
+| **D2 Space — Flat↔Deep** | 3 (--elev-1 + tonal option + 12px blur) | 3 | ✓ |
+| **D2 Space — Rigid↔Fluid** | 2 (token scale, no ad-hoc) | 2 | ✓ |
+| **D2 Space — Anchored↔Floating** | 2 (cards anchored, no hovering) | 2 | ✓ |
+| **D3 Material dominant** | Paper (cream, shadow-cast, grain) + Glass (dialog backdrop) | **Paper** primary | Glass contradicts — backdrop leans premium/cold |
+| **D4 Interaction — Mechanical↔Physical** | 3 (`scale(0.96)` press, eased motion) | 3 | ✓ |
+| **D4 Interaction — Snappy↔Considered** | 2 (140ms base, firmly snappy) | 2-3 | ✓ |
+| **D4 Interaction — Silent↔Expressive** | 3 (opt-in grade reveal, pulse loops) | 3 | ✓ |
+| **D5 State — Empty** | Dashed-border italic muted box | On-character, but generic copy | -1 on copy, not CSS |
+| **D5 State — Loading** | Skeleton + pulse-dots | ✓ | ✓ |
+| **D5 State — Success** | Toast 'ok' variant | ✓ | ✓ |
+| **D5 State — Error** | Toast 'warn' variant + `--danger` | ✓ | ✓ |
+| **D6 Coherence** | **PARTIALLY COHERENT** | COHERENT | dialog glass + `.product h2` generic |
+
+**Primary coherence fix (one change, highest impact):** lean the
+`.product h2` (scan-result product name) into the notebook-ledger
+character with a subtle fountain-pen-style underline — a thin
+accent rule under the name, visible only in the main result card.
+This is the "one unavoidable moment" per §DP3.5 where character
+becomes deliberate rather than ambient.
+
+**Secondary coherence fix:** tighten dialog backdrop — drop the
+gloss-glass cast by layering the coral gradient *over* a subtle
+paper-grain behind the blur, so the backdrop reads as
+"looking at the cover of the notebook" rather than
+"premium iOS sheet". Small opacity bump on the grain when
+dialogs open.
+
+### §DP2. Design character brief (shipped to `docs/design-system.md`)
+
+Added as a new **"Character brief"** section. See design-system.md
+for the canonical copy; summary here:
+
+- **Voice**: warm + casual + moderately expressive (Sage+Caregiver+Lover).
+- **Space**: dense-but-paced, flat-with-lift, rigid token grid.
+- **Material**: Paper (cream + grain + shadow-cast), with Light as
+  tertiary for the grade palette glow. Glass is demoted — dialogs
+  use tinted paper, not frosted glass.
+- **Interaction**: snappy (140ms base) + physical press + expressive
+  on opt-in signature moments only (grade reveal, pulse loops).
+- **States**: consistent paper-on-notebook treatment across empty /
+  loading / success / error.
+
+### Step 9 fixes → shipping
+
+1. **`.product h2` ledger underline** — subtle 1px coral accent
+   rule under the scan-result product name. Expresses the
+   "scientist's notebook" material through ONE deliberate type
+   moment. Feather the underline so it doesn't read as a link.
+2. **Paper-grain under dialog backdrop** — body's 2% grain stays
+   visible *behind* the coral scrim when `body:has(dialog[open])`
+   so the dialog reads as "paper cover" rather than pure glass.
+   Bumps material coherence without touching the blur effect.
+3. **Design-system.md Character brief** — canonical §DP2 brief
+   added so future work filters decisions through the brief,
+   not reinvents it.

@@ -223,6 +223,74 @@ feature uses a single recognisable emoji as its accent glyph
 - Versioned independently of the code. The tokens live in `styles.css`;
   changing one ships with the next web deploy.
 
+## Character brief (v2, post-§DP)
+
+Canonical character statement. Every design decision filters through
+this — either reinforces or contradicts what it says.
+
+> **This app's design reads as a warm, precise food ledger.**
+> The strongest expression is the coral-paper + cream-card two-tone
+> with tabular numerics and diverging-scale grade badges.
+> It should never feel clinical, corporate, or "premium glass" —
+> which currently happens when a dialog's frosted-glass blur
+> overtakes the paper metaphor.
+
+**Voice:** warm + casual + moderately expressive. Sage (trustworthy
+guidance) + Caregiver (soft, unhurried) + Lover tertiary
+(sensory, food-warm).
+
+**Space:** dense-but-paced, flat-with-lift, rigid token grid. Every
+vertical rhythm reads from `--sp-5` (20px) at the section level.
+
+**Material:** Paper dominant — cream panels, 2% grain overlay, shadow
+cast from a fixed overhead light. Light tertiary — the grade palette
+glow from `--grade-*` tokens. Glass demoted: dialogs read as "paper
+cover with a tint", not frosted iOS sheets.
+
+**Interaction:** snappy (`--motion-base 140ms`) + physical press
+(`scale(0.96)` on touchable chrome) + expressive on opt-in signature
+moments only (grade-chip-reveal, listening/scanning pulse loops).
+
+**States:** paper-on-notebook treatment is consistent across empty
+(dashed paper tile) / loading (skeleton pulse) / success (`ok`
+toast) / error (`warn` toast with `--danger`).
+
+### Character tests (decision filters)
+
+- ✓ **On character** — a new surface uses `--panel` or `--panel-2`
+  (both already warm/cream), with `--elev-1` neutral OR
+  `--elev-1-tonal` coral shadow. One grain-compatible texture at
+  ≤ 3% opacity is acceptable.
+- ✗ **Off character** — a new surface uses pure `#ffffff`, pure
+  `#000000`, or a chromatic non-coral gradient. Reject.
+- ✓ **On character** — a new interaction finishes in ≤ 220ms with
+  a single easing (`--ease-ui`).
+- ✗ **Off character** — a custom easing, bounce physics, or a
+  transition > 400ms. Reject.
+- ✓ **On character** — type values come from `--text-xs..3xl`.
+- ✗ **Off character** — ad-hoc `font-size: 0.92em`. Reject; add to
+  scale if the size genuinely recurs.
+
+### Protect (character already expressed correctly)
+
+- Coral `--bg` + `--bg-deep` gradient.
+- Cream `--panel` (`#FFFDF7` light / `#1B1B1F` dark).
+- Grade badge pattern overlays across `.grade`, `.recent-grade`,
+  `.compare-grade`, `.recipe-row-grade`, `.recipe-edit-grade`.
+- Atkinson Hyperlegible + tabular-nums on numerics.
+- Emoji-per-feature signature.
+- 2% paper-grain overlay.
+
+### Reject (belongs to a different product)
+
+- Frosted-glass cards (Apple sheet / iOS premium).
+- Neon accents (Discord, Linear, gaming).
+- Thick uppercase tracking on body text (fintech).
+- Serif editorial headlines (news / longform).
+- Monospace body type (dev tool / terminal).
+
+---
+
 ## Rules for adding a token
 
 1. The new style actually recurs in ≥ 3 places. One-offs don't need a
