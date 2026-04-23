@@ -2042,3 +2042,87 @@ Step 25 now calibrates it.
    Regression risk: a future refactor that introduces a
    `rgba(0,0,0,...)` shadow on cards or a generic `#ffffff`
    surface should be caught by re-running this scorecard.
+
+---
+
+## Step 26 — art-direction §PAIRING · §SCALE · §HIERARCHY · §MICRO
+
+### §PAIRING. Font pairing audit
+
+| Dimension | Scann-eat | Skill guidance |
+|---|---|---|
+| Number of fonts | 1 (Atkinson Hyperlegible) + optional Lexend opt-in per user | "Maximum 3 per product" ✓ |
+| Display + body relationship | Single family (same for both) | "Sans display + Sans body, single family, weight contrast" pattern — matched ✓ |
+| Anti-patterns | None — no two geometric sans, no two display serifs | ✓ |
+
+**Verdict:** deliberate single-family approach, driven by
+accessibility (Atkinson is designed for low vision + dyslexia).
+Weight contrast (400 body / 500 labels / 600 interactive / 700
+display) provides hierarchy without a second family.
+
+### §SCALE. Scale ratio audit
+
+Ratio: **1.200 Minor Third** (established in Step 4 §DT2).
+
+| Token | Size | Use |
+|---|---|---|
+| `--text-xs` | 11.5px | metadata, chart axis |
+| `--text-sm` | 13.9px | secondary labels, chip text |
+| `--text-base` | 16px | body default |
+| `--text-lg` | 19.2px | card headings |
+| `--text-xl` | 23px | dashboard numerics |
+| `--text-2xl` | 27.7px | scan grade, display |
+| `--text-3xl` | 33.2px | large display (Step 4) |
+
+Per skill: Minor Third = "balanced, most apps" — matches §DP2
+balanced density. Mobile compression ≤15-25% suggested for
+display sizes on mobile — not needed since Scann-eat is
+mobile-first and the base scale already targets phone
+viewports.
+
+### §HIERARCHY. Type system
+
+Scann-eat uses per-component type rules (each rule reads
+from the `--text-*` scale directly) rather than utility
+classes (`.type-display` / `.type-title` / etc.). Both
+approaches are valid. No gap, but two literal sizes
+remain as historical debt:
+
+| Rule | Current | Target |
+|---|---|---|
+| `.product h2` | `font-size: 1.35em` (Step 3710) | `var(--text-lg)` (19.2px, scales with rem) |
+| `.dashboard-header h2` | `font-size: 0.92em` (Step 2018) | `var(--text-sm)` (13.9px) |
+
+**Finding HIER-1:** migrate the two hero-heading literals
+to scale tokens. Keeps the type system referenceable from
+one place (the token definitions) rather than per-rule.
+
+The broader 0.92em pattern (used 10+ places) is lower-
+priority debt — risk vs reward not favourable for a full
+sweep.
+
+### §MICRO. Small details audit
+
+| Item | Target | Observed | Verdict |
+|---|---|---|---|
+| Line-height heading | 1.05–1.2 | 1.15 on h1/h2 (Step 4) | ✓ |
+| Line-height body | 1.45–1.65 | 1.5 on body (Step 4) | ✓ |
+| Measure `max-width: 65ch` | for prose | `main { max-width: 600px }` ≈ 62ch at 16px base | ✓ |
+| `text-wrap: balance` on headings | Chrome 114+ | applied to h1/h2 (Step 4) | ✓ |
+| Links `text-decoration-thickness: 1px` + `text-underline-offset: 3px` | — | browser default | **gap** |
+| Never pure black on pure white | — | `--text` chromatic, `--panel` off-white (Step 8) | ✓ |
+| Colored body text (reads as links) | avoid | body is `--text`; colour only on grades / chips | ✓ |
+
+**Finding MICRO-1:** links render with browser-default
+underline. Customising to 1px thickness + 3px offset is a
+tiny refinement that reads as typographic care.
+
+### Step 26 fixes → shipping
+
+1. **Migrate `.product h2` font-size** — `1.35em` →
+   `var(--text-lg)`. Scale-coherent.
+2. **Migrate `.dashboard-header h2` font-size** — `0.92em`
+   → `var(--text-sm)`. Scale-coherent.
+3. **Link typography refinement** — global rule
+   `a { text-decoration-thickness: 1px; text-underline-offset:
+   3px; }`. Subtle craft detail.
