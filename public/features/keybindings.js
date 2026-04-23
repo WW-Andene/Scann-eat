@@ -7,10 +7,11 @@
  *   /            — focuses the history search input.
  *   Enter        — triggers the Scan button when the user isn't typing
  *                  in a form field.
- *   q / t / r    — open Quick Add / Templates / Recipes (R9.5). Only
- *                  fires when the user isn't typing in a field and no
- *                  dialog is already open — so typing "r" into a text
- *                  input never hijacks focus into a dialog.
+ *   q / t / r / w — open Quick Add / Templates / Recipes / Weight
+ *                  (R9.5, R11.6). Only fires when the user isn't
+ *                  typing in a field and no dialog is already open —
+ *                  so typing "r" into a text input never hijacks
+ *                  focus into a dialog.
  *   ?            — emits a toast cheat-sheet of the above (R10.2).
  *                  Same typing/dialog guard as q/t/r.
  *
@@ -23,7 +24,7 @@
 
 export function initKeybindings({
   scanBtn, historySearchInput,
-  quickAddBtn, templatesBtn, recipesBtn,
+  quickAddBtn, templatesBtn, recipesBtn, weightBtn,
   t, toast,
 }) {
   document.addEventListener('keydown', (e) => {
@@ -48,6 +49,7 @@ export function initKeybindings({
     if (e.key === 'q' && quickAddBtn) { e.preventDefault(); quickAddBtn.click(); return; }
     if (e.key === 't' && templatesBtn) { e.preventDefault(); templatesBtn.click(); return; }
     if (e.key === 'r' && recipesBtn) { e.preventDefault(); recipesBtn.click(); return; }
+    if (e.key === 'w' && weightBtn) { e.preventDefault(); weightBtn.click(); return; }
     if (e.key === '?' && t && toast) {
       e.preventDefault();
       // 6-second display — long enough to read the sheet but not

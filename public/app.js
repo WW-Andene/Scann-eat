@@ -45,7 +45,7 @@ import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/re
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary, formatRecipeShare, pctClass, dashboardRowsFrom } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
@@ -1828,6 +1828,7 @@ initKeybindings({
   quickAddBtn: $('quick-add-btn'),
   templatesBtn: $('templates-btn'),
   recipesBtn: $('recipes-btn'),
+  weightBtn: $('weight-btn'),
   t, toast,
 });
 
@@ -2605,11 +2606,7 @@ $('cf-save')?.addEventListener('click', () => {
   }
 });
 
-function pctClass(pct) {
-  if (pct >= 100) return 'over';
-  if (pct >= 80) return 'near';
-  return 'ok';
-}
+// pctClass extracted to /core/presenters.js (R11.1) — pure, testable.
 
 // Hydration feature is now self-contained in public/features/hydration.js.
 // Inject its runtime dependencies (i18n lookup, profile getter, goal calc,
@@ -2674,6 +2671,8 @@ recipesDialog = initRecipesDialog({
   t, toast,
   aggregateRecipe, saveRecipe, listRecipes, deleteRecipe,
   putEntry, defaultMealForHour, todayISO, renderDashboard,
+  shareOrCopy, formatRecipeShare,
+  currentLang: () => currentLang,
 });
 initQaAutocomplete({ show, hide, searchFoodDB, listCustomFoods });
 initProfileDialog({
@@ -3030,25 +3029,13 @@ async function renderDashboard() {
 
   await renderWeightSummary(profile);
 
-  const rows = [
-    { key: 'dashKcal',    value: totals.kcal,       target: targets?.kcal,              unit: 'kcal' },
-    { key: 'dashCarbs',   value: totals.carbs_g,    target: targets?.carbs_g_target,    unit: 'g' },
-    { key: 'dashFiber',   value: totals.fiber_g,    target: targets?.fiber_g_target,    unit: 'g' },
-    { key: 'dashProtein', value: totals.protein_g,  target: targets?.protein_g_target,  unit: 'g' },
-    { key: 'dashFat',     value: totals.fat_g,      target: targets?.fat_g_target,      unit: 'g' },
-    { key: 'dashSatFat',  value: totals.sat_fat_g,  target: targets?.sat_fat_g_max,     unit: 'g' },
-    { key: 'dashSugars',  value: totals.sugars_g,   target: targets?.free_sugars_g_max, unit: 'g' },
-    { key: 'dashSalt',    value: totals.salt_g,     target: targets?.salt_g_max,        unit: 'g' },
-    // Micros: only rendered when a product actually logged a non-zero value
-    // today, so the dashboard stays minimal for users of OFF products that
-    // don't report micros (the majority).
-    ...(totals.iron_mg    > 0 ? [{ key: 'dashIron',    value: totals.iron_mg,    target: targets?.iron_mg_target,    unit: 'mg' }] : []),
-    ...(totals.calcium_mg > 0 ? [{ key: 'dashCalcium', value: totals.calcium_mg, target: targets?.calcium_mg_target, unit: 'mg' }] : []),
-    ...(totals.vit_d_ug   > 0 ? [{ key: 'dashVitD',    value: totals.vit_d_ug,   target: targets?.vit_d_ug_target,   unit: 'µg' }] : []),
-    ...(totals.b12_ug     > 0 ? [{ key: 'dashB12',     value: totals.b12_ug,     target: targets?.b12_ug_target,     unit: 'µg' }] : []),
-  ];
+  // R11.2: row shape + conditional micros now live in
+  // dashboardRowsFrom (pure presenter). The DOM loop below is
+  // unchanged; the builder is testable under node:test without a
+  // jsdom shim.
+  const rows = dashboardRowsFrom(totals, targets);
 
-  dashboardRows.innerHTML = '';
+  dashboardRows.textContent = '';
   for (const row of rows) {
     const li = document.createElement('li');
     li.className = 'dash-row';
@@ -3102,7 +3089,7 @@ async function renderDashboard() {
   }
 
   // Per-meal entry list
-  dashboardEntries.innerHTML = '';
+  dashboardEntries.textContent = '';
   if (entries.length === 0) {
     const p = document.createElement('p');
     p.className = 'dash-entry-empty';

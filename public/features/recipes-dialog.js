@@ -11,10 +11,14 @@
  * R9.2 adds the duplicate-recipe chip — same UX as the R8.6 template
  * duplicate: one-tap clone under a new name.
  *
+ * R11.8 adds the share-recipe chip — uses shareOrCopy + the new
+ * formatRecipeShare presenter.
+ *
  * Deps shape:
  *   { t, toast,
  *     aggregateRecipe, saveRecipe, listRecipes, deleteRecipe,
- *     putEntry, defaultMealForHour, todayISO, renderDashboard }
+ *     putEntry, defaultMealForHour, todayISO, renderDashboard,
+ *     shareOrCopy, formatRecipeShare, currentLang }
  *
  * Returns:
  *   { setLastIdentifiedPlate(items), renderRecipesList() }
@@ -27,6 +31,7 @@ export function initRecipesDialog(deps) {
     t, toast,
     aggregateRecipe, saveRecipe, listRecipes, deleteRecipe,
     putEntry, defaultMealForHour, todayISO, renderDashboard,
+    shareOrCopy, formatRecipeShare, currentLang,
   } = deps;
 
   const recipesBtn = $('recipes-btn');
@@ -213,6 +218,26 @@ export function initRecipesDialog(deps) {
           toast(t('recipeDuplicatedToast', { name: saved.name }), 'ok');
         } catch (err) { console.error('[recipe-duplicate]', err); }
       });
+      // R11.8: share-recipe chip. Emits a compact plain-text summary
+      // via the unified shareOrCopy path (native share sheet on
+      // mobile, clipboard fallback elsewhere). Locale-aware via the
+      // formatRecipeShare presenter + currentLang() lookup.
+      const shareBtn = document.createElement('button');
+      shareBtn.type = 'button';
+      shareBtn.className = 'chip-btn';
+      shareBtn.textContent = t('recipeShare');
+      shareBtn.setAttribute('aria-label', t('recipeShare'));
+      shareBtn.addEventListener('click', async () => {
+        if (!shareOrCopy || !formatRecipeShare) return;
+        const text = formatRecipeShare(r, { lang: currentLang ? currentLang() : 'fr' });
+        if (!text) { toast(t('recipeShareEmpty'), 'warn'); return; }
+        await shareOrCopy({
+          title: r.name || t('recipeShare'),
+          text,
+          toasts: { copied: t('recipeShareCopied'), failed: t('recipeShareFailed') },
+          toast,
+        });
+      });
       const del = document.createElement('button');
       del.type = 'button';
       del.className = 'chip-btn';
@@ -225,6 +250,7 @@ export function initRecipesDialog(deps) {
       actions.appendChild(apply);
       actions.appendChild(edit);
       actions.appendChild(dup);
+      actions.appendChild(shareBtn);
       actions.appendChild(del);
       li.appendChild(actions);
       recipesListEl.appendChild(li);

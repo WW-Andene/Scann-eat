@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs } from './public/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare } from './public/core/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -751,5 +751,113 @@ describe('nextOccurrenceMs', () => {
     const t = nextOccurrenceMs('10:00', now);
     const d = new Date(t!);
     assert.equal(d.getDate(), 23);
+  });
+});
+
+// ============================================================================
+// pctClass (R11.1)
+// ============================================================================
+
+describe('pctClass', () => {
+  it('returns "ok" below 80%', () => {
+    assert.equal(pctClass(0), 'ok');
+    assert.equal(pctClass(50), 'ok');
+    assert.equal(pctClass(79.9), 'ok');
+  });
+
+  it('returns "near" from 80 to 99', () => {
+    assert.equal(pctClass(80), 'near');
+    assert.equal(pctClass(99), 'near');
+  });
+
+  it('returns "over" at 100+', () => {
+    assert.equal(pctClass(100), 'over');
+    assert.equal(pctClass(200), 'over');
+  });
+});
+
+// ============================================================================
+// dashboardRowsFrom (R11.2)
+// ============================================================================
+
+describe('dashboardRowsFrom', () => {
+  const totals = {
+    kcal: 1800, carbs_g: 180, fiber_g: 20, protein_g: 90, fat_g: 60,
+    sat_fat_g: 10, sugars_g: 30, salt_g: 4, count: 5,
+  };
+  const targets = {
+    kcal: 2000, carbs_g_target: 225, fiber_g_target: 25,
+    protein_g_target: 100, fat_g_target: 70, sat_fat_g_max: 20,
+    free_sugars_g_max: 50, salt_g_max: 5,
+  };
+
+  it('always emits the 8 macro rows in stable order', () => {
+    const rows = dashboardRowsFrom(totals, targets);
+    assert.equal(rows.length, 8);
+    assert.deepEqual(rows.map((r: { key: string }) => r.key), [
+      'dashKcal', 'dashCarbs', 'dashFiber', 'dashProtein',
+      'dashFat', 'dashSatFat', 'dashSugars', 'dashSalt',
+    ]);
+  });
+
+  it('adds iron row only when totals.iron_mg > 0', () => {
+    const withIron = dashboardRowsFrom({ ...totals, iron_mg: 10 }, targets);
+    assert.ok(withIron.some((r: { key: string }) => r.key === 'dashIron'));
+    const withoutIron = dashboardRowsFrom(totals, targets);
+    assert.ok(!withoutIron.some((r: { key: string }) => r.key === 'dashIron'));
+  });
+
+  it('safe with null / undefined totals', () => {
+    const rows = dashboardRowsFrom(undefined, undefined);
+    assert.equal(rows.length, 8);
+    for (const r of rows) assert.equal(r.value, 0);
+  });
+});
+
+// ============================================================================
+// formatRecipeShare (R11.7)
+// ============================================================================
+
+describe('formatRecipeShare', () => {
+  const recipe = {
+    id: 'r1',
+    name: 'Pâtes pesto',
+    servings: 2,
+    components: [
+      { product_name: 'Pâtes', grams: 200, kcal: 700, protein_g: 25, carbs_g: 140, fat_g: 3 },
+      { product_name: 'Pesto', grams: 50, kcal: 260, protein_g: 6, carbs_g: 3, fat_g: 24 },
+    ],
+  };
+
+  it('returns "" when components is empty', () => {
+    assert.equal(formatRecipeShare({ name: 'x', servings: 1, components: [] }), '');
+    assert.equal(formatRecipeShare(null), '');
+    assert.equal(formatRecipeShare(undefined), '');
+  });
+
+  it('divides totals by servings', () => {
+    const out = formatRecipeShare(recipe, { lang: 'en' });
+    // 960 total / 2 servings = 480 kcal per serving
+    assert.ok(out.includes('480 kcal'), out);
+    // Per-serving protein: (25+6)/2 = 15.5 → rounds to 16
+    assert.ok(out.includes('16 g'), out);
+  });
+
+  it('locale-aware header', () => {
+    const fr = formatRecipeShare(recipe, { lang: 'fr' });
+    const en = formatRecipeShare(recipe, { lang: 'en' });
+    assert.ok(fr.startsWith('🍽 Recette'));
+    assert.ok(en.startsWith('🍽 Recipe'));
+  });
+
+  it('ends with Scann-eat signature', () => {
+    const out = formatRecipeShare(recipe);
+    assert.ok(out.endsWith('— Scann-eat'));
+  });
+
+  it('each component becomes a bullet line', () => {
+    const out = formatRecipeShare(recipe, { lang: 'fr' });
+    assert.ok(out.includes('• Pâtes — 200 g · 700 kcal'));
+    assert.ok(out.includes('• Pesto — 50 g · 260 kcal'));
   });
 });

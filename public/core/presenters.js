@@ -499,6 +499,97 @@ export function formatDailySummary(totals, targets, burned, opts = {}) {
 }
 
 /**
+ * R11.1 — pctClass: maps a 0..∞ "% of target" number to a traffic-light
+ * bucket used for the progress-bar CSS state. Pure so the dashboard
+ * row builder can live in presenters.js (same move pattern as the
+ * share formatters).
+ *
+ *   < 80  → 'ok'   (green fill)
+ *   80..99 → 'near' (amber, approaching goal)
+ *   ≥ 100 → 'over'  (filled / exceeded)
+ */
+export function pctClass(pct) {
+  if (pct >= 100) return 'over';
+  if (pct >= 80) return 'near';
+  return 'ok';
+}
+
+/**
+ * R11.2 — dashboardRowsFrom: pure builder for the dashboard's progress-
+ * row array. Keeps the DOM rendering loop in app.js cohesive and gives
+ * the row layout a single source of truth (tests can assert ordering
+ * / units / conditional micros without a jsdom shim).
+ *
+ * The caller is responsible for turning each row into a <li>.
+ *
+ * Row shape:
+ *   { key: i18nKey, value: number, target: number | undefined, unit: string }
+ *
+ * Micros (iron / calcium / vit D / B12) are conditionally appended only
+ * when the user has logged a non-zero value today — so unknown-micro
+ * OFF products don't clutter the dashboard with four zero rows.
+ */
+export function dashboardRowsFrom(totals, targets) {
+  const t = totals || {};
+  const g = targets || null;
+  const rows = [
+    { key: 'dashKcal',    value: t.kcal       ?? 0, target: g?.kcal,              unit: 'kcal' },
+    { key: 'dashCarbs',   value: t.carbs_g    ?? 0, target: g?.carbs_g_target,    unit: 'g' },
+    { key: 'dashFiber',   value: t.fiber_g    ?? 0, target: g?.fiber_g_target,    unit: 'g' },
+    { key: 'dashProtein', value: t.protein_g  ?? 0, target: g?.protein_g_target,  unit: 'g' },
+    { key: 'dashFat',     value: t.fat_g      ?? 0, target: g?.fat_g_target,      unit: 'g' },
+    { key: 'dashSatFat',  value: t.sat_fat_g  ?? 0, target: g?.sat_fat_g_max,     unit: 'g' },
+    { key: 'dashSugars',  value: t.sugars_g   ?? 0, target: g?.free_sugars_g_max, unit: 'g' },
+    { key: 'dashSalt',    value: t.salt_g     ?? 0, target: g?.salt_g_max,        unit: 'g' },
+  ];
+  if ((t.iron_mg    ?? 0) > 0) rows.push({ key: 'dashIron',    value: t.iron_mg,    target: g?.iron_mg_target,    unit: 'mg' });
+  if ((t.calcium_mg ?? 0) > 0) rows.push({ key: 'dashCalcium', value: t.calcium_mg, target: g?.calcium_mg_target, unit: 'mg' });
+  if ((t.vit_d_ug   ?? 0) > 0) rows.push({ key: 'dashVitD',    value: t.vit_d_ug,   target: g?.vit_d_ug_target,   unit: 'µg' });
+  if ((t.b12_ug     ?? 0) > 0) rows.push({ key: 'dashB12',     value: t.b12_ug,     target: g?.b12_ug_target,     unit: 'µg' });
+  return rows;
+}
+
+/**
+ * R11.7 — formatRecipeShare: a recipe's saved components rendered as a
+ * compact share block. Same spirit as formatWeeklyShare /
+ * formatDailySummary: pure, locale-aware, empty-safe.
+ *
+ *   recipe: { name, servings, components: [{ product_name, grams, kcal, protein_g, carbs_g, fat_g }] }
+ *   opts:   { lang }
+ *
+ * Returns '' when the recipe has no components.
+ */
+export function formatRecipeShare(recipe, opts = {}) {
+  if (!recipe || !Array.isArray(recipe.components) || recipe.components.length === 0) return '';
+  const { lang = 'fr' } = opts;
+  const isFr = lang !== 'en';
+  const r = (n) => Math.round(Number(n) || 0);
+  const servings = Math.max(1, Math.round(Number(recipe.servings) || 1));
+  const sum = (key) => recipe.components.reduce((acc, c) => acc + (Number(c?.[key]) || 0), 0);
+  const kcal = r(sum('kcal') / servings);
+  const prot = r(sum('protein_g') / servings);
+  const carb = r(sum('carbs_g') / servings);
+  const fat  = r(sum('fat_g') / servings);
+  const lines = [];
+  lines.push(isFr ? `🍽 Recette : ${recipe.name || 'Sans nom'}` : `🍽 Recipe: ${recipe.name || 'Untitled'}`);
+  lines.push(isFr
+    ? `${kcal} kcal · P ${prot} g · G ${carb} g · L ${fat} g · pour ${servings} part(s)`
+    : `${kcal} kcal · P ${prot} g · C ${carb} g · F ${fat} g · per ${servings} serving(s)`);
+  lines.push('');
+  lines.push(isFr ? 'Ingrédients :' : 'Ingredients:');
+  for (const c of recipe.components) {
+    const label = c.product_name || '—';
+    const grams = r(c.grams);
+    const ck = r(c.kcal);
+    lines.push(grams > 0
+      ? `• ${label} — ${grams} g · ${ck} kcal`
+      : `• ${label} — ${ck} kcal`);
+  }
+  lines.push('— Scann-eat');
+  return lines.join('\n');
+}
+
+/**
  * formatPairingsShare — turns a matchPairings() hit into a shareable
  * plain-text "recipe card". Used by the pairings section's Share button
  * and by navigator.share on mobile (WhatsApp, Messages, Mail). Pure
