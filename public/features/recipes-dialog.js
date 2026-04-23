@@ -37,6 +37,9 @@ export function initRecipesDialog(deps) {
     // table + user custom foods, and auto-fill kcal / macros when the
     // user picks a suggestion.
     searchFoodDB, listCustomFoods,
+    // Feature 3 — recipe import: URL (schema.org / JSON-LD) + photo.
+    // `compressImage` is the same helper the QA photo flows use.
+    compressImage, getMode, getKey, loadEngine,
   } = deps;
 
   const recipesBtn = $('recipes-btn');
@@ -437,6 +440,128 @@ export function initRecipesDialog(deps) {
   });
 
   refreshRecipeFromPlateBtn();
+
+  // Feature 3 — Recipe URL import (schema.org / JSON-LD).
+  // The server endpoint /api/fetch-recipe proxies the URL, parses the
+  // JSON-LD Recipe, and returns { name, servings, ingredients[], steps,
+  // nutrition? }. Client maps ingredient strings → component rows; the
+  // LLM-derived nutrition block (if any) is stored per-component via a
+  // proportional split so aggregateRecipe still sums correctly.
+  function setImportStatus(text, state) {
+    const el = $('recipe-import-status');
+    if (!el) return;
+    if (!text) { el.hidden = true; el.textContent = ''; return; }
+    el.textContent = text;
+    if (state) el.dataset.state = state;
+    else delete el.dataset.state;
+    el.hidden = false;
+  }
+
+  function openImportedRecipe(imp) {
+    // Map ingredient strings to component rows. Each row defaults to
+    // empty macros so the user (or the R5 autocomplete) can fill them.
+    // When the LLM gave us a total nutrition block, split it evenly
+    // across the ingredients — rough but better than zeros, and the
+    // user can refine per row.
+    const ings = Array.isArray(imp.ingredients) ? imp.ingredients : [];
+    const n = Math.max(1, ings.length);
+    const total = imp.nutrition || {};
+    const perRowKcal = Math.round((Number(total.kcal) || 0) / n);
+    const perRowProt = Math.round((Number(total.protein_g) || 0) / n);
+    const perRowCarb = Math.round((Number(total.carbs_g) || 0) / n);
+    const perRowFat  = Math.round((Number(total.fat_g) || 0) / n);
+    const components = ings.map((raw) => ({
+      product_name: String(raw),
+      grams: 0,
+      kcal: perRowKcal,
+      protein_g: perRowProt,
+      carbs_g: perRowCarb,
+      fat_g: perRowFat,
+    }));
+    // If the recipe has no ingredient list, still open the editor
+    // with the name + a single blank row the user can fill.
+    openRecipeEditor({
+      id: undefined,
+      name: String(imp.name || '').trim(),
+      servings: Math.max(1, Math.round(Number(imp.servings) || 1)),
+      components: components.length > 0 ? components : [newComponent()],
+    });
+  }
+
+  $('recipe-import-url-go')?.addEventListener('click', async () => {
+    const url = String($('recipe-import-url')?.value || '').trim();
+    if (!url) { setImportStatus(t('recipeImportNoUrl'), 'warn'); return; }
+    setImportStatus(t('recipeImportLoading'));
+    try {
+      const res = await fetch(`/api/fetch-recipe?url=${encodeURIComponent(url)}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      const imp = await res.json();
+      setImportStatus('');
+      recipesDialog?.close();
+      openImportedRecipe(imp);
+      toast(t('recipeImportOk', { name: imp.name || '—' }), 'ok');
+    } catch (err) {
+      console.warn('[recipe-import-url]', err);
+      setImportStatus(t('recipeImportFailed', { msg: err?.message || '' }), 'warn');
+    }
+  });
+
+  // Feature 3 — Recipe photo import. The user photographs a recipe
+  // card / cookbook page; LLM extracts structured fields. Mirrors the
+  // qa-photo-input plumbing (compressImage + identifyViaModePath +
+  // direct/server mode fallback). No macros returned — user fills
+  // via the R5 component autocomplete.
+  $('recipe-photo-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting
+    if (!file || !compressImage) return;
+    setImportStatus(t('recipeImportScanning'));
+    try {
+      const compressed = await compressImage(file);
+      const images = [{ base64: compressed.base64, mime: compressed.mime }];
+      const mode = typeof getMode === 'function' ? getMode() : 'auto';
+      let result;
+      if (mode === 'direct' && loadEngine && getKey) {
+        const engine = await loadEngine();
+        const key = getKey();
+        if (!key) throw new Error(t('errMissingKey'));
+        try {
+          result = await engine.identifyRecipe(images, { apiKey: key });
+        } catch (err2) {
+          if (err2?.status === 429) throw new Error(t('errRateLimit'));
+          throw err2;
+        }
+      } else {
+        const res = await fetch('/api/identify-recipe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ images }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          if (res.status === 429 || body.error === 'rate_limit') {
+            throw new Error(t('errRateLimit'));
+          }
+          throw new Error(body.error || `HTTP ${res.status}`);
+        }
+        result = await res.json();
+      }
+      setImportStatus('');
+      if (!result?.ingredients?.length) {
+        setImportStatus(t('recipeImportPhotoEmpty'), 'warn');
+        return;
+      }
+      recipesDialog?.close();
+      openImportedRecipe(result);
+      toast(t('recipeImportOk', { name: result.name || '—' }), 'ok');
+    } catch (err) {
+      console.warn('[recipe-import-photo]', err);
+      setImportStatus(t('recipeImportFailed', { msg: err?.message || '' }), 'warn');
+    }
+  });
 
   return { setLastIdentifiedPlate, renderRecipesList };
 }

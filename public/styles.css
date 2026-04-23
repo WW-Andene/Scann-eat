@@ -2193,6 +2193,41 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
 }
 #unit-convert-result[data-state="warn"] { color: var(--warning); }
 
+/* Feature 3 — recipe import (URL + photo) row. Same collapsible
+   pattern as manual-barcode + unit-convert. */
+.recipe-import-wrap {
+  margin-top: var(--sp-2);
+  font-size: 0.9em;
+}
+.recipe-import-wrap summary {
+  cursor: pointer;
+  color: var(--muted);
+  padding: var(--sp-2) 0;
+  list-style: none;
+}
+.recipe-import-wrap summary::-webkit-details-marker { display: none; }
+.recipe-import-wrap summary:hover,
+.recipe-import-wrap summary:focus-visible { color: var(--text); outline: none; }
+.recipe-import-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.recipe-import-form input[type="url"] {
+  flex: 1 1 200px;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-md);
+  font-size: 1em;
+  font-family: inherit;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+#recipe-import-status[data-state="warn"] { color: var(--warning); }
+
 .manual-barcode-form input {
   padding: 10px 12px;
   background: var(--panel-2);

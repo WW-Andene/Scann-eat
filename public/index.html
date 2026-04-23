@@ -795,6 +795,19 @@
           <button id="recipe-pantry-btn" type="button" class="secondary compact" data-i18n="recipePantry">🥕 Avec ce que j'ai</button>
           <button id="recipe-grocery-btn" type="button" class="secondary compact" data-i18n="recipeGrocery">🛒 Liste de courses</button>
           <button id="recipe-from-plate-btn" type="button" class="secondary compact" hidden data-i18n="recipeFromPlate">Depuis le dernier scan multi-aliments</button>
+          <details class="recipe-import-wrap">
+            <summary data-i18n="recipeImport">📥 Importer une recette</summary>
+            <div class="recipe-import-form">
+              <input id="recipe-import-url" type="url" data-i18n-placeholder="recipeImportUrlPlaceholder" placeholder="https://…" autocomplete="off" />
+              <button id="recipe-import-url-go" type="button" class="chip-btn accent compact" data-i18n="recipeImportUrlGo">URL →</button>
+              <label class="capture-btn capture-btn-secondary" for="recipe-photo-input" style="flex:1;">
+                <span class="icon" aria-hidden="true">📷</span>
+                <span class="label" data-i18n="recipeImportPhoto">Photographier une recette</span>
+                <input id="recipe-photo-input" type="file" accept="image/*" capture="environment" hidden />
+              </label>
+              <p id="recipe-import-status" class="hint" hidden></p>
+            </div>
+          </details>
           <input id="recipes-search" type="search" data-i18n-placeholder="recipesSearchPlaceholder" placeholder="Rechercher…" />
           <ul id="recipes-list" class="tpl-list"></ul>
           <div class="dialog-actions">

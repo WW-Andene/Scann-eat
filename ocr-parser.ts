@@ -500,6 +500,79 @@ export async function identifyMenu(
 }
 
 // ============================================================================
+// SECTION 3b2: RECIPE CARD SCAN — LLM reads a recipe card / cookbook page
+// ============================================================================
+
+const IDENTIFY_RECIPE_PROMPT = `Tu analyses la photo d'une carte de recette, d'une page de livre de cuisine, ou d'une recette manuscrite. Tu dois extraire une recette structurée.
+
+Règles strictes :
+1. Transcris fidèlement le nom du plat, le nombre de personnes (si indiqué), les ingrédients (avec leurs quantités telles qu'écrites), et les étapes.
+2. Garde les quantités dans leur format original ("1 tasse", "200 g", "2 c. à soupe"). Ne convertis PAS.
+3. Si une info n'est PAS visible, renvoie une chaîne vide ou 0 — n'invente rien.
+4. Si c'est pas une recette (carte de restaurant, étiquette, autre), renvoie { "recipes": [] } (pluriel).
+5. Réponds UNIQUEMENT en JSON valide, pas de markdown.`;
+
+const IDENTIFY_RECIPE_SCHEMA = `{
+  "name": "string (ex: 'Salade niçoise')",
+  "servings": number (ex: 4, ou 0 si inconnu),
+  "ingredients": ["string", ...],
+  "steps": ["string", ...],
+  "cook_time_min": number (ex: 30, ou 0 si inconnu)
+}`;
+
+export interface IdentifiedRecipe {
+  name: string;
+  servings: number;
+  ingredients: string[];
+  steps: string[];
+  cook_time_min: number;
+}
+
+/**
+ * identifyRecipe — LLM reads a photographed recipe card / cookbook page /
+ * handwritten recipe and returns a structured shape the editor can
+ * pre-fill. Sibling of identifyMenu but for the recipe creation flow.
+ */
+export async function identifyRecipe(
+  images: LabelImage | LabelImage[],
+  opts: ParseOptions = {},
+): Promise<IdentifiedRecipe> {
+  const imgs = Array.isArray(images) ? images : [images];
+  if (imgs.length === 0) throw new Error('identifyRecipe: no images provided.');
+  if (imgs.length > 4) throw new Error('identifyRecipe: max 4 images per call.');
+
+  const raw = await callGroqVision(
+    IDENTIFY_RECIPE_PROMPT,
+    `Lis la recette et renvoie uniquement ce JSON :\n${IDENTIFY_RECIPE_SCHEMA}`,
+    imgs,
+    opts,
+  );
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(extractJSON(raw));
+  } catch {
+    // eslint-disable-next-line no-console
+    console.warn('[identifyRecipe] malformed JSON, first 300 chars:', raw.slice(0, 300));
+    throw new Error('identifyRecipe: LLM returned malformed JSON.');
+  }
+
+  const ingredients = Array.isArray(parsed.ingredients)
+    ? (parsed.ingredients as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    : [];
+  const steps = Array.isArray(parsed.steps)
+    ? (parsed.steps as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    : [];
+  return {
+    name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : '',
+    servings: Math.max(0, Math.round(coerceNumber(parsed.servings))),
+    ingredients,
+    steps,
+    cook_time_min: Math.max(0, Math.round(coerceNumber(parsed.cook_time_min))),
+  };
+}
+
+// ============================================================================
 // SECTION 3c: RECIPE SUGGESTIONS (chef-style — text-only, given one ingredient)
 // ============================================================================
 

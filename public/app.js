@@ -3041,6 +3041,8 @@ recipesDialog = initRecipesDialog({
   // Gap fix #5: ingredient autocomplete + auto-fill in the recipe
   // editor rows.
   searchFoodDB, listCustomFoods,
+  // Feature 3 — URL import + photo scan for recipes.
+  compressImage, getMode, getKey, loadEngine,
 });
 initQaAutocomplete({
   t, show, hide, searchFoodDB, listCustomFoods,
