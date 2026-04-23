@@ -1832,7 +1832,14 @@ async function renderRecentScans() {
     li.appendChild(thumb);
     li.appendChild(meta);
     li.appendChild(del);
-    li.addEventListener('click', () => reopenScan(item));
+    // R24.1: makeActivatable adds role="button" + tabindex="0" +
+    // Enter/Space keyboard handler. Previously the recent-scan items
+    // were click-only — screen-reader and keyboard-only users had
+    // no way to reopen a historical scan.
+    makeActivatable(li, () => reopenScan(item));
+    li.setAttribute('aria-label', item.name
+      ? `${t('reopenScan')} — ${item.name}`
+      : t('reopenScan'));
     recentListEl.appendChild(li);
   }
   // Hint about hidden entries — users otherwise can't tell the export
