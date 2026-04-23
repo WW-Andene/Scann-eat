@@ -32,9 +32,14 @@ export function initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }) {
       rec.continuous = false;
       rec.maxAlternatives = 1;
 
+      // R28.2: safe label update — don't assume .label exists.
+      const setLabel = (text) => {
+        const el = btn.querySelector('.label');
+        if (el) el.textContent = text;
+      };
       rec.onstart = () => {
         btn.dataset.state = 'listening';
-        btn.querySelector('.label').textContent = t('voiceListening');
+        setLabel(t('voiceListening'));
       };
       rec.onresult = (ev) => {
         const transcript = Array.from(ev.results)
@@ -60,10 +65,27 @@ export function initVoiceDictate({ t, currentLang, parseVoiceQuickAdd }) {
         // time-of-day default otherwise.
         if (parsed.meal) setField('qa-meal', parsed.meal);
       };
-      rec.onerror = () => { /* handled by onend */ };
+      // R28.1: surface the actual error so the user knows why the
+      // mic did nothing. `not-allowed` = permission denied, the
+      // common case; `no-speech` = user didn't speak in time.
+      // Previously silent — users saw the listening state flicker,
+      // nothing happen, and assumed the feature was broken.
+      rec.onerror = (ev) => {
+        const status = document.getElementById('qa-ai-status');
+        if (status) {
+          const msg = ev?.error === 'not-allowed'
+            ? t('voiceMicDenied')
+            : ev?.error === 'no-speech'
+              ? t('voiceNoSpeech')
+              : t('voiceFailed');
+          status.textContent = msg;
+          status.dataset.state = 'warn';
+          status.hidden = false;
+        }
+      };
       rec.onend = () => {
         delete btn.dataset.state;
-        btn.querySelector('.label').textContent = t('voiceDictate');
+        setLabel(t('voiceDictate'));
         recognizer = null;
       };
       recognizer = rec;
