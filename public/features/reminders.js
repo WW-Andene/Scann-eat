@@ -25,8 +25,18 @@ function fireMealReminder(meal) {
     : 'mealDinner',
   ).toLowerCase() });
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try { new Notification('Scann-eat', { body, icon: '/icon.svg' }); }
-    catch { toast(body); }
+    try {
+      // R29.1: `tag` dedupes across reminder fires — if the user has
+      // a stale breakfast reminder sitting in the shade and lunch
+      // fires, the tag stays distinct per meal so both show; but
+      // re-firing the same meal (via multi-tab or re-scheduling)
+      // replaces the prior notification instead of stacking.
+      new Notification('Scann-eat', {
+        body,
+        icon: '/icon.svg',
+        tag: `scanneat-reminder-${meal}`,
+      });
+    } catch { toast(body); }
   } else {
     toast(body);
   }
