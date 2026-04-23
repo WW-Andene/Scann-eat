@@ -660,6 +660,25 @@ function renderAudit(data) {
   $('product-name').textContent = audit.product_name || '(—)';
   $('product-category').textContent = audit.category.replace(/_/g, ' ');
 
+  // Milestone success moment: A+ grade lands → briefly intensify
+  // the .score-card's notebook-margin rule + coral halo pulse
+  // (§DST4 + Step 14). Also fires the grade-chip reveal animation.
+  // Auto-removes so the next scan that lands A+ triggers fresh.
+  const scoreCard = $('score-card');
+  const gradeEl = $('grade-el');
+  if (scoreCard && gradeEl) {
+    gradeEl.classList.remove('grade-chip-reveal');
+    // Force reflow so the re-added class re-runs the animation.
+    void gradeEl.offsetWidth;
+    gradeEl.classList.add('grade-chip-reveal');
+    if (audit.grade === 'A+') {
+      scoreCard.classList.remove('success-burst');
+      void scoreCard.offsetWidth;
+      scoreCard.classList.add('success-burst');
+      setTimeout(() => scoreCard.classList.remove('success-burst'), 1000);
+    }
+  }
+
   renderPersonalScore(audit, data.product);
 
   // Suggest "similar but better" alternatives for mediocre scans or veto'd
@@ -3593,6 +3612,24 @@ async function renderDashboard() {
       if (streak >= 2) {
         streakEl.textContent = t('streakDays', { n: streak });
         show(streakEl);
+        // Milestone celebration — 7/30/100/365 day streaks get a
+        // brief success-burst pulse on the streak element + accent
+        // flash. Remembers which milestones fired today so a
+        // single-day dashboard refresh doesn't re-celebrate.
+        const MILESTONES = [7, 30, 100, 365];
+        const fired = (localStorage.getItem('scanneat.streakFired') || '').split(',');
+        if (MILESTONES.includes(streak) && !fired.includes(String(streak) + ':' + todayISO())) {
+          streakEl.classList.remove('milestone-pulse');
+          void streakEl.offsetWidth;
+          streakEl.classList.add('milestone-pulse');
+          setTimeout(() => streakEl.classList.remove('milestone-pulse'), 1400);
+          fired.push(String(streak) + ':' + todayISO());
+          // Cap the list so it doesn't grow forever; keep only today.
+          localStorage.setItem(
+            'scanneat.streakFired',
+            fired.filter(f => f.endsWith(':' + todayISO())).join(',')
+          );
+        }
       } else {
         hide(streakEl);
       }

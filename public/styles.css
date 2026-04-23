@@ -5833,3 +5833,29 @@ a {
   font-style: normal;
   align-self: flex-start;
 }
+
+/* ==========================================================================
+   MOVE 5 — milestone success moments wired.
+   .success-burst on .score-card fires from renderAudit when the
+   scan lands an A+ (JS in app.js). .milestone-pulse below fires on
+   the dashboard-streak element when streak hits 7/30/100/365.
+   Both auto-remove so subsequent milestones re-trigger cleanly.
+   ========================================================================== */
+
+@keyframes scanneat-milestone-pulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 rgba(255, 107, 69, 0);    }
+  25%  { transform: scale(1.06); box-shadow: 0 0 24px rgba(255, 107, 69, 0.45); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 rgba(255, 107, 69, 0);    }
+}
+.dashboard-streak.milestone-pulse {
+  animation: scanneat-milestone-pulse 1400ms var(--ease-ui, ease) 1;
+  color: var(--accent);
+  font-weight: 700;
+  background: color-mix(in oklch, var(--panel) 80%, var(--accent));
+  border-radius: var(--r-pill);
+  padding: 4px 14px;
+  display: inline-block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-streak.milestone-pulse { animation: none; }
+}
