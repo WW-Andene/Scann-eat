@@ -1897,3 +1897,78 @@ cost.
    visibly. Dark theme uses `rgba(0,0,0,0.25)` for a more
    visible inset since dark inputs on dark panels need stronger
    depth cueing.
+
+---
+
+## Step 24 — art-direction §LIGHT · §SHAPE · §COMPOSITION · §ATMOSPHERE
+
+### §LIGHT. Consistent light source
+
+**Declared direction:** Top-center.
+**Applied to:** every shadow drops straight down (0 Y offset), dark-mode top-rim highlight catches the top edge (Step 10), paper grain overlays consistently.
+**Personality per skill:** "clean, geometric" — slightly off from warm-farmer-market. Alternative **Top-left** would read more natural/warm. Top-center was chosen to keep depth signals consistent in both portrait and landscape mobile viewports.
+**Verdict:** ✓ consistent application; intentional position; no finding.
+
+### §SHAPE. Shape language
+
+Current radius scale vs the skill's three presets:
+
+| Element | Scann-eat | Technical | Balanced | Friendly (skill default) |
+|---|---|---|---|---|
+| Button | 14-18 | 4 | 6 | 12 |
+| Input | 10 | 4 | 6 | 10 |
+| Card | 18 / 32 | 6 | 12 | 20 |
+| Modal | 36 | 8 | 16 | 24 |
+| Badge | pill | pill | pill | pill |
+
+**Verdict:** sits between **Friendly** and "Warm-consumer+" — bigger cards and modals than the default Friendly preset. Matches §DP2 character.
+
+**Non-rectangular element requirement:** the skill wants ≥1 element that isn't a plain rectangle.
+
+| Candidate | Counts? |
+|---|---|
+| Grade pattern overlays (dots, hatches, dense X) | ✓ non-rect surface pattern |
+| `.score-card::before` notebook-margin rule | ✓ asymmetric edge |
+| Pill chips | ✓ non-rect |
+| `.product h2` feathered ledger underline | ✓ non-rect |
+
+✓ well above the "≥ 1" floor. No shape-language finding.
+
+### §COMPOSITION. Layout as composition
+
+**Spatial contrast rule:** the gap *between* major sections should be 3-5× the gap *within* components.
+
+Scann-eat measurement:
+
+| Scope | Token | Value |
+|---|---|---|
+| Gap between main sections | `main { gap }` | `--sp-4` = 16px |
+| Gap within components (flex items) | commonly `--sp-3` | 12px |
+| Ratio | | **1.33×** — below the 3–5× target |
+
+**Finding COMP-1:** the section-to-component ratio is 1.33× — too close, reads as "spaced" not "designed". Bumping `main { gap }` from `--sp-4` to `--sp-5` (20px) lifts the ratio to ~1.67×; `--sp-6` (24px) hits ~2×. Going all the way to 3× would require `--sp-7` which feels too airy on mobile. Shipping `--sp-5` as a tasteful improvement without over-correction.
+
+**Spatial model:** single centered column (`max-width: 600px; margin: 0 auto`). The skill frames this as "the center-column default" to challenge, but for a mobile-first PWA with no persistent sidebar this is the correct choice. No finding — intentional.
+
+### §ATMOSPHERE. Ambient visual environments
+
+Scann-eat's atmosphere stack (assembled across Steps 6, 15, 21):
+
+| Layer | Treatment |
+|---|---|
+| Body bg | coral gradient `--bg → --bg-deep`, fixed attachment |
+| Body grain | 2% SVG turbulence (0.025 rest / 0.05 dialog-open / 0.035 ≥1024px) |
+| Scrim | `--scrim-top`/`--scrim-bottom` tokenised coral gradient + 12px blur via `--blur-glass` |
+| Section backgrounds | `--panel` surfaces with tonal shadow (Step 23) |
+
+Closest match to skill profiles: **Studio (warm, professional)** + light Paper material. ✓ atmosphere is fully built out — no finding.
+
+### Step 24 fixes → shipping
+
+1. **Section-to-component spatial ratio** — bump `main { gap }`
+   from `--sp-4` (16px) to `--sp-5` (20px). Lifts the ratio
+   from 1.33× to ~1.67× toward the skill's 3–5× target.
+   Conservative improvement; doesn't over-space on mobile.
+2. **No other CSS changes** — §LIGHT, §SHAPE, §ATMOSPHERE all
+   pass the audit. This step is primarily documentation of
+   already-on-character work.
