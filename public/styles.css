@@ -5434,3 +5434,120 @@ a {
     outline-offset: -2px;
   }
 }
+
+/* ==========================================================================
+   MOVE 1 — Scan-result hero as a ruled-notebook page.
+   Transforms .score-card from a generic panel into a page of ruled
+   paper with a hand-stamped grade seal and a torn bottom edge.
+     1. Ruled horizontal lines via repeating-linear-gradient
+        background (every 28px, aligned with body line-height).
+     2. Grade badge becomes a "stamped seal": larger, slightly
+        rotated, with an outer hairline ring.
+     3. Torn-paper bottom edge via zig-zag mask.
+     4. Score value presented like a handwritten total.
+   ========================================================================== */
+
+/* Ruled-notebook lines on the hero card. Line spacing = 28px,
+   starts below the top padding so the first line sits under
+   the verdict text rather than through the grade chip.
+   Overlay sits behind content via a pseudo-element z-ordering. */
+.score-card {
+  background-image:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--sp-6) + 58px),
+      color-mix(in oklch, var(--accent-dim) 22%, transparent) calc(var(--sp-6) + 58px),
+      color-mix(in oklch, var(--accent-dim) 22%, transparent) calc(var(--sp-6) + 59px),
+      transparent calc(var(--sp-6) + 59px)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      color-mix(in oklch, var(--muted) 32%, transparent) 27px,
+      color-mix(in oklch, var(--muted) 32%, transparent) 28px
+    );
+  background-position: 0 0, 0 calc(var(--sp-6) + 59px);
+  background-repeat: no-repeat, repeat;
+  /* Clip the bottom with a zigzag torn-paper edge. Mask-based so
+     the clip respects border-radius at the top. */
+  -webkit-mask-image: linear-gradient(to bottom,
+    black 0,
+    black calc(100% - 10px),
+    transparent 100%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='12' preserveAspectRatio='none' viewBox='0 0 40 12'><path d='M0 0 L40 0 L40 6 L37 12 L33 6 L30 12 L26 6 L23 12 L19 6 L16 12 L12 6 L9 12 L5 6 L2 12 L0 6 Z' fill='black'/></svg>");
+  mask-image: linear-gradient(to bottom,
+    black 0,
+    black calc(100% - 10px),
+    transparent 100%);
+}
+
+/* Hero grade badge — hand-stamped seal treatment. Applied only
+   inside .score-card so the recurring chips in history / pairings
+   stay as pills. Larger, slightly rotated, with a hairline outer
+   ring and a warm inner shadow reading as ink-bleed. */
+.score-card .grade {
+  width: 5.5rem;
+  height: 5.5rem;
+  font-size: 3.2em;
+  transform: rotate(-4deg);
+  /* Outer ring = 3px transparent gap + 2px accent-dim ring.
+     Inner shadow = warm ink bleed from the top-left. */
+  box-shadow:
+    0 0 0 3px var(--panel),
+    0 0 0 5px color-mix(in oklch, var(--accent-dim) 60%, transparent),
+    inset 2px 3px 6px rgba(0, 0, 0, 0.14);
+  transition: transform var(--motion-enter, 220ms) var(--ease-ui, ease);
+}
+.score-card.dual .grade {
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 2.6em;
+  transform: rotate(-3deg);
+}
+/* Personal-slot grade rotates the opposite direction so the two
+   seals read as "two separate stamps" rather than a matched pair. */
+.score-card.dual #personal-grade-el {
+  transform: rotate(3deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .score-card .grade { transition: none; }
+}
+
+/* Score number treated as a handwritten total: tighter kerning,
+   generous size, an ink-stroke underline below the number. */
+.score-card .score strong {
+  letter-spacing: -0.03em;
+  position: relative;
+  padding: 0 0.1em 0.1em;
+}
+.score-card .score strong::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--accent-dim) 18%,
+    var(--accent-dim) 82%,
+    transparent 100%);
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+/* Verdict line under the grade: italic + indented like a margin
+   note on a ruled notebook. */
+.score-card .verdict {
+  font-style: italic;
+  padding-left: var(--sp-3);
+  border-left: 2px solid color-mix(in oklch, var(--accent-dim) 40%, transparent);
+}
+
+/* Bottom padding bump to clear the torn edge + stay off the last
+   ruled line. */
+.score-card {
+  padding-bottom: calc(var(--sp-6) + 6px);
+}
