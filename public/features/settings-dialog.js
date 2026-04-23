@@ -72,6 +72,21 @@ export function initSettingsDialog(deps) {
         if (stored) tm.value = stored;
       }
     }
+    // Gap fix #8 — hydration + weight reminder prefs.
+    const hydCb = $('reminder-hydration');
+    const hydEvery = $('reminder-hydration-every');
+    if (hydCb) hydCb.checked = localStorage.getItem('scanneat.reminder.hydration.on') === '1';
+    if (hydEvery) {
+      const stored = localStorage.getItem('scanneat.reminder.hydration.every_h');
+      if (stored) hydEvery.value = stored;
+    }
+    const wCb = $('reminder-weight');
+    const wTm = $('reminder-weight-time');
+    if (wCb) wCb.checked = localStorage.getItem('scanneat.reminder.weight.on') === '1';
+    if (wTm) {
+      const stored = localStorage.getItem('scanneat.reminder.weight.time');
+      if (stored) wTm.value = stored;
+    }
     renderProfilesUI?.();
     const telCb = $('telemetry-enabled');
     if (telCb) telCb.checked = telemetryEnabled();
@@ -100,6 +115,22 @@ export function initSettingsDialog(deps) {
       localStorage.setItem(`scanneat.reminder.${meal}.on`, on ? '1' : '0');
       if (tm?.value) localStorage.setItem(`scanneat.reminder.${meal}.time`, tm.value);
     }
+    // Gap fix #8 — persist hydration + weight reminder prefs.
+    const hydCb = $('reminder-hydration');
+    const hydEvery = $('reminder-hydration-every');
+    const hydOn = !!hydCb?.checked;
+    if (hydOn) anyRemindersOn = true;
+    localStorage.setItem('scanneat.reminder.hydration.on', hydOn ? '1' : '0');
+    if (hydEvery?.value) {
+      const n = Math.max(1, Math.min(6, Number(hydEvery.value) || 2));
+      localStorage.setItem('scanneat.reminder.hydration.every_h', String(n));
+    }
+    const wCb = $('reminder-weight');
+    const wTm = $('reminder-weight-time');
+    const wOn = !!wCb?.checked;
+    if (wOn) anyRemindersOn = true;
+    localStorage.setItem('scanneat.reminder.weight.on', wOn ? '1' : '0');
+    if (wTm?.value) localStorage.setItem('scanneat.reminder.weight.time', wTm.value);
     // If at least one reminder is newly on, request Notification permission
     // (noop if already granted). Fire-and-forget.
     if (anyRemindersOn && typeof Notification !== 'undefined' && Notification.permission === 'default') {

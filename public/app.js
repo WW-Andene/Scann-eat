@@ -2937,7 +2937,7 @@ initWeight({
   summarizeWeight, weeklyTrend, weightForecast,
   renderDashboard, todayISO, round1,
 });
-initReminders({ t, toast, nextOccurrenceMs });
+initReminders({ t, toast, nextOccurrenceMs, listWeight });
 initVoiceDictate({ t, currentLang: () => currentLang, parseVoiceQuickAdd });
 initScanner({ t, errorEl, show, getBarcodeDetector, scanImage, addBarcodeOnly });
 initInstallBanner({ show, hide });

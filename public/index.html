@@ -142,6 +142,16 @@
             <span data-i18n="mealDinner">Dîner</span>
             <input id="reminder-dinner-time" type="time" value="19:30" />
           </label>
+          <label class="reminder-row">
+            <input id="reminder-hydration" type="checkbox" />
+            <span data-i18n="remindersHydration">💧 Hydratation (toutes les N h)</span>
+            <input id="reminder-hydration-every" type="number" min="1" max="6" step="1" value="2" aria-label="Fréquence (heures)" />
+          </label>
+          <label class="reminder-row">
+            <input id="reminder-weight" type="checkbox" />
+            <span data-i18n="remindersWeight">⚖️ Poids (si pas loggé depuis 4 j)</span>
+            <input id="reminder-weight-time" type="time" value="08:00" />
+          </label>
         </fieldset>
 
         <fieldset class="prefs">
