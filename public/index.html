@@ -865,6 +865,7 @@
             <button id="clear-history" class="secondary compact" type="button" data-i18n="clearHistory">Effacer</button>
           </div>
         </div>
+        <p id="recent-summary" class="recent-summary" hidden></p>
         <div class="recent-filter">
           <input id="history-search" type="search" data-i18n-placeholder="searchHistory" placeholder="Rechercher…" />
           <select id="history-grade">
@@ -1003,7 +1004,8 @@
           <div class="portion-presets">
             <button type="button" class="chip-btn" data-portion="50">50 g</button>
             <button type="button" class="chip-btn" data-portion="100">100 g</button>
-            <button type="button" class="chip-btn" id="portion-preset-pack" hidden>— g (paquet)</button>
+            <button type="button" class="chip-btn" id="portion-preset-pack" hidden></button>
+            <button type="button" class="chip-btn" id="portion-preset-half-pack" hidden></button>
           </div>
           <button id="log-btn" type="button" class="log-btn"><span data-i18n="logPortion">Logger cette portion</span> <span id="log-kcal-preview" class="log-kcal-preview"></span></button>
           <p class="log-toast" id="log-toast" hidden></p>

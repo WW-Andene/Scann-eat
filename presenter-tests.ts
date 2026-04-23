@@ -12,7 +12,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 // @ts-expect-error — plain JS module consumed from TS test
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare, formatTemplateShare } from './public/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, pctClass, dashboardRowsFrom, formatRecipeShare, formatTemplateShare, filterScanHistory, summarizeScanHistory } from './public/core/presenters.js';
 
 // ============================================================================
 // computeConfidence
@@ -907,5 +907,81 @@ describe('formatTemplateShare', () => {
 
   it('ends with Scann-eat signature', () => {
     assert.ok(formatTemplateShare(tpl).endsWith('— Scann-eat'));
+  });
+});
+
+// ============================================================================
+// filterScanHistory (R13.1)
+// ============================================================================
+
+describe('filterScanHistory', () => {
+  const items = [
+    { id: '1', name: 'Yaourt nature',  grade: 'A' },
+    { id: '2', name: 'Coca-Cola',      grade: 'F' },
+    { id: '3', name: 'Pain complet',   grade: 'B' },
+    { id: '4', name: 'YAOURT FRUITS',  grade: 'C' },
+    { id: '5', name: null,             grade: 'A' },
+  ];
+
+  it('returns the full list when no filter is set', () => {
+    assert.equal(filterScanHistory(items).length, 5);
+  });
+
+  it('filters by case-insensitive substring on name', () => {
+    const out = filterScanHistory(items, { query: 'yaourt' });
+    assert.equal(out.length, 2);
+    assert.deepEqual(out.map((i: { id: string }) => i.id), ['1', '4']);
+  });
+
+  it('filters by exact grade', () => {
+    const out = filterScanHistory(items, { gradeFilter: 'A' });
+    assert.equal(out.length, 2);
+    assert.deepEqual(out.map((i: { id: string }) => i.id), ['1', '5']);
+  });
+
+  it('combines query + grade', () => {
+    const out = filterScanHistory(items, { query: 'yaourt', gradeFilter: 'A' });
+    assert.equal(out.length, 1);
+    assert.equal(out[0].id, '1');
+  });
+
+  it('treats missing name as non-matching for queries', () => {
+    const out = filterScanHistory(items, { query: 'anything' });
+    assert.ok(!out.some((i: { id: string }) => i.id === '5'));
+  });
+
+  it('safe with non-array input', () => {
+    assert.deepEqual(filterScanHistory(null), []);
+    assert.deepEqual(filterScanHistory(undefined), []);
+  });
+});
+
+// ============================================================================
+// summarizeScanHistory (R13.6)
+// ============================================================================
+
+describe('summarizeScanHistory', () => {
+  it('counts items by grade with all six buckets initialised', () => {
+    const out = summarizeScanHistory([
+      { grade: 'A' }, { grade: 'A' }, { grade: 'B' },
+      { grade: 'A+' }, { grade: 'F' },
+    ]);
+    assert.equal(out.total, 5);
+    assert.deepEqual(out.byGrade, { 'A+': 1, A: 2, B: 1, C: 0, D: 0, F: 1 });
+  });
+
+  it('totals everything but ignores unknown grades in the buckets', () => {
+    const out = summarizeScanHistory([
+      { grade: 'X' }, { grade: 'A' }, { grade: undefined },
+    ]);
+    assert.equal(out.total, 3);
+    assert.equal(out.byGrade.A, 1);
+    assert.equal(out.byGrade['A+'], 0);
+  });
+
+  it('safe with non-array input', () => {
+    const out = summarizeScanHistory(null);
+    assert.equal(out.total, 0);
+    assert.deepEqual(out.byGrade, { 'A+': 0, A: 0, B: 0, C: 0, D: 0, F: 0 });
   });
 });

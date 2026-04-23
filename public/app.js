@@ -45,7 +45,7 @@ import { saveRecipe, listRecipes, deleteRecipe, aggregateRecipe } from '/data/re
 import { aggregateGroceryList, formatGroceryList } from '/features/grocery-list.js';
 import { weekDates, getDayPlan, setSlot, clearDay, clearAll as clearMealPlan, planRecipes, MEAL_PLAN_MEALS, isoToday } from '/features/meal-plan.js';
 import { logActivity, listActivityByDate, deleteActivity, buildActivityEntry, estimateKcalBurned, sumBurned, ACTIVITY_TYPES } from '/data/activity.js';
-import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary, formatRecipeShare, formatTemplateShare, pctClass, dashboardRowsFrom } from '/core/presenters.js';
+import { computeConfidence, snapshotFromData, timeAgoBucket, defaultMealForHour, logStreakDays, parseVoiceQuickAdd, waterGoalMl, weeklyRollup, monthlyRollup, fastingStatus, buildLineChartPath, laplacianVariance, sharpnessVerdict, entriesToDailyCSV, nextOccurrenceMs, entriesToHealthJSON, weightForecast, closeTheGap, formatWeeklyShare, formatMonthlyShare, formatPairingsShare, formatDailySummary, formatRecipeShare, formatTemplateShare, pctClass, dashboardRowsFrom, filterScanHistory, summarizeScanHistory } from '/core/presenters.js';
 import { FOOD_DB } from '/data/food-db.js';
 import { checkDiet } from '/core/diets.js';
 
@@ -1704,15 +1704,30 @@ function timeAgo(ts) {
 
 async function renderRecentScans() {
   const all = await listScans().catch(() => []);
-  recentListEl.innerHTML = '';
+  recentListEl.textContent = '';
   if (all.length === 0) { hide(recentScansEl); return; }
-  const query = (historySearchInput?.value || '').trim().toLowerCase();
-  const gradeFilter = historyGradeSelect?.value || '';
-  const items = all.filter((i) => {
-    if (query && !(i.name || '').toLowerCase().includes(query)) return false;
-    if (gradeFilter && i.grade !== gradeFilter) return false;
-    return true;
+  // R13.1: filter logic now lives in /core/presenters.js
+  // (filterScanHistory) so it's testable under node:test.
+  const items = filterScanHistory(all, {
+    query: historySearchInput?.value || '',
+    gradeFilter: historyGradeSelect?.value || '',
   });
+  // R13.7: summary chip — "12 scans · 4A · 3B · 2C · 2D · 1F".
+  // Uses the unfiltered `all` (so the chip stays stable while the
+  // user filters the list), and only renders grade buckets that
+  // actually have entries — keeps the chip short on a small history.
+  const summaryEl = $('recent-summary');
+  if (summaryEl) {
+    const sum = summarizeScanHistory(all);
+    const parts = [];
+    for (const g of ['A+', 'A', 'B', 'C', 'D', 'F']) {
+      if (sum.byGrade[g] > 0) parts.push(`${sum.byGrade[g]}${g}`);
+    }
+    summaryEl.textContent = parts.length
+      ? `${t('recentSummaryTotal', { n: sum.total })} · ${parts.join(' · ')}`
+      : t('recentSummaryTotal', { n: sum.total });
+    show(summaryEl);
+  }
   if (items.length === 0) {
     const li = document.createElement('li');
     li.className = 'recent-empty';
@@ -1757,7 +1772,12 @@ async function renderRecentScans() {
     const del = document.createElement('button');
     del.className = 'recent-del';
     del.type = 'button';
-    del.setAttribute('aria-label', t('removeFromHistory'));
+    // R13.4: aria-label includes the scan name so screen-reader users
+    // can disambiguate the row's delete button from the list of "×"
+    // buttons. Falls back to the generic label when name is missing.
+    del.setAttribute('aria-label', item.name
+      ? `${t('removeFromHistory')} — ${item.name}`
+      : t('removeFromHistory'));
     del.textContent = '×';
     del.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -2192,12 +2212,29 @@ function setupPortionPanel(product) {
   if (portionMealSelect) {
     portionMealSelect.value = defaultMealForHour(new Date().getHours());
   }
+  // R13.1 — `(paquet)` was hard-coded French; EN users saw a French
+  // word in an otherwise-translated UI. Now resolved via t().
+  // R13.8 — also surface a half-pack chip when the package is large
+  // enough to make halving meaningful (≥40 g, so we don't show
+  // "8 g (½ paquet)" for a tiny chocolate square).
+  const halfPackEl = $('portion-preset-half-pack');
   if (weight && weight > 0 && weight < 2000) {
-    portionPresetPack.textContent = `${weight} g (paquet)`;
+    portionPresetPack.textContent = t('portionPack', { g: weight });
     portionPresetPack.dataset.portion = String(weight);
     portionPresetPack.hidden = false;
+    if (halfPackEl) {
+      if (weight >= 40) {
+        const half = Math.round(weight / 2);
+        halfPackEl.textContent = t('portionHalfPack', { g: half });
+        halfPackEl.dataset.portion = String(half);
+        halfPackEl.hidden = false;
+      } else {
+        halfPackEl.hidden = true;
+      }
+    }
   } else {
     portionPresetPack.hidden = true;
+    if (halfPackEl) halfPackEl.hidden = true;
   }
   updateLogPreview(product);
   hide(logToast);

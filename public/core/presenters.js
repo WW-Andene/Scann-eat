@@ -633,6 +633,49 @@ export function formatTemplateShare(template, opts = {}) {
 }
 
 /**
+ * R13.1 — filterScanHistory: pure filter for the scan-history list.
+ * Same shape the renderRecentScans loop applies inline; testable
+ * without a DOM shim.
+ *
+ *   items: [{ id, name, grade, ... }]
+ *   opts:  { query?: string (case-insensitive substring on name),
+ *            gradeFilter?: 'A'|'B'|'C'|'D'|'E' }
+ */
+export function filterScanHistory(items, opts = {}) {
+  const list = Array.isArray(items) ? items : [];
+  const q = String(opts.query || '').trim().toLowerCase();
+  const g = String(opts.gradeFilter || '');
+  return list.filter((i) => {
+    if (q && !(i?.name || '').toLowerCase().includes(q)) return false;
+    if (g && i?.grade !== g) return false;
+    return true;
+  });
+}
+
+/**
+ * R13.6 — summarizeScanHistory: counts items by Scann-eat grade.
+ * Powers the recent-scans summary chip ("12 scans · 4A · 3B · 2C
+ * · 2D · 1F") so the user sees their distribution at a glance
+ * without scrolling the list.
+ *
+ *   items: [{ grade: 'A+'|'A'|'B'|'C'|'D'|'F' | other }]
+ *   returns: { total: number, byGrade: { 'A+', A, B, C, D, F } }
+ *
+ * Items with unknown / missing grade count toward `total` but not
+ * any letter bucket. Grade keys mirror the <select> options in
+ * index.html (#history-grade) — A+ / A / B / C / D / F.
+ */
+export function summarizeScanHistory(items) {
+  const list = Array.isArray(items) ? items : [];
+  const byGrade = { 'A+': 0, A: 0, B: 0, C: 0, D: 0, F: 0 };
+  for (const it of list) {
+    const g = it?.grade;
+    if (g && Object.prototype.hasOwnProperty.call(byGrade, g)) byGrade[g] += 1;
+  }
+  return { total: list.length, byGrade };
+}
+
+/**
  * formatPairingsShare — turns a matchPairings() hit into a shareable
  * plain-text "recipe card". Used by the pairings section's Share button
  * and by navigator.share on mobile (WhatsApp, Messages, Mail). Pure

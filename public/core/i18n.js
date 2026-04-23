@@ -525,6 +525,10 @@ export const STRINGS = {
     exportHistory: 'Exporter l\'historique',
     exportHistoryDone: '{n} scan(s) exporté(s)',
     exportHistoryEmpty: 'Aucun scan à exporter',
+    recentSummaryTotal_one: '{n} scan',
+    recentSummaryTotal_other: '{n} scans',
+    portionPack: '{g} g (paquet)',
+    portionHalfPack: '{g} g (½ paquet)',
     about: 'À propos',
     disclaimerTitle: 'Information, pas conseil médical',
     disclaimerBody: `Scann-eat distingue explicitement deux types de données :
@@ -1109,6 +1113,10 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     exportHistory: 'Export history',
     exportHistoryDone: '{n} scan(s) exported',
     exportHistoryEmpty: 'No scans to export',
+    recentSummaryTotal_one: '{n} scan',
+    recentSummaryTotal_other: '{n} scans',
+    portionPack: '{g} g (pack)',
+    portionHalfPack: '{g} g (½ pack)',
     about: 'About',
     disclaimerTitle: 'Guidance, not medical advice',
     disclaimerBody: `Scann-eat explicitly separates two data types:
