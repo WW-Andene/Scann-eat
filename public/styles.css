@@ -5859,3 +5859,71 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .dashboard-streak.milestone-pulse { animation: none; }
 }
+
+/* ==========================================================================
+   MOVE 6 — desktop two-pane layout (≥ 1100px).
+   Mobile-first centered 600px column keeps the app identical below
+   1100px. On wider screens the main container expands to 1200px
+   and splits into two columns:
+     • Capture + ephemeral sections (status/error/comparison) span
+       both columns at the top.
+     • Left column: daily-dashboard + recent-scans + weekly/monthly
+       views + gap-closer (the "ledger" content).
+     • Right column: scan-result hero + pairings + alternatives —
+       sticky so the result stays visible while the dashboard
+       scrolls independently.
+   When no scan is active, the right column is empty and the
+   dashboard reads naturally in the left column alone.
+   ========================================================================== */
+
+@media (min-width: 1100px) {
+  main {
+    max-width: 1200px;
+    padding: var(--sp-6);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-flow: row dense;
+    column-gap: var(--sp-6);
+    row-gap: var(--sp-5);
+    /* Flex `gap` from the base rule doesn't apply to grid; grid uses
+       column-gap + row-gap above. Flex-direction also ignored. */
+  }
+
+  /* Top-of-stack: full-width span so header-level chrome reads
+     across both columns. */
+  .capture,
+  #status:not([hidden]),
+  #error:not([hidden]),
+  #comparison:not([hidden]),
+  .install-banner {
+    grid-column: 1 / -1;
+  }
+
+  /* Scan result sticks to the right column and stays in view while
+     the dashboard scrolls. Works with hidden attr — the rule only
+     activates when #result is visible because hidden = display:none
+     removes it from grid flow entirely. */
+  #result:not([hidden]) {
+    grid-column: 2;
+    grid-row: span 4;
+    align-self: start;
+    position: sticky;
+    top: var(--sp-5);
+    max-height: calc(100vh - var(--sp-6) * 2);
+    overflow-y: auto;
+  }
+
+  /* Left-column content — the daily-view + recent-scans cluster. */
+  #daily-dashboard,
+  #recent-scans {
+    grid-column: 1;
+  }
+}
+
+/* Very wide viewports: cap the content around 1320px so the
+   reading zone stays comfortable even on 2K/4K displays. */
+@media (min-width: 1440px) {
+  main {
+    max-width: 1320px;
+  }
+}
