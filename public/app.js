@@ -686,13 +686,24 @@ function renderAudit(data) {
 
   // Eco-score chip — only populated for OFF-sourced products where OFF has
   // computed one. Purely informational; not part of our own scoring.
+  // Gap fix #15: when OFF also reports ecoscore_value (the 0-100
+  // numeric score behind the letter grade), append it to the chip
+  // text + tooltip so users see the quantitative signal, not just
+  // the coloured letter. Grade alone is equivalent to the food-grade
+  // chip; the value adds the "how far from A" information.
   const ecoEl = $('result-ecoscore');
   const ecoGrade = data.product?.ecoscore_grade;
+  const ecoValue = data.product?.ecoscore_value;
   if (ecoEl) {
     if (ecoGrade && /^[a-e]$/.test(ecoGrade)) {
       ecoEl.dataset.eco = ecoGrade;
-      ecoEl.textContent = t('ecoscoreChip', { grade: ecoGrade.toUpperCase() });
-      ecoEl.title = t('ecoscoreTooltip');
+      const valueSuffix = typeof ecoValue === 'number' && Number.isFinite(ecoValue)
+        ? ` · ${Math.round(ecoValue)}/100`
+        : '';
+      ecoEl.textContent = t('ecoscoreChip', { grade: ecoGrade.toUpperCase() }) + valueSuffix;
+      ecoEl.title = typeof ecoValue === 'number'
+        ? t('ecoscoreTooltipWithValue', { grade: ecoGrade.toUpperCase(), value: Math.round(ecoValue) })
+        : t('ecoscoreTooltip');
       show(ecoEl);
     } else {
       hide(ecoEl);
