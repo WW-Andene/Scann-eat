@@ -7152,3 +7152,48 @@ dialog.settings-dialog.no-scroll-fade {
   -webkit-mask-image: none;
   mask-image: none;
 }
+
+/* ==========================================================================
+   §G1 — touch-target compliance.
+   Small icon buttons (32×32 queue-remove, dash-entry-del, etc.)
+   fall below the WCAG 2.5.5 target minimum of 44×44. Rather than
+   bumping their visual size (would disturb per-context layouts),
+   expands the tap area to 44×44 via a ::before pseudo that
+   extends 6px beyond the visible rect. Visual UI unchanged;
+   usable UI meets guideline.
+   ========================================================================== */
+
+.queue-remove,
+.dash-entry-del,
+.dash-entry-edit,
+.recent-del,
+.recent-del-icon,
+.rc-remove,
+.rc-swap,
+.act-entry-del,
+.hyd-btn {
+  position: relative;
+}
+.queue-remove::before,
+.dash-entry-del::before,
+.dash-entry-edit::before,
+.recent-del::before,
+.rc-remove::before,
+.rc-swap::before,
+.act-entry-del::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  z-index: 0;
+}
+/* The actual icon / label sits above the invisible tap expansion. */
+.queue-remove > *,
+.dash-entry-del > *,
+.dash-entry-edit > *,
+.recent-del > *,
+.rc-remove > *,
+.rc-swap > *,
+.act-entry-del > * {
+  position: relative;
+  z-index: 1;
+}
