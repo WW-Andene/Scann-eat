@@ -6369,3 +6369,49 @@ a {
     0 1px 3px rgba(0, 0, 0, 0.12),
     0 0 0 1px color-mix(in oklch, var(--panel) 60%, transparent);
 }
+
+/* ==========================================================================
+   DESIGN MOVE G — nutrition list with dotted leader lines.
+   #nutrition-list was a 2-column grid with solid hairlines between
+   rows. Transforms into a typographic data-book entry with
+   dotted leader lines connecting each label to its value — the
+   table-of-contents / index-page pattern from printed books.
+   ========================================================================== */
+
+#nutrition-list li span {
+  position: relative;
+  padding: var(--sp-2) 0;
+  padding-right: 4px;
+  border-bottom: none;
+  overflow: hidden;
+}
+#nutrition-list li span::after {
+  content: " . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .";
+  position: absolute;
+  left: calc(100% + 2px);
+  white-space: nowrap;
+  color: color-mix(in oklch, var(--muted) 45%, transparent);
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+#nutrition-list li strong {
+  padding: var(--sp-2) 0;
+  padding-left: 6px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--text);
+  border-bottom: none;
+  /* Put the value over the dotted leader so nothing renders
+     past the number. */
+  position: relative;
+  background: var(--panel, transparent);
+  z-index: 1;
+}
+
+/* Tint alternating rows with a faint paper-stripe so rows are
+   easy to scan on a long list. Uses nth-child of 4 because each
+   logical row is 2 grid cells. */
+#nutrition-list li:nth-child(even) span,
+#nutrition-list li:nth-child(even) strong {
+  background: color-mix(in oklch, var(--panel) 94%, var(--accent-dim));
+}
