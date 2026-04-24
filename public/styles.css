@@ -6117,3 +6117,56 @@ a {
   font-weight: 600;
   padding-left: var(--sp-2);
 }
+
+/* ==========================================================================
+   DESIGN MOVE C — pillar scores as diverging ink-dot strips.
+   Score breakdown rendered as a flat 10px linear-gradient bar
+   per pillar. Transforms into a 10-dot horizontal strip: each
+   dot represents 10% of the pillar's max, filled from left as
+   the score climbs. The fill's colour diverges across the
+   strip (--grade-d → --grade-aplus) so a low score shows red
+   dots, a mid score shows orange/yellow dots, and a full
+   score shows green dots — diverging scale visible at a
+   glance without reading the numbers.
+   ========================================================================== */
+
+.pillar-bar {
+  height: 14px;
+  background: color-mix(in oklch, var(--panel-3) 60%, var(--panel-2));
+  border-radius: 0;
+  overflow: visible;
+  position: relative;
+  /* Mask punches 10 evenly-spaced dots out of the background.
+     Radius 3.5px, 10% horizontal slot each = 10 dots. */
+  -webkit-mask: radial-gradient(circle at 50% 50%, black 3px, transparent 3.5px) 0 50% / 10% 100% repeat-x;
+  mask: radial-gradient(circle at 50% 50%, black 3px, transparent 3.5px) 0 50% / 10% 100% repeat-x;
+}
+
+.pillar-bar-fill {
+  background: linear-gradient(
+    90deg,
+    var(--grade-f)    0%,
+    var(--grade-d)   22%,
+    var(--grade-c)   42%,
+    var(--grade-b)   60%,
+    var(--grade-a)   80%,
+    var(--grade-aplus) 100%
+  );
+  border-radius: 0;
+  /* Same mask, slightly larger dots so the fill dots visually
+     pop over the empty slots. */
+  -webkit-mask: radial-gradient(circle at 50% 50%, black 3.5px, transparent 4px) 0 50% / 10% 100% repeat-x;
+  mask: radial-gradient(circle at 50% 50%, black 3.5px, transparent 4px) 0 50% / 10% 100% repeat-x;
+  box-shadow: none;
+  transition: width var(--motion-enter, 220ms) var(--ease-ui, ease);
+}
+
+/* Hover / focus feedback on clickable pillar rows — drop the
+   previous outline-on-bar approach (looked jarring against the
+   dot strip) and instead brighten the dots via a subtle
+   backdrop halo. */
+.pillar-clickable:hover .pillar-bar,
+.pillar-clickable:focus-visible .pillar-bar {
+  outline: none;
+  filter: drop-shadow(0 0 4px color-mix(in oklch, var(--accent) 55%, transparent));
+}
