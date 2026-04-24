@@ -19,6 +19,12 @@ export const STRINGS = {
     a11yWeeklyChart: 'Graphique barres 7 jours',
     a11yMonthlyChart: 'Graphique barres 30 jours',
     a11yGroceryText: 'Liste de courses (texte)',
+    // F-F-01 — onboarding progress + final CTA
+    onboardingStep: 'Étape {n} sur {total}',
+    previous: 'Précédent',
+    start: 'Commencer',
+    // F-F-06 — gap-closer all-targets-met success tile
+    gapCloserAllMet: 'Tous les objectifs atteints aujourd\'hui 🌿',
     // F-F-02 — scan error paths (clearer than the previous terse set)
     scanCameraDenied: 'Accès caméra refusé. Utilise le sélecteur de photo ou autorise la caméra dans les réglages du navigateur.',
     scanDetectorUnsupported: 'Ton navigateur ne lit pas les codes-barres en direct. Utilise le sélecteur de photo à la place.',
@@ -742,6 +748,12 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     a11yWeeklyChart: '7-day bar chart',
     a11yMonthlyChart: '30-day bar chart',
     a11yGroceryText: 'Grocery list (text)',
+    // F-F-01 — onboarding progress + final CTA
+    onboardingStep: 'Step {n} of {total}',
+    previous: 'Previous',
+    start: 'Start',
+    // F-F-06 — gap-closer all-targets-met success tile
+    gapCloserAllMet: 'All targets met today 🌿',
     // F-F-02 — scan error paths
     scanCameraDenied: 'Camera access denied. Use the photo picker, or allow camera access in your browser settings.',
     scanDetectorUnsupported: 'Your browser doesn\'t read barcodes live. Use the photo picker instead.',

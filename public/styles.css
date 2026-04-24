@@ -4093,6 +4093,10 @@ details li.warn     { color: var(--warning); }
   gap: 4px;
 }
 .gap-closer-head { margin: 0; font-size: var(--text-sm, 0.85rem); color: var(--text); font-weight: 600; }
+/* F-F-06 — all-targets-met celebration tile. Softly tinted bg +
+   success-colored text so the moment is visible without shouting. */
+.gap-closer-item-success { padding: var(--sp-4); border-radius: var(--r-md); background: color-mix(in oklch, var(--success) 12%, var(--panel)); }
+.gap-closer-head-success { color: var(--success); font-weight: 700; }
 .gap-closer-chips {
   list-style: none;
   margin: 0;

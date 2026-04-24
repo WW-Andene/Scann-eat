@@ -3911,8 +3911,23 @@ function renderGapCloser(totals, targets) {
   const all = [...FOOD_DB, ...listCustomFoods()];
   const gaps = closeTheGap(totals, targets, all);
   list.textContent = '';
-  if (gaps.length === 0 || (totals?.count ?? 0) === 0) {
+  const loggedToday = (totals?.count ?? 0) > 0;
+  if (!loggedToday) {
     hide(section);
+    return;
+  }
+  // F-F-06: when every "more is better" nutrient target is met, show a
+  // celebration tile instead of hiding the section. Rewards the user
+  // at their signature moment and keeps dashboard rhythm consistent.
+  if (gaps.length === 0) {
+    const item = document.createElement('li');
+    item.className = 'gap-closer-item gap-closer-item-success';
+    const head = document.createElement('p');
+    head.className = 'gap-closer-head gap-closer-head-success';
+    head.textContent = t('gapCloserAllMet');
+    item.appendChild(head);
+    list.appendChild(item);
+    show(section);
     return;
   }
   for (const g of gaps) {

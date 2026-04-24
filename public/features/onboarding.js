@@ -20,6 +20,8 @@ export function maybeShowOnboarding({ t }) {
   const obDialog = document.getElementById('onboarding-dialog');
   const obNext = document.getElementById('ob-next');
   const obSkip = document.getElementById('ob-skip');
+  const obPrev = document.getElementById('ob-prev');
+  const obProgress = document.getElementById('ob-progress');
   if (!obDialog || !obNext || !obSkip) return;
 
   const slides = obDialog.querySelectorAll('.ob-slide');
@@ -30,6 +32,11 @@ export function maybeShowOnboarding({ t }) {
     slides.forEach((s) => { s.hidden = Number(s.dataset.slide) !== current; });
     dots.forEach((d, i) => d.classList.toggle('active', i + 1 === current));
     obNext.textContent = current === TOTAL ? t('start') : t('next');
+    // F-F-01: hide Previous on slide 1; show otherwise. Progress label
+    // announces position for screen-reader users (aria-live=polite
+    // on the element itself) and is visible for sighted users.
+    if (obPrev) obPrev.hidden = current === 1;
+    if (obProgress) obProgress.textContent = t('onboardingStep', { n: current, total: TOTAL });
   };
   // R34.I2: use addEventListener with { once: false } and a single
   // close listener that tears everything down on dismissal, instead
@@ -40,6 +47,9 @@ export function maybeShowOnboarding({ t }) {
     if (current < TOTAL) { current++; render(); }
     else { localStorage.setItem(LS_ONBOARDED, '1'); obDialog.close(); }
   };
+  const onPrev = () => {
+    if (current > 1) { current--; render(); }
+  };
   const onSkip = () => {
     localStorage.setItem(LS_ONBOARDED, '1');
     obDialog.close();
@@ -48,9 +58,11 @@ export function maybeShowOnboarding({ t }) {
     localStorage.setItem(LS_ONBOARDED, '1');
     obNext.removeEventListener('click', onNext);
     obSkip.removeEventListener('click', onSkip);
+    if (obPrev) obPrev.removeEventListener('click', onPrev);
   };
   obNext.addEventListener('click', onNext);
   obSkip.addEventListener('click', onSkip);
+  if (obPrev) obPrev.addEventListener('click', onPrev);
   obDialog.addEventListener('close', onClose, { once: true });
   render();
   obDialog.showModal();
