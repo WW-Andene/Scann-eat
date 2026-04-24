@@ -525,6 +525,11 @@ async function scanViaDirect() {
 async function scanImage() {
   if (queue.length === 0) return;
   hide(errorEl); hide(resultEl); show(statusEl);
+  // §DST2 loading — mark the capture panel as aria-busy so CSS can
+  // overlay a "scanning in progress" state. Cleared in the
+  // finally-like block where status is hidden / result is shown.
+  const captureEl = document.querySelector('.capture');
+  if (captureEl) captureEl.setAttribute('aria-busy', 'true');
   const bc = firstBarcode();
   statusText.textContent = bc
     ? t('barcodeDetected', { code: bc })
@@ -572,6 +577,7 @@ async function scanImage() {
     }
     if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null; }
     hide(statusEl);
+    if (captureEl) captureEl.removeAttribute('aria-busy');
     lastData = data;
     maybeRenderComparison(data);
     renderAudit(data);
@@ -582,6 +588,7 @@ async function scanImage() {
   } catch (err) {
     if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null; }
     hide(statusEl);
+    if (captureEl) captureEl.removeAttribute('aria-busy');
     console.error('[scan] failed', err);
     telemetryLog('scan-failed', err?.message || String(err), bc ? `barcode=${bc}` : `mode=${mode}`);
     // navigator.onLine is the primary signal. The regex is a secondary probe

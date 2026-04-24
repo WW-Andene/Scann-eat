@@ -7018,3 +7018,70 @@ body::after {
   body::after { display: none; }
 }
 body.reduce-motion::after { display: none; }
+
+/* ==========================================================================
+   §DST2 — capture "analysing" state (aesthetic-audit loading).
+   When app.js sets aria-busy on .capture during a scan, the panel
+   picks up a coral-scan-line sweep across its face so the user
+   sees the app actually working (not just a button label flip).
+   ========================================================================== */
+
+.capture[aria-busy="true"] {
+  position: relative;
+  pointer-events: none;
+}
+.capture[aria-busy="true"]::before {
+  /* The existing ::before corner-mark becomes a scanning highlight
+     via overlay-positioned background-gradient. We layer a second
+     pseudo via ::after-on-.capture — but the capture already uses
+     ::after for corner marks. Use .capture-actions::before slot
+     instead via a new selector. */
+}
+.capture[aria-busy="true"] > .capture-actions,
+.capture[aria-busy="true"] > #queue,
+.capture[aria-busy="true"] > #scan-btn,
+.capture[aria-busy="true"] > .hint,
+.capture[aria-busy="true"] > details {
+  opacity: 0.35;
+  filter: saturate(0.6);
+  transition: opacity 200ms var(--ease-ui, ease), filter 200ms var(--ease-ui, ease);
+}
+
+/* Scanning sweep — a coral gradient line that moves across the
+   capture panel while aria-busy. Uses a repeating linear gradient
+   animated via background-position. */
+.capture[aria-busy="true"] {
+  background-image:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in oklch, var(--accent) 35%, transparent) 48%,
+      color-mix(in oklch, var(--grade-f) 42%, transparent) 50%,
+      color-mix(in oklch, var(--accent) 35%, transparent) 52%,
+      transparent 100%
+    ),
+    /* Keep the base scanline pattern underneath */
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 38px,
+      color-mix(in oklch, var(--muted) 10%, transparent) 38px,
+      color-mix(in oklch, var(--muted) 10%, transparent) 39px
+    );
+  background-size: 100% 180px, 100% auto;
+  background-position: 0 -180px, 0 0;
+  background-repeat: no-repeat, repeat;
+  animation: scanneat-scanning-sweep 1400ms var(--ease-ui, ease) infinite;
+}
+
+@keyframes scanneat-scanning-sweep {
+  0%   { background-position: 0 -180px, 0 0; }
+  100% { background-position: 0 100%, 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capture[aria-busy="true"] {
+    animation: none;
+    background-position: 0 40%, 0 0;
+  }
+}
