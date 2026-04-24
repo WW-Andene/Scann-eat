@@ -6235,3 +6235,78 @@ a {
 .meal-section[data-meal] .meal-kcal {
   color: color-mix(in oklch, var(--muted) 55%, var(--meal-accent));
 }
+
+/* ==========================================================================
+   DESIGN MOVE E — pairing chips as a signature element.
+   "🍽️ ça va bien avec" is a distinctive Scann-eat feature;
+   chips were generic --panel-2 pills. Elevates them into a
+   recipe-book callout with a coral-tinted background rail,
+   per-chip shared-compound dot, and a hover microinteraction.
+   ========================================================================== */
+
+.pairings {
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+  border-top: none;
+  background:
+    linear-gradient(90deg,
+      color-mix(in oklch, var(--panel) 88%, var(--accent-dim)) 0%,
+      var(--panel) 100%);
+  border-radius: var(--r-md);
+  border-left: 3px solid var(--accent-dim);
+}
+
+.pairings-title {
+  font-size: var(--text-sm, 0.85rem);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.pairing-chip {
+  position: relative;
+  background: color-mix(in oklch, var(--panel) 70%, var(--accent-dim));
+  color: var(--text);
+  border-radius: var(--r-pill);
+  padding: 6px 14px 6px 26px;
+  font-size: var(--text-sm, 0.85rem);
+  font-weight: 600;
+  border: 1px solid color-mix(in oklch, var(--accent-dim) 40%, transparent);
+  box-shadow: var(--elev-1-tonal, var(--elev-1));
+  transition:
+    transform var(--motion-base, 140ms) var(--ease-ui, ease),
+    box-shadow var(--motion-base, 140ms) var(--ease-ui, ease),
+    background var(--motion-base, 140ms) var(--ease-ui, ease);
+}
+
+/* Leading shared-compound dot — a little ink spot before the
+   food name so the chip reads "a mark in a recipe book," not
+   "a UI button." */
+.pairing-chip::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translateY(-50%);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  box-shadow: 0 0 6px color-mix(in oklch, var(--accent) 60%, transparent);
+}
+
+.pairing-chip:hover {
+  transform: translateY(-1px);
+  background: color-mix(in oklch, var(--panel) 55%, var(--accent-dim));
+  box-shadow: var(--elev-2);
+}
+.pairing-chip:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.pairings-source {
+  color: color-mix(in oklch, var(--muted) 75%, var(--accent-dim));
+  font-style: italic;
+  font-size: var(--text-xs, 0.72rem);
+}
