@@ -6949,3 +6949,53 @@ select:disabled {
   cursor: not-allowed;
   filter: saturate(0.6);
 }
+
+/* ==========================================================================
+   REFINE 4 — atmospheric radial glow (§ATMOSPHERE focal layer).
+   art-direction-engine §ATMOSPHERE calls for a focal atmosphere
+   concentrated on the app's hero zone, on top of the ambient
+   atmosphere. The reference images show a bright radial halo
+   behind the main content. Adds a single fixed radial-gradient
+   behind the app canvas — quiet enough to sit under content,
+   warm enough to signal "this is where the product's energy
+   concentrates."
+   ========================================================================== */
+
+body::after {
+  content: "";
+  position: fixed;
+  left: 50%;
+  top: -5vh;
+  width: min(780px, 96vw);
+  height: 520px;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    ellipse 50% 60% at 50% 30%,
+    color-mix(in oklch, var(--accent) 22%, transparent) 0%,
+    color-mix(in oklch, var(--grade-f) 12%, transparent) 35%,
+    transparent 75%
+  );
+  pointer-events: none;
+  z-index: 0;
+  /* mix-blend screen would lighten on dark; on the coral bg
+     overlay gives a soft warm bloom without washing out. */
+  mix-blend-mode: soft-light;
+  filter: blur(30px);
+}
+/* Dark theme — halo shifts to a warmer orange since the bg is
+   a more vivid coral. */
+[data-theme="dark"] body::after {
+  background: radial-gradient(
+    ellipse 50% 60% at 50% 30%,
+    color-mix(in oklch, var(--accent) 28%, transparent) 0%,
+    color-mix(in oklch, var(--grade-c) 16%, transparent) 40%,
+    transparent 75%
+  );
+}
+
+/* Reduced transparency + reduced motion both hide the glow. */
+@media (prefers-reduced-transparency: reduce),
+       (prefers-reduced-motion: reduce) {
+  body::after { display: none; }
+}
+body.reduce-motion::after { display: none; }
