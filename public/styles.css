@@ -6824,3 +6824,64 @@ button:disabled {
   filter: saturate(0.4);
   cursor: not-allowed;
 }
+
+/* ==========================================================================
+   REFINE 2 — interactive card lift per §CARDS spec.
+   Prescribed: translateY(-2px) + shadow grows to 0 8px 24px +
+   0 2px 6px, 200ms ease-out. Applied uniformly to every
+   interactive card (.recent-item, .pairing-chip, .alt-item).
+   The prior mixed-direction lifts (translateX on .recent-item,
+   translateY(-1px) on .pairing-chip) now speak one gesture.
+   ========================================================================== */
+
+.recent-item,
+.pairing-chip,
+.alt-item {
+  transition:
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.recent-item:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklch, var(--accent-dim) 55%, transparent);
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--grade-f) 18%, rgba(0,0,0,0.14)),
+    0 2px 6px rgba(0, 0, 0, 0.10);
+}
+.recent-item:active {
+  transform: translateY(0) scale(0.995);
+  transition-duration: 80ms;
+}
+
+.pairing-chip:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 20px color-mix(in oklch, var(--accent) 18%, rgba(0,0,0,0.12)),
+    0 2px 4px rgba(0, 0, 0, 0.10);
+  background: color-mix(in oklch, var(--panel) 50%, var(--accent-dim));
+}
+.pairing-chip:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+}
+
+/* Alt-item (alternatives list) gets the same lift. */
+.alt-item:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--accent) 16%, rgba(0,0,0,0.12)),
+    0 2px 6px rgba(0, 0, 0, 0.10);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recent-item:hover,
+  .pairing-chip:hover,
+  .alt-item:hover,
+  .recent-item:active,
+  .pairing-chip:active {
+    transform: none;
+  }
+}
