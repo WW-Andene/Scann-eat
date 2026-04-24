@@ -2215,9 +2215,13 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   border-left: 4px solid transparent;
   border-image: var(--grad-accent) 1;
   color: var(--text);
-  font-size: var(--text-base);
-  font-weight: 600;
-  line-height: 1.4;
+  /* F-DH-05 — bumped from --text-base to --text-lg so the daily KPI
+     clearly dominates the secondary tiles visually. Tighter tracking
+     keeps "Il reste 187 kcal · 12 g sucre" readable at this size. */
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-snug);
   border-radius: var(--r-md);
   box-shadow: var(--elev-1-tonal, var(--elev-1));
 }
