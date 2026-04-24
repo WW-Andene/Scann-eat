@@ -3,22 +3,49 @@
  * FOOD SCORING ENGINE v2.0.0
  * ============================================================================
  *
- * Evidence-based scoring engine for supermarket food products.
+ * Evidence-anchored scoring engine for supermarket food products.
  * Single-file consolidated build. Zero runtime dependencies.
  *
  * Main entry point: scoreProduct(product: ProductInput): ScoreAudit
  *
- * Scoring breakdown (100 pts total):
- *   - Processing Level (20)
- *   - Nutritional Density (25)
- *   - Negative Nutrients (25)
- *   - Additive Risk (15)
- *   - Ingredient Integrity (15)
- *   + Global bonuses (capped +10)
- *   - Global penalties
- *   - Veto conditions (cap final score)
+ * AUTHORITATIVE vs EDITORIAL boundary — be honest about both:
  *
- * Grades: A+ (85+) / A (70+) / B (55+) / C (40+) / D (25+) / F (<25)
+ *   AUTHORITATIVE (traceable to a named source):
+ *     - Nutrient thresholds (FSA traffic-light cutoffs per 100 g for solids).
+ *     - Daily intake references (WHO: sat fat <10 %E, free sugars <10 %E /
+ *       ideally <5 %E, salt <5 g/day, trans fat elimination target).
+ *     - Additive tier assignments are backed per-entry by ADDITIVES_DB.source
+ *       (EFSA opinions, IARC Monographs, EU Regulations, cited studies).
+ *     - IARC Monograph Vol 114 (2015) — processed meat Group 1.
+ *     - NOVA classification framework (Monteiro et al., Public Health Nutrition
+ *       22:936–941, 2019).
+ *
+ *   EDITORIAL (Scann-eat's own judgment, not a medical authority):
+ *     - Pillar weights 20/25/25/15/15 and the A+ → F grade thresholds.
+ *     - Category-specific adjustments to sat-fat / sugar thresholds.
+ *     - NOVA auto-inference heuristic when input NOVA looks unreliable.
+ *     - Additive tier CAP per pillar (−10/−6/−3) and +1/+2/+3 bonus values.
+ *     - Veto caps (40 / 45) for the heaviest composition red flags.
+ *     - First-ingredient penalty (-3 when sucre / huile dominates).
+ *     - Healthy-fat + omega-3 source bonuses.
+ *
+ * Each function below is annotated with an AUTHORITATIVE-BASIS or EDITORIAL
+ * block so the provenance of every number is explicit.
+ *
+ * Scoring breakdown (100 pts total):
+ *   - Processing Level (20)       — EDITORIAL weight; NOVA-based
+ *   - Nutritional Density (25)    — EDITORIAL weight; FSA-aligned cutoffs
+ *   - Negative Nutrients (25)     — EDITORIAL weight; FSA / WHO cutoffs
+ *   - Additive Risk (15)          — EDITORIAL weight; per-entry sourcing
+ *   - Ingredient Integrity (15)   — EDITORIAL weight
+ *   + Global bonuses (capped +10) — EDITORIAL
+ *   - Global penalties            — EDITORIAL
+ *   - Veto conditions (cap)       — EDITORIAL
+ *
+ * Grades: A+ (≥85) / A (≥70) / B (≥55) / C (≥40) / D (≥25) / F (<25)
+ *         — EDITORIAL breakpoints. For a published, reproducible grade
+ *         anchored to EU law, see the French Nutri-Score algorithm
+ *         (not reimplemented here; Scann-eat is a complementary opinion).
  * ============================================================================
  */
 
@@ -62,6 +89,33 @@ export interface NutritionPer100g {
   protein_g: number;
   salt_g: number;
   trans_fat_g?: number | null;
+  // Minerals — optional because most OFF products don't report them.
+  iron_mg?: number;
+  calcium_mg?: number;
+  magnesium_mg?: number;
+  potassium_mg?: number;
+  zinc_mg?: number;
+  sodium_mg?: number;
+  // Vitamins (µg for fat-soluble + B12, mg for water-soluble except
+  // where convention prefers µg).
+  vit_a_ug?: number;    // retinol equivalents
+  vit_c_mg?: number;
+  vit_d_ug?: number;
+  vit_e_mg?: number;
+  vit_k_ug?: number;
+  b1_mg?: number;       // thiamin
+  b2_mg?: number;       // riboflavin
+  b3_mg?: number;       // niacin
+  b6_mg?: number;
+  b9_ug?: number;       // folate
+  b12_ug?: number;
+  // Macro subdivisions — useful for the advanced user + feeding the
+  // personal-score engine in future iterations.
+  polyunsaturated_fat_g?: number;
+  monounsaturated_fat_g?: number;
+  omega_3_g?: number;
+  omega_6_g?: number;
+  cholesterol_mg?: number;
 }
 
 /**
@@ -95,6 +149,12 @@ export interface ProductInput {
   has_misleading_marketing?: boolean;
   named_oils?: boolean; // true if oils are named (e.g., "colza" not "vegetable oil")
   origin_transparent?: boolean;
+  /** Vitamin / mineral names declared on-pack or in OFF nutriments. */
+  declared_micronutrients?: string[];
+  /** Open Food Facts ecoscore, when available. Not part of scoring —
+   *  surfaced in the UI alongside the nutritional grade. */
+  ecoscore_grade?: 'a' | 'b' | 'c' | 'd' | 'e' | null;
+  ecoscore_value?: number | null;
 }
 
 export type Grade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
@@ -150,6 +210,11 @@ export interface ScoreAudit {
   red_flags: string[];
   green_flags: string[];
 
+  // Fix #2 — side-channel carrying ecoscore context so buildFlags
+  // can compose the red/green bullets without coupling to
+  // ProductInput. Not a scoring pillar; the numeric score ignores it.
+  eco?: { grade?: string; value?: number | null };
+
   // Meta
   engine_version: string;
   warnings: string[];
@@ -172,52 +237,70 @@ export interface AdditiveInfo {
   names: string[];
   tier: AdditiveTier;
   category: string;
+  /** Plain-language concern text. */
   concern: string;
+  /**
+   * Authoritative source(s) backing the tier assignment. One of:
+   *   "EFSA Scientific Opinion <year>"
+   *   "IARC Group X (<year>)"
+   *   "EU Regulation 1333/2008 Annex"
+   *   "Santé publique France / ANSES <year>"
+   *   or a specific primary study (author, journal, year).
+   * Entries marked "editorial" are Scann-eat's judgment without a direct
+   * authoritative ruling on that specific additive.
+   */
+  source: string;
 }
 
 export const ADDITIVES_DB: AdditiveInfo[] = [
-  // ===== TIER 1: Serious concern =====
+  // ===== TIER 1: Serious concern (strong authoritative basis) =====
   {
     e_number: 'E249',
     names: ['nitrite de potassium', 'potassium nitrite'],
     tier: 1,
     category: 'preservative',
-    concern: 'Nitrite in processed meat — IARC Group 2A (probable carcinogen via nitrosamine formation)',
+    concern: 'Curing agent. Processed meat containing nitrites is classified IARC Group 1 (carcinogenic to humans) via N-nitroso compound formation during digestion. Editorial: tier reflects the food-carcinogenicity classification, not the isolated additive.',
+    source: 'IARC Monograph Vol 114 (2015) — processed meat Group 1; IARC Monograph Vol 94 (2010) — ingested nitrate/nitrite under conditions that result in endogenous nitrosation Group 2A; EFSA Re-evaluation 2017.',
   },
   {
     e_number: 'E250',
     names: ['nitrite de sodium', 'sodium nitrite'],
     tier: 1,
     category: 'preservative',
-    concern: 'Nitrite in processed meat — IARC Group 2A (probable carcinogen via nitrosamine formation)',
+    concern: 'Curing agent. Processed meat containing nitrites is classified IARC Group 1 (carcinogenic to humans) via N-nitroso compound formation. Editorial: tier reflects the finished-food classification.',
+    source: 'IARC Monograph Vol 114 (2015); IARC Monograph Vol 94 (2010); EFSA Re-evaluation 2017.',
   },
   {
     e_number: 'E251',
     names: ['nitrate de sodium', 'sodium nitrate'],
     tier: 1,
     category: 'preservative',
-    concern: 'Converts to nitrite in body — same carcinogenicity pathway',
+    concern: 'Converts to nitrite in the gut. Same N-nitroso pathway linked to processed-meat carcinogenicity.',
+    source: 'IARC Monograph Vol 94 (2010); EFSA Re-evaluation 2017.',
   },
   {
     e_number: 'E252',
     names: ['nitrate de potassium', 'potassium nitrate'],
     tier: 1,
     category: 'preservative',
-    concern: 'Converts to nitrite in body — same carcinogenicity pathway',
+    concern: 'Converts to nitrite in the gut. Same N-nitroso pathway linked to processed-meat carcinogenicity.',
+    source: 'IARC Monograph Vol 94 (2010); EFSA Re-evaluation 2017.',
   },
   {
     e_number: 'E433',
     names: ['polysorbate 80', 'polysorbate-80'],
     tier: 1,
     category: 'emulsifier',
-    concern: 'Emerging evidence: microbiome disruption, intestinal barrier damage (Chassaing et al.)',
+    concern: 'Detergent-class emulsifier. Mouse studies show microbiome shifts, mucus-layer erosion, and low-grade inflammation at dietary doses. Small human data consistent with the signal; large-scale human evidence still limited.',
+    source: 'Chassaing et al., Nature 2015 (mice); Chassaing et al., Gastroenterology 2022 (FRESH crossover human study, n=16, CMC).',
   },
   {
     e_number: 'E466',
     names: ['carboxymethylcellulose', 'cmc', 'cellulose gum'],
     tier: 1,
     category: 'emulsifier',
-    concern: 'Emerging evidence: microbiome disruption, intestinal inflammation',
+    concern: 'Detergent-class emulsifier. Mouse microbiome disruption replicated in a controlled human feeding trial (reduced microbial diversity, altered metabolome).',
+    source: 'Chassaing et al., Nature 2015; Chassaing et al., Gastroenterology 2022 (FRESH trial, CMC-specific).',
   },
 
   // ===== TIER 2: Moderate concern =====
@@ -226,135 +309,512 @@ export const ADDITIVES_DB: AdditiveInfo[] = [
     names: ['acide phosphorique', 'phosphoric acid'],
     tier: 2,
     category: 'acidulant',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive. Epidemiologic associations between phosphorus-rich diets and cardiovascular / renal outcomes at high chronic intakes.',
+    source: 'EFSA Scientific Opinion on phosphates as food additives, EFSA Journal 2019;17(6):5674 (group ADI 40 mg/kg bw/day as phosphorus).',
   },
   {
     e_number: 'E450',
     names: ['diphosphate', 'pyrophosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E451',
     names: ['triphosphate', 'tripolyphosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E452',
     names: ['polyphosphate'],
     tier: 2,
     category: 'stabilizer',
-    concern: 'Phosphate additive — chronic high intake linked to CV and renal stress',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
   },
   {
     e_number: 'E102',
     names: ['tartrazine', 'jaune de tartrazine'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children (Southampton study)',
+    concern: 'Azo dye. Associations with hyperactivity and attention effects in a subset of children. EU foods containing it must carry a warning label.',
+    source: 'McCann et al., The Lancet 370:1560–1567 (2007, "Southampton study"); EU Regulation 1333/2008 Annex V — mandatory "may have an adverse effect on activity and attention in children" label.',
   },
   {
     e_number: 'E110',
     names: ['jaune orangé s', 'sunset yellow'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children',
+    concern: 'Azo dye. Same Southampton-study association; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E122',
     names: ['azorubine', 'carmoisine'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children',
+    concern: 'Azo dye. Same Southampton-study association; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E124',
     names: ['ponceau 4r', 'rouge cochenille a'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children',
+    concern: 'Azo dye. Same Southampton-study association; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E129',
     names: ['rouge allura', 'allura red'],
     tier: 2,
     category: 'colorant',
-    concern: 'Azo dye — linked to hyperactivity in children',
+    concern: 'Azo dye. Same Southampton-study association; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
   },
   {
     e_number: 'E320',
     names: ['bha', 'butylhydroxyanisol'],
     tier: 2,
     category: 'antioxidant',
-    concern: 'Suspected endocrine disruptor, IARC Group 2B',
+    concern: 'Synthetic antioxidant. Classified IARC Group 2B (possibly carcinogenic) based on rodent forestomach tumours; human relevance debated.',
+    source: 'IARC Monograph Vol 40 (1986) — Group 2B; EFSA ADI 1 mg/kg bw/day reaffirmed 2011.',
   },
   {
     e_number: 'E321',
     names: ['bht', 'butylhydroxytoluène'],
     tier: 2,
     category: 'antioxidant',
-    concern: 'Suspected endocrine disruptor',
+    concern: 'Synthetic antioxidant used alongside BHA. EFSA set a low ADI on developmental / reproductive grounds.',
+    source: 'EFSA Scientific Opinion 2012;10(3):2588 (ADI 0.25 mg/kg bw/day).',
   },
   {
     e_number: 'E951',
     names: ['aspartame'],
     tier: 2,
     category: 'sweetener',
-    concern: 'IARC Group 2B (2023) — possible carcinogen; avoid in phenylketonuria',
+    concern: 'Non-nutritive sweetener. IARC classified as "possibly carcinogenic to humans" (Group 2B) in July 2023 based on limited human evidence for hepatocellular carcinoma. Contraindicated in phenylketonuria.',
+    source: 'IARC Monograph Vol 134 (2023) — Group 2B; JECFA 2023 reaffirmed ADI 40 mg/kg bw/day; EFSA ADI 40 mg/kg bw/day (2013).',
   },
   {
     e_number: 'E150',
     names: ['caramel', 'colorant caramel', 'e150a', 'e150b', 'e150c', 'e150d'],
     tier: 2,
     category: 'colorant',
-    concern: 'E150c/d contain 4-MEI — IARC Group 2B (possible carcinogen)',
+    concern: 'Caramel colours III (E150c) and IV (E150d) contain 4-methylimidazole (4-MEI), classified IARC Group 2B. Plain (I) and caustic-sulfite (II) caramels do not.',
+    source: 'IARC Monograph Vol 101 (2013) — 4-MEI Group 2B; EFSA ADI 100–300 mg/kg bw/day by sub-class (2011 re-evaluation).',
   },
 
-  // ===== TIER 3: Minor/contextual =====
+  // ===== TIER 3: Minor / contextual (authorised, no direct authoritative concern) =====
   {
     e_number: 'E407',
     names: ['carraghénane', 'carrageenan'],
     tier: 3,
     category: 'thickener',
-    concern: 'Potential intestinal inflammation in susceptible individuals',
+    concern: 'Thickener. EFSA reaffirmed safety at current use levels; animal-study inflammation signals have not been replicated at dietary doses in humans.',
+    source: 'EFSA Scientific Opinion 2018;16(4):5238 (ADI 75 mg/kg bw/day).',
   },
   {
     e_number: 'E471',
     names: ['mono- et diglycérides d\'acides gras'],
     tier: 3,
     category: 'emulsifier',
-    concern: 'Ubiquitous emulsifier — microbiome concerns at high chronic doses',
+    concern: 'Ubiquitous emulsifier. No specific authoritative concern; tier reflects the class-level emulsifier / UPF marker literature, not a ruling on E471 itself.',
+    source: 'EFSA Scientific Opinion 2017;15(11):5045 (no numerical ADI needed).',
   },
   {
     e_number: 'E621',
     names: ['glutamate monosodique', 'monosodium glutamate', 'msg'],
     tier: 3,
     category: 'flavor_enhancer',
-    concern: 'Flavor enhancer — sensitivity in some individuals; generally regarded as safe',
+    concern: 'Flavour enhancer. EFSA derived a group ADI in 2017 out of caution; JECFA maintains that MSG is safe.',
+    source: 'EFSA Scientific Opinion 2017;15(7):4910 (group ADI 30 mg/kg bw/day); JECFA (1988) — no ADI specified.',
   },
   {
     e_number: 'E316',
     names: ['érythorbate de sodium', 'sodium erythorbate'],
     tier: 3,
     category: 'antioxidant',
-    concern: 'Generally safe but signals processed meat curing system',
+    concern: 'Vitamin C isomer used in cured meats. Authorised without numerical ADI; its presence often signals a curing system with nitrites.',
+    source: 'EFSA Scientific Opinion 2015 (ascorbic acid family).',
   },
   {
     e_number: 'E100',
     names: ['curcumine', 'curcuma (colorant)'],
     tier: 3,
     category: 'colorant',
-    concern: 'Natural colorant — low health concern, but signals cosmetic processing',
+    concern: 'Natural colorant. Low health concern at food-use levels; presence indicates cosmetic processing.',
+    source: 'EFSA Scientific Opinion 2010;8(9):1679 (ADI 3 mg/kg bw/day).',
   },
   {
     e_number: 'E160c',
     names: ['paprika (colorant)', 'extrait de paprika', 'oléorésine de paprika'],
     tier: 3,
     category: 'colorant',
-    concern: 'Natural colorant — low health concern, but signals cosmetic processing',
+    concern: 'Natural colorant (capsanthin/capsorubin). Low health concern; presence indicates cosmetic processing.',
+    source: 'EFSA Scientific Opinion 2015;13(12):4320 (ADI 2 mg/kg bw/day capsanthin).',
+  },
+
+  // ===== TIER 1 additions =====
+  {
+    e_number: 'E171',
+    names: ['dioxyde de titane', 'titanium dioxide'],
+    tier: 1,
+    category: 'colorant',
+    concern: 'Banned as a food additive in the EU since August 2022 after EFSA could not establish a safe level on genotoxicity grounds for the nanoparticulate fraction.',
+    source: 'EFSA Scientific Opinion 2021;19(5):6585; Commission Regulation (EU) 2022/63 (ban effective August 2022).',
+  },
+  {
+    e_number: 'E220',
+    names: ['anhydride sulfureux', 'dioxyde de soufre', 'sulfur dioxide'],
+    tier: 1,
+    category: 'preservative',
+    concern: 'Sulfite — mandatory EU allergen. Established triggers for asthma and sulfite sensitivity at low doses.',
+    source: 'EU Regulation 1169/2011 Annex II (mandatory allergen declaration ≥10 mg/kg); EFSA Re-evaluation 2016;14(4):4438.',
+  },
+  {
+    e_number: 'E221',
+    names: ['sulfite de sodium', 'sodium sulfite'],
+    tier: 1,
+    category: 'preservative',
+    concern: 'Sulfite — same regulatory allergen classification as E220.',
+    source: 'EU Regulation 1169/2011 Annex II; EFSA Re-evaluation 2016.',
+  },
+  {
+    e_number: 'E223',
+    names: ['métabisulfite de sodium', 'sodium metabisulfite'],
+    tier: 1,
+    category: 'preservative',
+    concern: 'Sulfite — same regulatory allergen classification as E220.',
+    source: 'EU Regulation 1169/2011 Annex II; EFSA Re-evaluation 2016.',
+  },
+  {
+    e_number: 'E224',
+    names: ['métabisulfite de potassium', 'potassium metabisulfite'],
+    tier: 1,
+    category: 'preservative',
+    concern: 'Sulfite — same regulatory allergen classification as E220.',
+    source: 'EU Regulation 1169/2011 Annex II; EFSA Re-evaluation 2016.',
+  },
+  {
+    e_number: 'E385',
+    names: ['edta', 'calcium disodium edta'],
+    tier: 1,
+    category: 'sequestrant',
+    concern: 'Metal chelator. EFSA set a conservative ADI; high chronic intake can affect mineral bioavailability.',
+    source: 'EFSA Scientific Opinion 2018;16(11):5007 (ADI 1.9 mg/kg bw/day).',
+  },
+
+  // ===== TIER 2 additions =====
+  {
+    e_number: 'E211',
+    names: ['benzoate de sodium', 'sodium benzoate'],
+    tier: 2,
+    category: 'preservative',
+    concern: 'Preservative. Can react with ascorbic acid (vitamin C) to form trace benzene, a known human carcinogen; industry has reformulated many drinks but the risk persists in acidic soft drinks.',
+    source: 'Gardner & Lawrence, J Food Prot 2007 (benzene formation mechanism); EFSA Re-evaluation 2016;14(3):4433 (ADI 5 mg/kg bw/day).',
+  },
+  {
+    e_number: 'E212',
+    names: ['benzoate de potassium', 'potassium benzoate'],
+    tier: 2,
+    category: 'preservative',
+    concern: 'Same benzene-formation pathway as E211 when combined with vitamin C.',
+    source: 'EFSA Re-evaluation 2016;14(3):4433.',
+  },
+  {
+    e_number: 'E950',
+    names: ['acésulfame-k', 'acesulfame de potassium', 'acesulfame potassium'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Non-nutritive sweetener. Authorised within EFSA ADI; evidence on long-term metabolic outcomes is mixed.',
+    source: 'EFSA Re-evaluation 2000 (ADI 9 mg/kg bw/day, reaffirmed in 2011 addendum).',
+  },
+  {
+    e_number: 'E955',
+    names: ['sucralose'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Non-nutritive sweetener. Decomposes at high temperatures into chlorinated compounds; some studies report microbiome and glucose-response changes that are individually variable.',
+    source: 'EFSA Scientific Opinion 2000 (ADI 15 mg/kg bw/day); Schiffman et al., J Toxicol Environ Health B 2013 (heat decomposition); Suez et al., Cell 2022 (microbiome individuality).',
+  },
+  {
+    e_number: 'E954',
+    names: ['saccharine', 'saccharin'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Non-nutritive sweetener. Older rat bladder-tumour data; IARC downgraded to Group 3 (1999) after human evidence found no clear risk. Tier reflects the lineage of regulatory caution.',
+    source: 'IARC Monograph Vol 73 (1999) — Group 3; EFSA Re-evaluation 2018 (ADI 5 mg/kg bw/day).',
+  },
+  {
+    e_number: 'E952',
+    names: ['cyclamate', 'cyclamate de sodium'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Non-nutritive sweetener. Banned in the US since 1969 on legacy bladder-tumour data; authorised in the EU within an ADI.',
+    source: 'EFSA Re-evaluation 2000 (ADI 7 mg/kg bw/day); FDA ban 21 CFR 189.135.',
+  },
+  {
+    e_number: 'E104',
+    names: ['jaune de quinoléine', 'quinoline yellow'],
+    tier: 2,
+    category: 'colorant',
+    concern: 'Quinophthalone dye. Behaviour effects in the Southampton study; EU warning label required.',
+    source: 'McCann et al., The Lancet 2007; EU Regulation 1333/2008 Annex V.',
+  },
+  {
+    e_number: 'E127',
+    names: ['érythrosine', 'erythrosine'],
+    tier: 2,
+    category: 'colorant',
+    concern: 'Iodine-containing xanthene dye. Low EFSA ADI; thyroid-function concerns for high chronic intake.',
+    source: 'EFSA Re-evaluation 2011;9(1):1854 (ADI 0.1 mg/kg bw/day).',
+  },
+  {
+    e_number: 'E173',
+    names: ['aluminium'],
+    tier: 2,
+    category: 'colorant',
+    concern: 'Aluminium metallic dye. EFSA set a tolerable weekly intake based on developmental and neurotoxicity endpoints.',
+    source: 'EFSA Scientific Opinion 2008;754 (TWI 1 mg/kg bw/week).',
+  },
+  {
+    e_number: 'E339',
+    names: ['phosphate de sodium', 'sodium phosphate'],
+    tier: 2,
+    category: 'stabilizer',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
+  },
+  {
+    e_number: 'E340',
+    names: ['phosphate de potassium', 'potassium phosphate'],
+    tier: 2,
+    category: 'stabilizer',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
+  },
+  {
+    e_number: 'E341',
+    names: ['phosphate de calcium', 'calcium phosphate'],
+    tier: 2,
+    category: 'stabilizer',
+    concern: 'Phosphate additive (same regulatory group as E338).',
+    source: 'EFSA Scientific Opinion 2019;17(6):5674.',
+  },
+  {
+    e_number: 'E1520',
+    names: ['propylène glycol', 'propylene glycol'],
+    tier: 2,
+    category: 'solvent',
+    concern: 'Humectant / solvent. EFSA set a low ADI; use in foods is narrowly restricted.',
+    source: 'EFSA Scientific Opinion 2018;16(4):5235 (ADI 25 mg/kg bw/day).',
+  },
+
+  // ===== TIER 3 additions =====
+  {
+    e_number: 'E330',
+    names: ['acide citrique', 'citric acid'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Ubiquitous acidulant, also endogenous in human metabolism. Commercially produced by Aspergillus niger fermentation. No authoritative concern at food-use levels.',
+    source: 'EU authorisation without ADI (acceptable intake not specified); natural citrate cycle metabolite.',
+  },
+  {
+    e_number: 'E300',
+    names: ['acide ascorbique', 'ascorbic acid', 'vitamine c'],
+    tier: 3,
+    category: 'antioxidant',
+    concern: 'Vitamin C. Used as an antioxidant; no safety concern.',
+    source: 'EU authorisation without ADI.',
+  },
+  {
+    e_number: 'E322',
+    names: ['lécithine', 'lecithines', 'lecithin', 'lécithine de soja', 'lécithine de tournesol'],
+    tier: 3,
+    category: 'emulsifier',
+    concern: 'Phospholipid emulsifier from soy or sunflower. No numerical ADI needed. Tier reflects its role as a marker of formulation, not direct concern.',
+    source: 'EFSA Scientific Opinion 2017;15(4):4742.',
+  },
+  {
+    e_number: 'E415',
+    names: ['gomme xanthane', 'xanthan gum'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Microbial polysaccharide. EFSA confirmed no safety concern at use levels; some individuals report IBS/IBD flare.',
+    source: 'EFSA Scientific Opinion 2017;15(2):4712 (no ADI needed).',
+  },
+  {
+    e_number: 'E412',
+    names: ['gomme guar', 'guar gum'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Legume-derived soluble fibre. No safety concern at use levels.',
+    source: 'EFSA Scientific Opinion 2017;15(2):4669 (no ADI needed).',
+  },
+  {
+    e_number: 'E440',
+    names: ['pectine', 'pectines', 'pectin'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Natural plant fibre. No safety concern; acceptable daily intake not specified.',
+    source: 'EFSA Scientific Opinion 2017;15(7):4874 (no ADI needed).',
+  },
+  {
+    e_number: 'E202',
+    names: ['sorbate de potassium', 'potassium sorbate'],
+    tier: 3,
+    category: 'preservative',
+    concern: 'Mould/yeast preservative. Low concern at authorised levels.',
+    source: 'EFSA Re-evaluation 2019;17(3):5626 (group ADI 11 mg/kg bw/day for sorbic acid and its salts).',
+  },
+  {
+    e_number: 'E270',
+    names: ['acide lactique', 'lactic acid'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Naturally occurring metabolite; no safety concern.',
+    source: 'EU authorisation without ADI.',
+  },
+  {
+    e_number: 'E296',
+    names: ['acide malique', 'malic acid'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Naturally occurring fruit acid; no safety concern.',
+    source: 'EU authorisation without ADI.',
+  },
+  {
+    e_number: 'E500',
+    names: ['bicarbonate de sodium', 'sodium bicarbonate', 'carbonate de sodium'],
+    tier: 3,
+    category: 'acidity_regulator',
+    concern: 'Leavening agent / pH buffer. No safety concern at food-use levels; contributes to sodium intake.',
+    source: 'EU authorisation without ADI.',
+  },
+  {
+    e_number: 'E551',
+    names: ['dioxyde de silicium', 'silicon dioxide', 'silice'],
+    tier: 3,
+    category: 'anticaking',
+    concern: 'Anti-caking agent. EFSA 2018 did not conclude a safety concern at use levels but requested further data on nanoparticulate forms.',
+    source: 'EFSA Scientific Opinion 2018;16(1):5088.',
+  },
+  {
+    e_number: 'E422',
+    names: ['glycérol', 'glycerol', 'glycérine'],
+    tier: 3,
+    category: 'humectant',
+    concern: 'Humectant and sweetener. Metabolised like a carbohydrate; no ADI specified.',
+    source: 'EU authorisation without ADI.',
+  },
+  {
+    e_number: 'E960',
+    names: ['glycosides de stéviol', 'steviol glycosides', 'stévia', 'stevia'],
+    tier: 3,
+    category: 'sweetener',
+    concern: 'Plant-derived non-nutritive sweetener. Lower regulatory concern than artificial sweeteners.',
+    source: 'EFSA Scientific Opinion 2010;8(4):1537 (ADI 4 mg/kg bw/day, expressed as steviol).',
+  },
+  {
+    e_number: 'E472',
+    names: ['esters de mono- et diglycérides', 'esters of monoglycerides'],
+    tier: 3,
+    category: 'emulsifier',
+    concern: 'Family of emulsifiers used in baking and dairy. No numerical ADI; tier reflects UPF class-marker role, not direct concern.',
+    source: 'EFSA Scientific Opinion 2017;15(11):5045 (group evaluation with E471).',
+  },
+  {
+    e_number: 'E1422',
+    names: ['amidon acétylé', 'acetylated distarch adipate', 'amidon modifié'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Chemically modified starch. Authorised without numerical ADI.',
+    source: 'EU Regulation 1333/2008 — modified starches group without numerical ADI.',
+  },
+  {
+    e_number: 'E1442',
+    names: ['phosphate de distarch hydroxypropyle', 'hydroxypropyl distarch phosphate'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Chemically modified starch. Authorised without numerical ADI.',
+    source: 'EU Regulation 1333/2008 — modified starches group.',
+  },
+  {
+    e_number: 'E210',
+    names: ['acide benzoïque', 'benzoic acid'],
+    tier: 2,
+    category: 'preservative',
+    concern: 'Parent of E211/E212. Same benzene-formation pathway when combined with vitamin C in acidic foods.',
+    source: 'Gardner & Lawrence, J Food Prot 2007; EFSA Re-evaluation 2016;14(3):4433 (group ADI 5 mg/kg bw/day).',
+  },
+  {
+    e_number: 'E475',
+    names: ['esters polyglycériques d\'acides gras', 'polyglycerol esters of fatty acids'],
+    tier: 2,
+    category: 'emulsifier',
+    concern: 'Synthetic emulsifier. Authorised within an EFSA ADI. Class-level microbiome concerns (E433, E466) are not directly established for E475; tier reflects extrapolated caution.',
+    source: 'EFSA Scientific Opinion 2017;15(12):5089 (ADI 25 mg/kg bw/day).',
+  },
+  {
+    e_number: 'E968',
+    names: ['érythritol', 'erythritol'],
+    tier: 2,
+    category: 'sweetener',
+    concern: 'Sugar alcohol. Large prospective cohort + mechanistic study linked higher plasma erythritol to major adverse cardiovascular events; causality still debated.',
+    source: 'Witkowski et al., Nature Medicine 29, 710–718 (2023); EFSA Scientific Opinion 2023;21(12):8430 (revised exposure assessment).',
+  },
+  {
+    e_number: 'E905',
+    names: ['cire microcristalline', 'microcrystalline wax', 'petroleum wax'],
+    tier: 2,
+    category: 'glazing',
+    concern: 'Petroleum-derived wax. Concerns about migration of mineral-oil-saturated / -aromatic hydrocarbons (MOSH/MOAH) into food.',
+    source: 'EFSA Scientific Opinion 2012;10(6):2704 (MOSH/MOAH); EFSA update 2023;21(9):8215.',
+  },
+  {
+    e_number: 'E307',
+    names: ['alpha-tocophérol', 'alpha tocopherol', 'tocopherols', 'vitamine e (additif)'],
+    tier: 3,
+    category: 'antioxidant',
+    concern: 'Vitamin E used as an antioxidant. No safety concern.',
+    source: 'EFSA Scientific Opinion 2015;13(9):4247 (group evaluation).',
+  },
+  {
+    e_number: 'E331',
+    names: ['citrate de sodium', 'sodium citrate', 'citrates de sodium'],
+    tier: 3,
+    category: 'acidity_regulator',
+    concern: 'Citrate buffer. No safety concern.',
+    source: 'EU authorisation without ADI.',
+  },
+  {
+    e_number: 'E333',
+    names: ['citrate de calcium', 'calcium citrate'],
+    tier: 3,
+    category: 'acidity_regulator',
+    concern: 'Citrate buffer. No safety concern.',
+    source: 'EU authorisation without ADI.',
+  },
+  {
+    e_number: 'E965',
+    names: ['maltitol', 'sirop de maltitol'],
+    tier: 3,
+    category: 'sweetener',
+    concern: 'Sugar alcohol. Moderate glycemic impact; laxative effect above individual tolerance (usually ~20 g).',
+    source: 'EU authorisation without ADI; EFSA 2011 opinion on polyol laxative threshold.',
+  },
+  {
+    e_number: 'E967',
+    names: ['xylitol'],
+    tier: 3,
+    category: 'sweetener',
+    concern: 'Sugar alcohol. Generally safe; laxative effect above ~50 g. Acutely toxic to dogs (irrelevant to human safety).',
+    source: 'EU authorisation without ADI; EFSA 2011 opinion on polyol laxative threshold.',
   },
 ];
 
@@ -438,6 +898,19 @@ export interface CategoryThresholds {
   fiber_g: [number, number, number];
   expected_kcal_range: [number, number];
   expect_micronutrients: boolean;
+  /**
+   * Per-category saturated-fat thresholds [moderate, major, critical].
+   * Cheese, oil, dark chocolate etc. are fat-rich by nature — judging them
+   * against the generic [5, 10, 15] scale unfairly tanks their score.
+   */
+  sat_fat_thresholds?: [number, number, number];
+  /**
+   * Per-category sugar thresholds [minor, moderate, major, critical] per 100g.
+   * Default applies the WHO-derived generic scale; condiments and drinks
+   * benefit from a relaxed scale because a typical serving is tiny (~10g for
+   * ketchup) or liquid-based (different glycemic context).
+   */
+  sugar_thresholds?: [number, number, number, number];
 }
 
 const DEFAULT_THRESHOLDS: CategoryThresholds = {
@@ -447,13 +920,16 @@ const DEFAULT_THRESHOLDS: CategoryThresholds = {
   expect_micronutrients: false,
 };
 
+const DEFAULT_SAT_FAT: [number, number, number] = [5, 10, 15];
+const DEFAULT_SUGAR: [number, number, number, number] = [5, 10, 15, 22.5];
+
 export const CATEGORY_THRESHOLDS: Record<ProductCategory, CategoryThresholds> = {
   sandwich:         { protein_g: [5, 8, 12],   fiber_g: [2, 4, 6],  expected_kcal_range: [180, 320], expect_micronutrients: true  },
   ready_meal:       { protein_g: [4, 7, 10],   fiber_g: [2, 4, 6],  expected_kcal_range: [80, 200],  expect_micronutrients: true  },
   bread:            { protein_g: [6, 9, 12],   fiber_g: [3, 6, 9],  expected_kcal_range: [220, 300], expect_micronutrients: false },
   breakfast_cereal: { protein_g: [6, 10, 14],  fiber_g: [5, 8, 12], expected_kcal_range: [320, 420], expect_micronutrients: true  },
   yogurt:           { protein_g: [3, 5, 9],    fiber_g: [0, 1, 2],  expected_kcal_range: [40, 120],  expect_micronutrients: true  },
-  cheese:           { protein_g: [15, 20, 25], fiber_g: [0, 0, 0],  expected_kcal_range: [200, 450], expect_micronutrients: true  },
+  cheese:           { protein_g: [15, 20, 25], fiber_g: [0, 0, 0],  expected_kcal_range: [200, 450], expect_micronutrients: true,  sat_fat_thresholds: [12, 20, 30] },
   processed_meat:   { protein_g: [10, 15, 22], fiber_g: [0, 0, 1],  expected_kcal_range: [100, 400], expect_micronutrients: false },
   fresh_meat:       { protein_g: [15, 20, 25], fiber_g: [0, 0, 0],  expected_kcal_range: [100, 300], expect_micronutrients: true  },
   fish:             { protein_g: [15, 20, 25], fiber_g: [0, 0, 0],  expected_kcal_range: [80, 250],  expect_micronutrients: true  },
@@ -462,8 +938,8 @@ export const CATEGORY_THRESHOLDS: Record<ProductCategory, CategoryThresholds> = 
   beverage_soft:    { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [0, 50],    expect_micronutrients: false },
   beverage_juice:   { protein_g: [0, 0, 0],    fiber_g: [0, 1, 2],  expected_kcal_range: [20, 60],   expect_micronutrients: true  },
   beverage_water:   { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [0, 5],     expect_micronutrients: false },
-  condiment:        { protein_g: [0, 3, 7],    fiber_g: [0, 1, 3],  expected_kcal_range: [20, 400],  expect_micronutrients: false },
-  oil_fat:          { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [700, 900], expect_micronutrients: false },
+  condiment:        { protein_g: [0, 3, 7],    fiber_g: [0, 1, 3],  expected_kcal_range: [20, 400],  expect_micronutrients: false, sugar_thresholds: [10, 20, 30, 45] },
+  oil_fat:          { protein_g: [0, 0, 0],    fiber_g: [0, 0, 0],  expected_kcal_range: [700, 900], expect_micronutrients: false, sat_fat_thresholds: [20, 35, 50] },
   other:            DEFAULT_THRESHOLDS,
 };
 
@@ -476,20 +952,39 @@ export function getThresholds(cat: ProductCategory): CategoryThresholds {
 // ============================================================================
 
 const WHOLE_FOOD_KEYWORDS = [
-  'tomate', 'salade', 'oeuf', 'œuf', 'poisson', 'saumon', 'thon',
-  'fromage', 'lait', 'légume', 'legume', 'carotte', 'épinard', 'epinard',
-  'lentille', 'haricot', 'pois', 'noix', 'amande', 'graine',
-  'fruit', 'pomme', 'orange', 'poivron', 'oignon', 'ail',
-  'poulet', 'boeuf', 'porc', 'viande', 'yaourt', 'riz', 'quinoa',
-  'avoine', 'eau', 'miel',
+  // Produce
+  'tomate', 'salade', 'carotte', 'épinard', 'epinard', 'poivron', 'oignon',
+  'ail', 'courgette', 'aubergine', 'concombre', 'brocoli', 'chou',
+  'betterave', 'poireau', 'potiron', 'courge',
+  // Fruits
+  'fruit', 'pomme', 'poire', 'orange', 'citron', 'pamplemousse', 'mandarine',
+  'abricot', 'pêche', 'peche', 'fraise', 'framboise', 'myrtille', 'cassis',
+  'cerise', 'prune', 'mirabelle', 'raisin', 'figue', 'datte', 'mangue',
+  'ananas', 'banane', 'kiwi', 'melon', 'pastèque', 'grenade', 'coco', 'noix de coco',
+  // Legumes & nuts & seeds
+  'lentille', 'haricot', 'pois', 'fève', 'feve', 'noix', 'amande', 'noisette',
+  'pistache', 'cajou', 'graine', 'sésame', 'sesame', 'lin', 'chia', 'tournesol',
+  // Grains
+  'riz', 'quinoa', 'avoine', 'blé', 'ble', 'seigle', 'orge', 'sarrasin',
+  // Animal
+  'oeuf', 'œuf', 'poisson', 'saumon', 'thon', 'sardine', 'maquereau',
+  'poulet', 'boeuf', 'porc', 'viande', 'dinde', 'canard', 'agneau',
+  'jambon',
+  // Dairy / other
+  'fromage', 'lait', 'yaourt', 'skyr', 'eau', 'miel',
+  'légume', 'legume',
 ];
 
 const HIDDEN_SUGAR_NAMES = [
   'dextrose', 'maltodextrine', 'maltodextrin', 'sirop de glucose',
   'sirop de maïs', 'sirop de mais', 'glucose syrup', 'fructose',
   'saccharose', 'sucrose', 'sirop de fructose', 'sirop de glucose-fructose',
-  'sucre inverti', 'lactose', 'mélasse', 'melasse', 'sirop d\'agave',
-  'isoglucose', 'concentré de jus',
+  'sucre inverti', 'lactose', 'mélasse', 'melasse', "sirop d'agave",
+  'isoglucose', 'concentré de jus', "concentré de pomme", "concentré de poire",
+  "sirop d'érable", "sirop d'erable", 'sirop de riz', 'sirop de datte',
+  'sucre de canne', 'sucre roux', 'cassonade', 'rapadura', 'panela',
+  'sucre inverti', 'jus de fruits concentré', 'jus concentré de pomme',
+  'sirop de blé', 'sirop de ble', 'caramel de sucre',
 ];
 
 const GENERIC_OIL_TERMS = [
@@ -501,32 +996,145 @@ const GENERIC_OIL_TERMS = [
 // ============================================================================
 // SECTION 5: PILLAR 1 — PROCESSING LEVEL (max 20)
 // ============================================================================
-// Based on NOVA classification, the strongest single predictor of adverse
-// health outcomes in longitudinal studies (Monteiro, Srour, Elizabeth et al.).
 //
-// Modifiers:
-//  - −2 if >10 ingredients
-//  - −2 if contains cosmetic additives
+// AUTHORITATIVE basis:
+//   - NOVA classification: Monteiro et al., Public Health Nutrition
+//     22(5):936–941 (2019); FAO Ultra-processed foods, diet quality, and
+//     health using the NOVA classification system (2019).
+//   - Ultra-processed food / cardiovascular risk association: Srour et al.,
+//     BMJ 365:l1451 (2019, NutriNet-Santé cohort, n≈105k).
+//
+// EDITORIAL:
+//   - Base score per NOVA class (20 / 17 / 13 / 6) is Scann-eat's mapping
+//     from the NOVA categorical framework to a 20-point scale. It is not
+//     a published calibration.
+//   - Auto-NOVA inference rules (see inferNovaClass) are heuristic: a clean
+//     ingredient list with no cosmetic additives nudges input-NOVA-4 down
+//     to 3. This is a guard against over-cautious OFF / LLM defaults; it is
+//     NOT the official Monteiro algorithm.
+//   - −2 modifiers (>10 ingredients, cosmetic additives) and the first-
+//     ingredient penalty (-3 for sucre / huile leading the list) are
+//     editorial proxies for UPF formulation intensity.
 // ============================================================================
+
+const FIRST_INGREDIENT_PENALTY_PATTERNS: Array<{ re: RegExp; label: string }> = [
+  { re: /^(sucre|sirop|dextrose|fructose|glucose|maltodextrin)/i, label: 'sugar/syrup' },
+  { re: /^(huile|graisse|matière grasse|margarine)/i, label: 'oil/fat' },
+  { re: /^(amidon modifié|amidon de maïs modifié)/i, label: 'modified starch' },
+];
+
+/**
+ * UPF markers per NOVA framework (Monteiro et al., Public Health Nutrition
+ * 2019;22(5)): industrial ingredients characteristic of ultra-processed foods,
+ * regardless of whether they carry an E-number. Flavorings are explicitly
+ * listed in NOVA's UPF-indicator set even though EU Regulation 1334/2008
+ * classifies them separately from additives.
+ */
+const UPF_MARKER_PATTERNS: Array<{ re: RegExp; label: string }> = [
+  { re: /\bar[oô]mes?\b/i,                                                   label: 'flavorings (arômes)' },
+  { re: /\bconcentr[eé] des? min[eé]raux|mineral concentrate/i,               label: 'mineral concentrate' },
+  { re: /\bisolat de |\bprot[eé]ine isol[eé]e|protein isolate/i,              label: 'protein isolate' },
+  { re: /\bhydrolysat|prot[eé]ines? hydrolys[eé]es?|hydrolyzed protein/i,     label: 'protein hydrolysate' },
+  { re: /\bamidon modifi|modified starch|maltodextrin/i,                      label: 'modified starch' },
+];
+
+function detectUPFMarkers(ings: Ingredient[]): string[] {
+  const hits: string[] = [];
+  for (const marker of UPF_MARKER_PATTERNS) {
+    if (ings.some((i) => marker.re.test(i.name))) hits.push(marker.label);
+  }
+  return hits;
+}
+
+/**
+ * Infer NOVA class from the ingredient list. Expanded: recognizes generic
+ * UPF markers (flavorings, isolates, hydrolysates) as NOVA-4 indicators even
+ * when no E-number appears. Clean products with a longer but honest ingredient
+ * list can now qualify for NOVA 3 (count ≤10 instead of ≤8).
+ */
+// Minimal fresh-produce lexicon (FR + EN) used as an escape hatch when
+// OFF returns a barcode-only product with no ingredients list. Raw apples,
+// bananas, etc. previously fell through to "NOVA 4" which punished the
+// score — Monteiro's NOVA framework explicitly classes these as NOVA 1.
+// Trailing 's' optional so "pommes" / "bananes" / "courgettes" match the
+// same way "pomme" / "banane" / "courgette" do. Without this, "pommes"
+// silently fell through to NOVA 4 on barcode scans with no ingredients.
+const FRESH_PRODUCE_NAME = /^(banane|banana|pomme|apple|poire|pear|tomate|tomato|oignon|onion|avocat|avocado|carotte|carrot|concombre|cucumber|courgette|zucchini|kiwi|orange|citron|lemon|lime|fraise|strawberr|framboise|raspberr|myrtille|blueberr|cassis|blackcurrant|ananas|pineapple|raisin|grape|cerise|cherry|prune|plum|peche|pêche|peach|mangue|mango|papaye|papaya|poireau|leek|chou|cabbage|brocoli|broccoli|salade|lettuce|epinard|épinard|spinach|radis|radish|navet|turnip|betterave|beet|aubergine|eggplant|poivron|bell pepper|piment|chili pepper|champignon|mushroom|asperge|asparagus|artichaut|artichoke|haricot vert|green bean|haricot|bean|lentille|lentil|petit[- ]pois|pea|patate douce|sweet potato|pomme de terre|potato|courge|squash|citrouille|pumpkin|ail|garlic|gingembre|ginger|fenouil|fennel|celeri|céleri|celery|persil|parsley|basilic|basil|menthe|mint|coriandre|cilantro|ciboulette|chive|roquette|arugula|mache|mâche|cresson|watercress|endive|chicory|pastèque|watermelon|melon|nectarine|abricot|apricot|figue|fig|datte|date|grenade|pomegranate|noix|nut|amande|almond|noisette|hazelnut)s?\b/i;
+
+export function inferNovaClass(product: ProductInput): NovaClass {
+  const ings = product.ingredients;
+  if (ings.length === 0) {
+    // Fresh produce has no "ingredients" — the product IS the ingredient.
+    // Catch this before the conservative NOVA-4 fallback so a banana
+    // scanned by barcode isn't scored as ultra-processed.
+    if (FRESH_PRODUCE_NAME.test(String(product.name ?? '').trim())) return 1;
+    return 4;
+  }
+  const additives = ings.filter((i) => i.category === 'additive' || !!i.e_number);
+  const cosmetics = additives
+    .map((i) => findAdditive(i))
+    .filter((a): a is AdditiveInfo => a !== null && COSMETIC_ADDITIVE_CATEGORIES.has(a.category));
+  const upfMarkers = detectUPFMarkers(ings);
+
+  if (ings.length === 1 && additives.length === 0 && upfMarkers.length === 0) return 1;
+  if (ings.length <= 3 && additives.length === 0 && upfMarkers.length === 0) {
+    const onlyCulinary = ings.every((i) =>
+      /^(sucre|sel|huile|beurre|graisse|miel|vinaigre|eau)/i.test(i.name.trim()),
+    );
+    if (onlyCulinary) return 2;
+  }
+  if (
+    cosmetics.length === 0 &&
+    upfMarkers.length === 0 &&
+    additives.length <= 2 &&
+    ings.length <= 10
+  ) {
+    return 3;
+  }
+  return 4;
+}
 
 export function scoreProcessing(product: ProductInput): PillarScore {
   const MAX = 20;
   const deductions: Deduction[] = [];
   const bonuses: Deduction[] = [];
 
+  // If the provided NOVA doesn't match what the composition suggests, use the
+  // inferred one and record a small info note. This fixes the common case of
+  // LLM / OFF defaulting to 4 for clean products.
+  const inferred = inferNovaClass(product);
+  const effectiveNova: NovaClass = (() => {
+    if (!product.nova_class) return inferred;
+    // Only downgrade 4 → lower if the ingredient list genuinely supports it.
+    if (product.nova_class === 4 && inferred < 4) return inferred;
+    return product.nova_class;
+  })();
+
+  if (effectiveNova !== product.nova_class) {
+    // Recorded as a zero-point *deduction* (informational) so it shows up in
+    // the pillar detail dialog alongside the base-score line. buildFlags filters
+    // bonuses by `points >= 2` and would have hidden this otherwise.
+    deductions.push({
+      pillar: 'processing',
+      reason: `NOVA auto-adjusted ${product.nova_class}→${effectiveNova} based on ingredients`,
+      points: 0,
+      severity: 'info',
+    });
+  }
+
   let base: number;
-  switch (product.nova_class) {
+  switch (effectiveNova) {
     case 1: base = 20; break;
     case 2: base = 17; break;
-    case 3: base = 12; break;
-    case 4: base = 4; break;
+    case 3: base = 13; break;
+    case 4: base = 6; break;
   }
 
   deductions.push({
     pillar: 'processing',
-    reason: `NOVA class ${product.nova_class} base score`,
+    reason: `NOVA class ${effectiveNova} base score`,
     points: base - MAX,
-    severity: product.nova_class === 4 ? 'major' : product.nova_class === 3 ? 'moderate' : 'info',
+    severity: effectiveNova === 4 ? 'major' : effectiveNova === 3 ? 'moderate' : 'info',
   });
 
   let score = base;
@@ -545,6 +1153,21 @@ export function scoreProcessing(product: ProductInput): PillarScore {
     .map((ing) => findAdditive(ing))
     .filter((a): a is AdditiveInfo => a !== null && COSMETIC_ADDITIVE_CATEGORIES.has(a.category));
 
+  // UPF markers per NOVA framework (flavorings, isolates, hydrolysates,
+  // modified starch, mineral concentrates). −2 per distinct marker, cap −4.
+  // Uses the same list as inferNovaClass to keep the two in lockstep.
+  const upfMarkers = detectUPFMarkers(product.ingredients);
+  if (upfMarkers.length > 0) {
+    const penalty = Math.min(4, upfMarkers.length * 2);
+    score -= penalty;
+    deductions.push({
+      pillar: 'processing',
+      reason: `${upfMarkers.length} UPF marker(s) (NOVA framework): ${upfMarkers.join(', ')}`,
+      points: -penalty,
+      severity: 'minor',
+    });
+  }
+
   if (cosmeticAdditives.length > 0) {
     score -= 2;
     deductions.push({
@@ -554,6 +1177,23 @@ export function scoreProcessing(product: ProductInput): PillarScore {
       severity: 'minor',
       evidence: cosmeticAdditives.map((a) => `${a.e_number} (${a.category})`).join(', '),
     });
+  }
+
+  // First-ingredient penalty — the first listed ingredient is the dominant
+  // one by weight. Sugar or oil at position #1 is a strong composition
+  // signal that deserves its own deduction.
+  const first = product.ingredients[0];
+  if (first) {
+    const match = FIRST_INGREDIENT_PENALTY_PATTERNS.find((p) => p.re.test(first.name.trim()));
+    if (match) {
+      score -= 3;
+      deductions.push({
+        pillar: 'processing',
+        reason: `Primary ingredient is ${match.label}: "${first.name}"`,
+        points: -3,
+        severity: 'moderate',
+      });
+    }
   }
 
   return {
@@ -568,12 +1208,26 @@ export function scoreProcessing(product: ProductInput): PillarScore {
 // ============================================================================
 // SECTION 6: PILLAR 2 — NUTRITIONAL DENSITY (max 25)
 // ============================================================================
-// Components:
-//  - Protein quality & quantity (0–6)
-//  - Fiber content (0–5)
-//  - Micronutrient contribution (0–5)
-//  - Healthy fats ratio (0–5)
-//  - Satiety / glycemic quality (0–4)
+//
+// AUTHORITATIVE basis (ranges, not specific tier points):
+//   - Dietary fibre target: EFSA 25 g/day for adults (EFSA Journal
+//     2010;8(3):1462, "Scientific Opinion on Dietary Reference Values for
+//     carbohydrates and dietary fibre").
+//   - Protein requirement: EFSA PRI 0.83 g/kg bw/day (EFSA Journal
+//     2012;10(2):2557).
+//   - Omega-3 intake recommendations: EFSA ADI 250 mg EPA+DHA/day adults
+//     (EFSA Journal 2010;8(3):1461).
+//
+// EDITORIAL:
+//   - The five sub-scores (protein 0-6, fiber 0-5, micro 0-5, fats 0-5,
+//     satiety 0-4) and their weighting are Scann-eat's design.
+//   - Category-specific protein/fiber thresholds (CATEGORY_THRESHOLDS) are
+//     estimates based on typical food composition, not a published standard.
+//   - Satiety index = P + 2·F − S is a reasonable proxy but not a
+//     validated index.
+//   - +1 "healthy fat source" bump (olive / canola / fish / nuts) is
+//     editorial.
+//   - +1 "declared micronutrients ≥3" bump is editorial.
 // ============================================================================
 
 export function scoreNutritionalDensity(product: ProductInput): PillarScore {
@@ -653,6 +1307,67 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
   // If category doesn't expect micronutrients, cap at 3 (so beverages can't score >3).
   if (!thresholds.expect_micronutrients) microScore = Math.min(microScore, 3);
 
+  // Declared-vitamin bonus: if the product genuinely provides 3+ vitamins or
+  // minerals (from OFF nutriments), bump the micronutrient score by 1 and
+  // record it as a bonus rather than a deduction.
+  const declared = product.declared_micronutrients ?? [];
+  if (declared.length >= 3 && microScore < 5) {
+    const before = microScore;
+    microScore = Math.min(5, microScore + 1);
+    if (microScore > before) {
+      bonuses.push({
+        pillar: 'nutritional_density',
+        reason: `Declares ${declared.length} vitamins/minerals: ${declared.slice(0, 4).join(', ')}${declared.length > 4 ? '…' : ''}`,
+        points: 1,
+        severity: 'info',
+      });
+    }
+  }
+
+  // Fix #1 — quantitative nutrient-density bonus. Counts how many of
+  // the expanded micronutrient fields hit the EU regulation
+  // 1924/2006 "source of" threshold (≥15% of NRV per 100g). If 3+
+  // nutrients qualify, bump +1; if 6+ qualify (nutrient-rich food),
+  // bump +2 total. Overrides the "declared" heuristic because
+  // declared-count can overcount (OFF lists any declared nutrient
+  // even if the amount is trivial).
+  const NRV_15_PCT = {
+    vit_a_ug: 120, vit_c_mg: 12, vit_d_ug: 0.75, vit_e_mg: 1.8, vit_k_ug: 11.25,
+    b1_mg: 0.165, b2_mg: 0.21, b3_mg: 2.4, b6_mg: 0.21, b9_ug: 30, b12_ug: 0.375,
+    potassium_mg: 300, calcium_mg: 120, magnesium_mg: 56, iron_mg: 2.1, zinc_mg: 1.5,
+  };
+  let densityHits = 0;
+  const hitList: string[] = [];
+  for (const [key, threshold] of Object.entries(NRV_15_PCT)) {
+    const n = nutrition as unknown as Record<string, number | undefined>;
+    const v = Number(n[key] ?? 0);
+    if (v >= threshold) {
+      densityHits += 1;
+      hitList.push(key.replace(/_[mu]g$/, '').replace('_', ' '));
+    }
+  }
+  if (densityHits >= 6 && microScore < 5) {
+    const before = microScore;
+    microScore = Math.min(5, microScore + 2);
+    bonuses.push({
+      pillar: 'nutritional_density',
+      reason: `Nutrient-rich: 6+ vitamins/minerals at ≥15% NRV per 100g (${hitList.slice(0, 6).join(', ')}…)`,
+      points: microScore - before,
+      severity: 'info',
+    });
+  } else if (densityHits >= 3 && microScore < 5) {
+    const before = microScore;
+    microScore = Math.min(5, microScore + 1);
+    if (microScore > before) {
+      bonuses.push({
+        pillar: 'nutritional_density',
+        reason: `Source of ${densityHits} nutrients (≥15% NRV): ${hitList.slice(0, 4).join(', ')}`,
+        points: 1,
+        severity: 'info',
+      });
+    }
+  }
+
   if (microScore < 5) {
     const reason = declaredPcts.length > 0
       ? `Whole foods = ${declaredPcts.reduce((a, b) => a + b, 0).toFixed(1)}% of product (${microScore}/5)`
@@ -665,18 +1380,48 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
     });
   }
 
-  // ---- 4. Healthy fats ratio (0–5) ----
+  // ---- 4. Healthy fats ratio + quality bump (0–5) ----
+  //
+  // Base: sat/total ratio alone (unchanged). Quality bump: explicit presence
+  // of olive, canola, fish or nuts raises a borderline ratio because these
+  // fats carry monounsaturates and omega-3 that the raw ratio misses.
   let fatScore = 5;
   if ((nutrition.trans_fat_g ?? 0) > 0.1) {
     fatScore = 0;
   } else if (nutrition.fat_g === 0) {
-    fatScore = 3; // No fat — can't evaluate quality, give neutral
+    fatScore = 3;
   } else {
     const satRatio = nutrition.saturated_fat_g / nutrition.fat_g;
     if (satRatio > 0.5) fatScore = 1;
     else if (satRatio > 0.33) fatScore = 3;
     else if (satRatio > 0.2) fatScore = 4;
     else fatScore = 5;
+
+    const hasHealthyFatSource = ingredients.some((ing) => {
+      const n = ing.name.toLowerCase();
+      return (
+        /huile d'olive|huile de colza|huile de lin|huile de noix/.test(n) ||
+        /saumon|sardine|maquereau|thon|hareng/.test(n) ||
+        /noix|amande|noisette|pistache|cajou|graine de lin|graine de chia/.test(n)
+      );
+    });
+    // Subtract bad fat source (palm, coprah): should cancel the bump.
+    const hasBadFatSource = ingredients.some((ing) => {
+      const n = ing.name.toLowerCase();
+      return /huile de palme|huile de palmiste|graisse de palme|coprah|coconut oil palm/.test(n);
+    });
+    if (hasHealthyFatSource && !hasBadFatSource && fatScore < 5) {
+      const before = fatScore;
+      fatScore = Math.min(5, fatScore + 1);
+      if (fatScore > before) {
+        bonuses.push({
+          pillar: 'nutritional_density',
+          reason: 'Healthy fat source in ingredients (olive/canola/fish/nuts)',
+          points: 1,
+          severity: 'info',
+        });
+      }
+    }
   }
 
   if (fatScore < 5) {
@@ -720,7 +1465,32 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
 // ============================================================================
 // SECTION 7: PILLAR 3 — NEGATIVE NUTRIENTS (max 25, penalty-based)
 // ============================================================================
-// Start at 25, subtract based on WHO and FSA thresholds.
+//
+// AUTHORITATIVE basis for each cutoff:
+//
+//   Saturated fat thresholds default [5, 10, 15] g/100 g (solids):
+//     - 5 g/100 g is the UK Food Standards Agency / DH "red" threshold above
+//       which a product is considered High in saturated fat (FSA "Front of
+//       pack nutrition labelling: guidance", 2016).
+//     - WHO: saturated fat should supply <10 % of total daily energy
+//       (WHO TRS 916, 2003; reaffirmed in WHO Saturated Fatty Acids
+//       Guideline, 2023).
+//   Sugar thresholds default [5, 10, 15, 22.5] g/100 g (solids):
+//     - 22.5 g/100 g is the FSA "red" (High sugar) threshold.
+//     - 5 g/100 g is the FSA Amber/Green boundary.
+//     - WHO: free sugars <10 % of total energy, ideally <5 % (WHO 2015,
+//       "Guideline: Sugars intake for adults and children").
+//   Salt thresholds [0.75, 1.25, 1.5] g/100 g:
+//     - 1.5 g/100 g is the FSA "red" (High salt) threshold.
+//     - WHO: <5 g salt/day per adult (WHO Salt guideline, 2012).
+//   Trans fat:
+//     - WHO recommends complete elimination of industrially-produced trans
+//       fatty acids from the food supply (WHO REPLACE programme, 2018).
+//
+// EDITORIAL: the granularity of the tiers (minor / moderate / major /
+// critical) and the points per tier (-3/-6/-9/-12) are Scann-eat's choice.
+// The anchor values match the FSA "red" thresholds; tiers above and below
+// are proportional gradations.
 // ============================================================================
 
 export function scoreNegativeNutrients(product: ProductInput): PillarScore {
@@ -732,49 +1502,51 @@ export function scoreNegativeNutrients(product: ProductInput): PillarScore {
 
   let score = MAX;
 
-  // ---- Saturated fat ----
+  // ---- Saturated fat (category-aware) ----
   const sat = nutrition.saturated_fat_g;
-  if (sat > 15) {
+  const [satMod, satMaj, satCrit] = thresholds.sat_fat_thresholds ?? DEFAULT_SAT_FAT;
+  if (sat > satCrit) {
     score -= 9;
     deductions.push({
       pillar: 'negative_nutrients',
-      reason: `Saturated fat ${sat}g/100g (>15g critical threshold)`,
+      reason: `Saturated fat ${sat}g/100g (>${satCrit}g critical for ${category})`,
       points: -9,
       severity: 'critical',
     });
-  } else if (sat > 10) {
+  } else if (sat > satMaj) {
     score -= 6;
     deductions.push({
       pillar: 'negative_nutrients',
-      reason: `Saturated fat ${sat}g/100g (>10g major threshold)`,
+      reason: `Saturated fat ${sat}g/100g (>${satMaj}g major for ${category})`,
       points: -6,
       severity: 'major',
     });
-  } else if (sat > 5) {
+  } else if (sat > satMod) {
     score -= 3;
     deductions.push({
       pillar: 'negative_nutrients',
-      reason: `Saturated fat ${sat}g/100g (>5g moderate threshold)`,
+      reason: `Saturated fat ${sat}g/100g (>${satMod}g moderate for ${category})`,
       points: -3,
       severity: 'moderate',
     });
   }
 
-  // ---- Added sugars (or total sugars as fallback) ----
+  // ---- Added sugars (or total sugars as fallback), category-aware ----
   const sugars = nutrition.added_sugars_g ?? nutrition.sugars_g;
   const sugarLabel = nutrition.added_sugars_g != null ? 'Added sugars' : 'Total sugars (added not declared)';
-  if (sugars > 22.5) {
+  const [sMinor, sMod, sMaj, sCrit] = thresholds.sugar_thresholds ?? DEFAULT_SUGAR;
+  if (sugars > sCrit) {
     score -= 12;
-    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>22.5g critical)`, points: -12, severity: 'critical' });
-  } else if (sugars > 15) {
+    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>${sCrit}g critical for ${category})`, points: -12, severity: 'critical' });
+  } else if (sugars > sMaj) {
     score -= 9;
-    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>15g major)`, points: -9, severity: 'major' });
-  } else if (sugars > 10) {
+    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>${sMaj}g major for ${category})`, points: -9, severity: 'major' });
+  } else if (sugars > sMod) {
     score -= 6;
-    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>10g moderate)`, points: -6, severity: 'moderate' });
-  } else if (sugars > 5) {
+    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>${sMod}g moderate for ${category})`, points: -6, severity: 'moderate' });
+  } else if (sugars > sMinor) {
     score -= 3;
-    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>5g minor)`, points: -3, severity: 'minor' });
+    deductions.push({ pillar: 'negative_nutrients', reason: `${sugarLabel} ${sugars}g/100g (>${sMinor}g minor for ${category})`, points: -3, severity: 'minor' });
   }
 
   // ---- Salt ----
@@ -826,10 +1598,20 @@ export function scoreNegativeNutrients(product: ProductInput): PillarScore {
 // ============================================================================
 // SECTION 8: PILLAR 4 — ADDITIVE RISK (max 15, penalty-based)
 // ============================================================================
-// Start at 15, subtract based on additive tier:
-//  - Tier 1 (serious):  −5 each, capped at −10 total
-//  - Tier 2 (moderate): −2 each, capped at −6 total
-//  - Tier 3 (minor):    −1 each, capped at −3 total
+//
+// AUTHORITATIVE basis:
+//   - Each entry in ADDITIVES_DB has a `source` field citing either an
+//     EFSA Scientific Opinion (with journal / year), an IARC Monograph
+//     volume and classification, an EU Regulation, or a primary study.
+//   - Tier assignment respects these rulings: Tier 1 requires an EU ban
+//     (E171), IARC Group classification (nitrites via processed meat),
+//     or a controlled human trial demonstrating harm (E466 FRESH trial).
+//
+// EDITORIAL:
+//   - The three-tier grouping (serious / moderate / minor) is Scann-eat's
+//     synthesis; authorities generally speak in terms of specific ADI
+//     values or classifications, not in tiers.
+//   - Point values (-5 / -2 / -1) and caps (-10 / -6 / -3) are editorial.
 // ============================================================================
 
 export function scoreAdditiveRisk(product: ProductInput): PillarScore {
@@ -912,12 +1694,18 @@ export function countTier1Additives(product: ProductInput): number {
 // ============================================================================
 // SECTION 9: PILLAR 5 — INGREDIENT INTEGRITY (max 15)
 // ============================================================================
-// Components:
-//  - First 3 ingredients are whole foods: +5
-//  - Recognizable ingredients (>80%): +3
-//  - Origin transparency: +2
-//  - No hidden/multi-named sugars: +2
-//  - Named oils: +3
+//
+// EDITORIAL: this entire pillar is Scann-eat's opinion layer.
+//
+// No authoritative body publishes "ingredient integrity" scores; the signals
+// we use (first-three-whole-food, recognizability, origin transparency,
+// hidden-sugar multiplicity, named oils) are proxies for formulation
+// quality that correlate with NOVA 4 in surveys but are not themselves a
+// regulatory standard.
+//
+// The sub-scores and their weightings (+5 / +3 / +2 / +2 / +3) are our
+// editorial choices, chosen so that a transparently-labelled whole-food
+// product can reach 15/15 and a reformulated UPF lands near 0.
 // ============================================================================
 
 function isWholeFood(name: string, isFlag: boolean | undefined): boolean {
@@ -1052,6 +1840,22 @@ export function scoreIngredientIntegrity(product: ProductInput): PillarScore {
 // ============================================================================
 // SECTION 10: GLOBAL MODIFIERS, VETOES & MAIN ORCHESTRATOR
 // ============================================================================
+//
+// EDITORIAL throughout this section:
+//
+//   - Global bonuses: +2 organic, +3 whole-grain, +2 fermented, +2 omega-3
+//     ingredient. Capped at +10.
+//   - Global penalties: -2 misleading marketing, -3 health claims,
+//     -3 palm oil / derivative present.
+//   - Veto caps (30 / 40 / 45) for combinations the engine considers
+//     disqualifying regardless of other pillar scores.
+//   - Grade breakpoints A+ (≥85) / A (≥70) / B (≥55) / C (≥40) / D (≥25) /
+//     F (<25) are Scann-eat's mapping, not a published standard.
+//
+// AUTHORITATIVE anchor for the processed-meat veto:
+//   - Processed meat = IARC Group 1 (Monograph Vol 114, 2015). The veto
+//     cap at 40 reflects this "carcinogenic to humans" classification.
+// ============================================================================
 
 export const ENGINE_VERSION = '2.0.0';
 
@@ -1086,6 +1890,19 @@ function computeGlobalBonuses(product: ProductInput): Deduction[] {
   if (product.fermented) {
     bonuses.push({ pillar: 'global_bonus', reason: 'Contains fermented / probiotic content', points: 2, severity: 'info' });
   }
+  // Omega-3 sources: flax / chia / walnut / fatty fish signal EPA/DHA/ALA.
+  const omega3 = product.ingredients.find((ing) => {
+    const n = ing.name.toLowerCase();
+    return /(graine de )?lin\b|\bchia\b|\bnoix\b|saumon|sardine|maquereau|hareng|anchois/.test(n);
+  });
+  if (omega3) {
+    bonuses.push({
+      pillar: 'global_bonus',
+      reason: `Omega-3 source: ${omega3.name}`,
+      points: 2,
+      severity: 'info',
+    });
+  }
   return bonuses;
 }
 
@@ -1103,6 +1920,19 @@ function computeGlobalPenalties(product: ProductInput): Deduction[] {
     penalties.push({
       pillar: 'global_penalty',
       reason: 'Health claims present — verify vs composition',
+      points: -3,
+      severity: 'moderate',
+    });
+  }
+  // Palm-oil / palm kernel detection (all variants).
+  const palm = product.ingredients.find((ing) => {
+    const n = ing.name.toLowerCase();
+    return /huile de palme|huile de palmiste|graisse de palme|st[eé]arine de palme|ol[eé]ine de palme|palm oil|palm kernel|coprah/.test(n);
+  });
+  if (palm) {
+    penalties.push({
+      pillar: 'global_penalty',
+      reason: `Palm oil or derivative: ${palm.name}`,
       points: -3,
       severity: 'moderate',
     });
@@ -1189,6 +2019,27 @@ function buildFlags(audit: Omit<ScoreAudit, 'red_flags' | 'green_flags'>): {
   for (const b of allBonuses) {
     if (b.points >= 2) green.push(b.reason);
   }
+  // Fix #2 — surface ecoscore as a flag. Doesn't change the numeric
+  // score (keeps the 100-point contract stable and preserves the
+  // existing 5-pillar math), but ties environmental impact into the
+  // audit output so the flag list reflects it. Thresholds follow
+  // OFF's letter grades: A/B green, D/E red, C neutral.
+  // Fix #2 — surface ecoscore as a flag. Ecoscore fields are read
+  // via a typed side-channel (audit.eco) the caller writes in.
+  // Doesn't change the numeric score (preserves the 5-pillar 100-
+  // point contract), but folds environmental impact into the flag
+  // list so the user-facing audit reflects it. Thresholds follow
+  // OFF letter grades: A/B green, D/E red, C neutral.
+  type EcoSide = { eco?: { grade?: string; value?: number } };
+  const eco = (audit as unknown as EcoSide).eco;
+  if (eco?.grade) {
+    const g = String(eco.grade).toLowerCase();
+    if (g === 'a' || g === 'b') {
+      green.push(`Eco-score ${g.toUpperCase()} (${eco.value ?? '—'}/100) — low environmental impact`);
+    } else if (g === 'd' || g === 'e') {
+      red.push(`Eco-score ${g.toUpperCase()} (${eco.value ?? '—'}/100) — high environmental impact`);
+    }
+  }
 
   if (audit.veto.triggered) {
     red.unshift(`VETO: ${audit.veto.reason}`);
@@ -1254,7 +2105,7 @@ export function scoreProduct(product: ProductInput): ScoreAudit {
   score = Math.round(score);
   const grade = scoreToGrade(score);
 
-  const preAudit: Omit<ScoreAudit, 'red_flags' | 'green_flags'> = {
+  const preAudit: Omit<ScoreAudit, 'red_flags' | 'green_flags'> & { eco?: { grade?: string; value?: number } } = {
     product_name: product.name,
     category: product.category,
     score,
@@ -1272,6 +2123,12 @@ export function scoreProduct(product: ProductInput): ScoreAudit {
     veto,
     engine_version: ENGINE_VERSION,
     warnings: collectWarnings(product),
+    // Fix #2 — eco-score side-channel. buildFlags reads this to
+    // surface environmental impact as a red/green flag without
+    // disrupting the 5-pillar numeric score.
+    eco: product.ecoscore_grade
+      ? { grade: product.ecoscore_grade, value: product.ecoscore_value }
+      : undefined,
   };
 
   const { red, green } = buildFlags(preAudit);

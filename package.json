@@ -1,0 +1,20 @@
+{
+  "name": "scann-eat",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-strip-types parser-tests.ts engine-tests.ts personal-score-tests.ts merge-tests.ts consumption-tests.ts weight-template-tests.ts presenter-tests.ts allergen-tests.ts diet-tests.ts recipe-tests.ts food-db-tests.ts app-settings-tests.ts activity-tests.ts custom-food-db-tests.ts fasting-history-tests.ts day-notes-tests.ts weight-forecast-tests.ts pairings-tests.ts grocery-list-tests.ts close-the-gap-tests.ts meal-plan-tests.ts csv-import-tests.ts weekly-share-tests.ts i18n-tests.ts explanations-tests.ts telemetry-tests.ts dateutil-tests.ts share-tests.ts unit-convert-tests.ts recipe-url-tests.ts",
+    "dev": "node --experimental-strip-types server.ts",
+    "build:web": "node build.mjs",
+    "cap:add": "cap add android",
+    "cap:sync": "cap sync android",
+    "cap:build": "npm run build:web && npm run cap:sync"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "esbuild": "^0.24.0"
+  }
+}
