@@ -2056,15 +2056,26 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   color: var(--accent-warm, var(--text));
   letter-spacing: 0.01em;
 }
+/* Dashboard-remaining: the "X kcal left today" chip. Promoted
+   from a small --panel-2 rectangle to a proper daily-budget
+   card that reads as "today's envelope" — the banner under the
+   date row. Uses the unified coral gradient + soft radial
+   highlight so it feels like the dashboard's focal KPI. */
 .dashboard-remaining {
   margin: 0;
-  padding: var(--sp-4) var(--sp-4);
-  background: var(--panel-2);
-  border-left: 4px solid var(--accent);
+  padding: var(--sp-4) var(--sp-5);
+  background:
+    radial-gradient(ellipse 80% 120% at 0% 50%,
+      color-mix(in oklch, var(--accent) 18%, var(--panel-2)) 0%,
+      var(--panel-2) 60%);
+  border-left: 4px solid transparent;
+  border-image: var(--grad-accent) 1;
   color: var(--text);
-  font-size: 1em;
+  font-size: var(--text-base, 1rem);
+  font-weight: 600;
   line-height: 1.4;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-1-tonal, var(--elev-1));
 }
 
 /* ---- Progress rows ---- */
