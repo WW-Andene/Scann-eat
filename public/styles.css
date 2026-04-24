@@ -826,8 +826,46 @@ body.returning-user main > .capture         { order: 1; }
   gap: var(--sp-1) var(--sp-3);
   align-items: center;
   background: var(--panel-2);
+  border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
   border-radius: var(--r-md);
   padding: var(--sp-4);
+  box-shadow: var(--elev-1-tonal, var(--elev-1));
+  position: relative;
+}
+/* The two compare cards read as "before / after" — give the
+   left slot a muted left-rule, the right slot a full accent
+   rule. User's eye flows from quieter → louder. */
+.compare-grid > .compare-card:first-child {
+  opacity: 0.85;
+  border-left: 3px solid color-mix(in oklch, var(--muted) 60%, transparent);
+}
+.compare-grid > .compare-card:last-child {
+  border-left: 3px solid var(--accent);
+}
+/* Small "→" between the two cards via grid-area pseudo on the
+   second card's ::before — reads as "from X, we went to Y". */
+.compare-grid > .compare-card:last-child::before {
+  content: "→";
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.4em;
+  background: var(--panel);
+  border-radius: var(--r-pill);
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--elev-1-tonal, var(--elev-1));
+  z-index: 1;
+}
+@media (max-width: 540px) {
+  .compare-grid > .compare-card:last-child::before {
+    display: none;
+  }
 }
 .compare-label {
   grid-column: 1 / -1;
