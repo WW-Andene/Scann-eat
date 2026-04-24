@@ -7,7 +7,37 @@
    audit F-DT-01. Italic Atkinson variants + Lexend 500 were unused in
    131 font-weight declarations, so both were dropped from the set. */
 
-/* ========== TOKENS ========================================================
+/* ==========================================================================
+   TOKEN BLOCK INDEX — navigate here when looking for a --name
+   --------------------------------------------------------------------------
+   Per audit F-DTA-06, token declarations live in NINE ordered blocks
+   rather than one shrine. Each block carries intentional cascade-order
+   overrides of earlier values (calmer --bg in Step 6 replaces the
+   original vibrant coral, etc.). Don't physically consolidate without
+   a visual-regression sweep — overrides WILL silently shift.
+
+   Block  Lines       Contents
+     1    ~14–83      Core palette: --bg, --panel*, --text*, --accent*,
+                      --border*, --danger/success/warning, --grade-*,
+                      --r-*, --sp-*, light-theme overrides at ~89
+     2    ~4218–4265  Step 6: refined --bg/--bg-deep + backdrop scrims
+     3    ~4489–4510  Step 7: --surface-hover/pressed + --tension counter-accent
+     4    ~4558–4595  Step 8: v2 type-scale (--text-xs..2xl) + --num-feat /
+                      --type-feat OpenType features
+     5    ~4609–4617  Elevation: --elev-1/1-tonal/2/3
+     6    ~4693–4698  Motion: --ease-ui, --speed-ui, --motion-fast/base/
+                      enter/exit/nav/loop
+     7    ~4918–4950  v3 accent refinement: --accent-hover/pressed/focus +
+                      --border-focus + --selection-bg/fg + --text-disabled
+     8    ~5056–5072  --blur-glass + --r-input
+     9    ~5142–5150  Additional rare-usage tokens
+     +    ~5549, ~5649 late small overrides
+
+   To find a token: `grep -n '^\s*--name:' public/styles.css`
+   To add a new token: extend Block 1 unless it's a themed variant.
+   ========================================================================== */
+
+/* ========== TOKENS (Block 1) ==============================================
    Coral background · near-black cards · cream text · orange action.
    Grade colors kept — they carry meaning.
    ========================================================================== */
