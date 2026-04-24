@@ -7467,3 +7467,40 @@ dialog.settings-dialog.no-scroll-fade {
 .dashboard-tile-grid > .fasting-tile .hyd-amount {
   font-size: var(--text-base);
 }
+
+/* ==========================================================================
+   F-DRC-04 — landscape / low-height overrides for bottom-sheet dialogs.
+   Profile / Settings / Onboarding are form-heavy and fall below the
+   fold on landscape phones (~375px height). In that height band:
+     - tighten outer padding
+     - switch the inner form to `overflow-y: auto` so the content
+       scrolls while the dialog chrome stays fixed
+     - cap max-height at 95vh (not 100vh) so there's always a visible
+       edge identifying this as a modal
+   Triggers at height ≤ 500px (roughly any phone held sideways).
+   ========================================================================== */
+@media (max-height: 500px) {
+  dialog.settings-dialog {
+    padding: var(--sp-3) var(--sp-4);
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+  }
+  dialog.settings-dialog > form {
+    overflow-y: auto;
+    gap: var(--sp-3);
+    padding-right: var(--sp-2); /* room for scrollbar */
+  }
+  dialog.settings-dialog h2 {
+    margin: 0 0 var(--sp-2);
+    font-size: var(--text-lg);
+  }
+  dialog.settings-dialog .dialog-actions {
+    margin-top: var(--sp-2);
+    flex-shrink: 0;
+  }
+  /* Onboarding slide stack is already auto-sized, but hint it too */
+  dialog.onboarding-dialog {
+    max-height: 95vh;
+  }
+}
