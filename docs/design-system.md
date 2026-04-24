@@ -4,10 +4,10 @@ Scann-eat's visual language is a token set + a small component vocabulary,
 defined entirely in `public/styles.css`. There's no Figma file and no
 framework; the CSS IS the design system.
 
-**v2 refinement landed 2026-04.** See `docs/ui-ux-audit-v2.md` for the
-findings that drove it. Key additions: explicit typography scale,
-elevation tokens, calmer coral backdrop, unified dialog chrome, scaled
-focus ring, shared motion speed.
+**v2 refinement landed 2026-04**, then reviewed end-to-end by the
+2026-04 audit (see `docs/audit-v3/SUMMARY.md`). Key additions:
+explicit typography scale, elevation tokens, calmer coral backdrop,
+unified dialog chrome, scaled focus ring, shared motion speed.
 
 ## Vision (one-sentence)
 

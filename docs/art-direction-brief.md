@@ -3,8 +3,8 @@
 Canonical one-page brief, produced per `art-direction-engine-SKILL.md §BRIEF`.
 Every subsequent design decision in Scann-eat flows from this document.
 Complementary to `docs/design-system.md` (the implementation) and
-`docs/ui-ux-audit-stepwise.md` (the section-by-section findings that
-produced it).
+`docs/audit-v3/SUMMARY.md` (the 2026-04 audit that reviewed it end to
+end).
 
 ---
 
@@ -248,5 +248,6 @@ product's art direction — neither alone is the spec.
    first, then reflected in `design-system.md` tokens / components.
 2. The brief is versioned via git; any PR that changes character
    should touch this file.
-3. The stepwise audit in `docs/ui-ux-audit-stepwise.md` is the
-   historical trace of how we got here.
+3. The 2026-04 audit in `docs/audit-v3/SUMMARY.md` reviewed the
+   shipped implementation end-to-end and drove the tokens / a11y /
+   i18n sweep that reconciled the brief with the code.
