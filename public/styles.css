@@ -4257,6 +4257,38 @@ dialog.settings-dialog,
   box-shadow: var(--elev-1-tonal, var(--elev-1));
 }
 
+/* ==========================================================================
+   F-DCO-06 — shared .card base.
+   The design-system lists Card/Chip/Row as the three primitives, but 10+
+   card-like surfaces (result, score-card, meal-section, recipe-idea-card,
+   hydration/activity/fasting tiles, weight-summary, etc.) each declared
+   the same 4-6 rules independently. Without a base class, adding a new
+   card = reinventing background + padding + radius + shadow every time.
+
+   This rule is ADDITIVE: the feature-specific classes still set their
+   own values (and win the cascade when they differ). Adding class="card"
+   to any NEW surface gets the token-coherent defaults for free.
+   ========================================================================== */
+.card {
+  background: var(--panel);
+  padding: var(--sp-5);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-1);
+  color: var(--text);
+}
+.card.compact {
+  padding: var(--sp-4);
+  border-radius: var(--r-sm);
+}
+.card.hoverable {
+  transition: transform var(--motion-base) var(--ease-ui),
+              box-shadow var(--motion-base) var(--ease-ui);
+}
+.card.hoverable:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--elev-2);
+}
+
 /* -- buttons: primary gets elevation + tighter tap feel ------------------ */
 button {
   box-shadow: var(--elev-1);
