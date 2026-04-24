@@ -7328,3 +7328,33 @@ dialog.settings-dialog.no-scroll-fade {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   AUDIT-DRIVEN — dashboard focal hierarchy (§E2 from app-audit).
+   The four tiles in the grid had equal visual weight. Hydration is the
+   most-frequent interaction (tapped multiple times per day for +/- water
+   glasses) and should lead visually; activity / fasting / weight are
+   secondary trackers. Typography scale + amount size signals the
+   hierarchy without changing grid placement.
+   ========================================================================== */
+
+.dashboard-tile-grid > .hydration-tile .hyd-label {
+  font-size: var(--text-base, 1rem);
+  font-weight: 700;
+}
+.dashboard-tile-grid > .hydration-tile .hyd-amount {
+  font-size: var(--text-xl, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Secondary tiles stay at --text-sm label + --text-base amount so the
+   hydration tile's typographic size is clearly larger. */
+.dashboard-tile-grid > .activity-tile .act-label,
+.dashboard-tile-grid > .fasting-tile .hyd-label {
+  font-size: var(--text-sm, 0.85rem);
+}
+.dashboard-tile-grid > .activity-tile .act-summary,
+.dashboard-tile-grid > .fasting-tile .hyd-amount {
+  font-size: var(--text-base, 1rem);
+}
