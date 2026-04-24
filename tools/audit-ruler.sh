@@ -27,10 +27,12 @@ check() {
 echo "audit-ruler.sh — character-brief enforcement on $CSS"
 echo ""
 
-# Raw font-size literals (audit F-DTA-02). Baseline ~92; target ≤ 40
-# after the migration pass.
-check "raw font-size literals" \
-  "$(grep -cE 'font-size:\s*[0-9]' "$CSS")" 95
+# Raw font-size literals (audit F-DTA-02). We exclude `font-size: 1em`
+# which is always an intentional "same size as parent" reset on form
+# controls and one-off inline elements; it's not really off-scale.
+# Baseline ~92 − 29 × 1em ≈ 63; budget 70 with headroom.
+check "raw font-size literals (excl. 1em resets)" \
+  "$(grep -E 'font-size:\s*[0-9]' "$CSS" | grep -cvE 'font-size:\s*1em')" 70
 
 # Hardcoded transition durations in ms/s (audit F-DTA-03 + F-DM-01).
 # Baseline 28; swept to 10 on 2026-04 (2 reduce-motion overrides +

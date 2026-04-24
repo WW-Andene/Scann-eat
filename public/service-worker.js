@@ -9,7 +9,7 @@
 // dashboard tile grid HTML restructure, etc.). Any already-installed
 // PWA was serving the pre-session CSS/JS out of r35; r36 forces a
 // fresh fetch on next load so the visible delta actually lands.
-const CACHE = 'scann-eat-shell-ff03347';
+const CACHE = 'scann-eat-shell-e58e6cb';
 const SHELL = [
   '/',
   '/index.html',
