@@ -2174,7 +2174,15 @@ $('csv-import-file')?.addEventListener('change', async (e) => {
   e.target.value = '';
   const status = $('csv-import-status');
   if (!file) return;
-  if (status) status.textContent = t('csvImportLoading');
+  if (status) {
+    status.textContent = t('csvImportLoading');
+    // F-F-05: clear any prior skipped-rows details so a fresh import
+    // doesn't inherit stale warnings.
+    const priorDetails = status.nextElementSibling;
+    if (priorDetails && priorDetails.classList?.contains('csv-skipped-details')) {
+      priorDetails.remove();
+    }
+  }
   try {
     const { parseCsvImport } = await import('/features/csv-import.js');
     const text = await file.text();
@@ -2191,6 +2199,26 @@ $('csv-import-file')?.addEventListener('change', async (e) => {
       status.textContent = t('csvImportDone', {
         n: written, format, skipped: errors.length,
       });
+      // F-F-05: when rows were skipped, expose the per-row reasons
+      // in a collapsible <details> next to the status line. Users
+      // with a 300-row export and "13 skipped" can click to see
+      // which ones and why.
+      if (errors.length > 0) {
+        const details = document.createElement('details');
+        details.className = 'csv-skipped-details';
+        const summary = document.createElement('summary');
+        summary.textContent = t('csvImportSkippedDetails', { n: errors.length });
+        details.appendChild(summary);
+        const ul = document.createElement('ul');
+        ul.className = 'csv-skipped-list';
+        for (const err of errors) {
+          const li = document.createElement('li');
+          li.textContent = err;
+          ul.appendChild(li);
+        }
+        details.appendChild(ul);
+        status.insertAdjacentElement('afterend', details);
+      }
     }
     await renderDashboard();
   } catch (err) {

@@ -25,6 +25,9 @@ export const STRINGS = {
     start: 'Commencer',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'Tous les objectifs atteints aujourd\'hui 🌿',
+    // F-F-05 — CSV import skipped-row details
+    csvImportSkippedDetails_one: 'Voir la ligne ignorée',
+    csvImportSkippedDetails_other: 'Voir les {n} lignes ignorées',
     // F-F-07 — recipe-ideas card actions (Save / Plan)
     recipeIdeasSave: 'Sauvegarder',
     recipeIdeasPlan: 'Planifier',
@@ -771,6 +774,9 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     start: 'Start',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'All targets met today 🌿',
+    // F-F-05 — CSV import skipped-row details
+    csvImportSkippedDetails_one: 'Show the skipped row',
+    csvImportSkippedDetails_other: 'Show the {n} skipped rows',
     // F-F-07 — recipe-ideas card actions (Save / Plan)
     recipeIdeasSave: 'Save',
     recipeIdeasPlan: 'Plan',

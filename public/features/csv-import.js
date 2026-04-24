@@ -234,6 +234,10 @@ export function parseCsvImport(csvText, opts = {}) {
     const row = parseCsvLine(lines[i]);
     const entry = mapper(row, header, now);
     if (entry) entries.push(entry);
+    // F-F-05: per-row skip reason with 1-based row number so users can
+    // open the CSV in their spreadsheet and find exactly which line.
+    // Messaging stays English in this pure module (keeps it i18n-free
+    // for tests); the UI renders them inside a translated <details>.
     else errors.push(`row ${i + 1} skipped (invalid date / name / kcal)`);
   }
   return { format, entries, errors };

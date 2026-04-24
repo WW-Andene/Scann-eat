@@ -7536,3 +7536,30 @@ dialog.settings-dialog.no-scroll-fade {
     max-height: 95vh;
   }
 }
+
+/* F-F-05 — skipped-row details panel under the CSV import status.
+   Intentionally subtle: collapsed by default, muted text, monospace
+   list so row numbers align. Opens only when the user opts in. */
+.csv-skipped-details {
+  margin-top: var(--sp-2);
+  font-size: var(--text-sm);
+}
+.csv-skipped-details > summary {
+  cursor: pointer;
+  color: var(--muted);
+  padding: var(--sp-1) 0;
+}
+.csv-skipped-list {
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.csv-skipped-list li {
+  padding: 2px 0;
+  border-bottom: 1px dashed var(--border);
+}
