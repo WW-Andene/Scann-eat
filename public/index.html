@@ -481,17 +481,41 @@
           </div>
         </div>
         <p id="dashboard-remaining" class="dashboard-remaining" role="status" aria-live="polite" hidden></p>
-        <div id="weight-summary" class="weight-summary" hidden></div>
-        <div id="fasting-tile" class="fasting-tile" role="group" aria-labelledby="fasting-label" hidden>
-          <div class="hyd-head">
-            <span id="fasting-label" class="hyd-label" data-i18n="fastingLabel">Jeûne</span>
-            <strong id="fasting-amount" class="hyd-amount">—</strong>
+        <div class="dashboard-tile-grid">
+          <div id="hydration-tile" class="hydration-tile" role="group" aria-labelledby="hydration-label">
+            <div class="hyd-head">
+              <span id="hydration-label" class="hyd-label" data-i18n="hydrationLabel">Hydratation</span>
+              <strong id="hydration-amount" class="hyd-amount">—</strong>
+            </div>
+            <div class="hyd-bar"><span id="hydration-fill" class="hyd-fill"></span></div>
+            <div class="hyd-actions">
+              <button id="hydration-minus" type="button" class="hyd-btn" data-i18n-aria-label="hydrationMinus" aria-label="Retirer un verre">−</button>
+              <button id="hydration-plus" type="button" class="hyd-btn hyd-plus" data-i18n-aria-label="hydrationPlus" aria-label="Ajouter un verre">+</button>
+              <span class="hyd-hint" data-i18n="hydrationGlassHint">1 verre = 250 ml</span>
+            </div>
           </div>
-          <div class="hyd-bar"><span id="fasting-fill" class="hyd-fill"></span></div>
-          <div class="hyd-actions">
-            <button id="fasting-stop" type="button" class="hyd-btn" data-i18n="fastingStop">Arrêter</button>
-            <span id="fasting-state" class="hyd-hint">—</span>
+          <div id="activity-tile" class="activity-tile" role="group" aria-labelledby="activity-label">
+            <div class="act-head">
+              <span id="activity-label" class="act-label" data-i18n="activityLabel">Exercice</span>
+              <strong id="activity-summary" class="act-summary">—</strong>
+            </div>
+            <ul id="activity-entries" class="act-entries" hidden></ul>
+            <div class="act-actions">
+              <button id="activity-add" type="button" class="chip-btn accent compact" data-i18n="activityAdd">Ajouter</button>
+            </div>
           </div>
+          <div id="fasting-tile" class="fasting-tile" role="group" aria-labelledby="fasting-label" hidden>
+            <div class="hyd-head">
+              <span id="fasting-label" class="hyd-label" data-i18n="fastingLabel">Jeûne</span>
+              <strong id="fasting-amount" class="hyd-amount">—</strong>
+            </div>
+            <div class="hyd-bar"><span id="fasting-fill" class="hyd-fill"></span></div>
+            <div class="hyd-actions">
+              <button id="fasting-stop" type="button" class="hyd-btn" data-i18n="fastingStop">Arrêter</button>
+              <span id="fasting-state" class="hyd-hint">—</span>
+            </div>
+          </div>
+          <div id="weight-summary" class="weight-summary" hidden></div>
         </div>
         <p id="fasting-streak" class="fasting-streak" hidden></p>
         <details class="fasting-history" id="fasting-history-wrap" hidden>
@@ -509,28 +533,6 @@
             <option value="20">20 h</option>
           </select>
           <button id="fasting-start" type="button" class="chip-btn accent compact" data-i18n="fastingStart">Démarrer</button>
-        </div>
-        <div id="hydration-tile" class="hydration-tile" role="group" aria-labelledby="hydration-label">
-          <div class="hyd-head">
-            <span id="hydration-label" class="hyd-label" data-i18n="hydrationLabel">Hydratation</span>
-            <strong id="hydration-amount" class="hyd-amount">—</strong>
-          </div>
-          <div class="hyd-bar"><span id="hydration-fill" class="hyd-fill"></span></div>
-          <div class="hyd-actions">
-            <button id="hydration-minus" type="button" class="hyd-btn" data-i18n-aria-label="hydrationMinus" aria-label="Retirer un verre">−</button>
-            <button id="hydration-plus" type="button" class="hyd-btn hyd-plus" data-i18n-aria-label="hydrationPlus" aria-label="Ajouter un verre">+</button>
-            <span class="hyd-hint" data-i18n="hydrationGlassHint">1 verre = 250 ml</span>
-          </div>
-        </div>
-        <div id="activity-tile" class="activity-tile" role="group" aria-labelledby="activity-label">
-          <div class="act-head">
-            <span id="activity-label" class="act-label" data-i18n="activityLabel">Exercice</span>
-            <strong id="activity-summary" class="act-summary">—</strong>
-          </div>
-          <ul id="activity-entries" class="act-entries" hidden></ul>
-          <div class="act-actions">
-            <button id="activity-add" type="button" class="chip-btn accent compact" data-i18n="activityAdd">Ajouter</button>
-          </div>
         </div>
         <ul id="dashboard-rows" class="dashboard-rows"></ul>
 

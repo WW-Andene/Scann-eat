@@ -7280,3 +7280,51 @@ dialog.settings-dialog.no-scroll-fade {
   position: relative;
   z-index: 1;
 }
+
+/* ==========================================================================
+   STRUCTURAL — dashboard tile grid (real HTML change).
+   The four tiles (hydration, activity, fasting, weight-summary)
+   were stacked vertically as full-width panels. Each scroll of
+   the dashboard took them in one by one. Now wrapped in a
+   .dashboard-tile-grid that lays them out as a 2-column grid
+   on mobile (all four visible together) and a 4-column row on
+   wider viewports. Hidden tiles collapse out via display: none
+   from the hidden attribute — grid auto-flows around them.
+   ========================================================================== */
+
+.dashboard-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.dashboard-tile-grid > .hydration-tile,
+.dashboard-tile-grid > .activity-tile,
+.dashboard-tile-grid > .fasting-tile,
+.dashboard-tile-grid > .weight-summary {
+  min-width: 0;
+  margin: 0;
+}
+
+/* Activity tile can grow taller due to entries list — don't
+   stretch other tiles to match; each sits at its natural
+   height, grid auto-rows keeps them compact. */
+.dashboard-tile-grid {
+  grid-auto-rows: min-content;
+  align-items: start;
+}
+
+/* On wider screens (desktop two-pane active from Move 6), all
+   four fit in a single row. */
+@media (min-width: 1100px) {
+  .dashboard-tile-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Very small screens fall back to single column. */
+@media (max-width: 380px) {
+  .dashboard-tile-grid {
+    grid-template-columns: 1fr;
+  }
+}
