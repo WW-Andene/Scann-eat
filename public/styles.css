@@ -7593,3 +7593,13 @@ dialog.settings-dialog.no-scroll-fade {
   font-style: italic;
   margin-top: 2px;
 }
+
+/* F-F-03 — bulk "Log all" button rendered under the menu-scan list
+   when the dialog opens in plate mode. Full-width tap target, sits
+   below the per-item rows. */
+dialog#menu-scan-dialog[data-mode="plate"] #menu-scan-bulk {
+  display: block;
+  width: 100%;
+  margin-top: var(--sp-3);
+  min-height: 44px;
+}

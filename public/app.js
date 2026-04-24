@@ -2863,33 +2863,22 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
       setQaStatus(t('identifyMultiEmpty'), 'warn');
       return;
     }
-    const meal = $('qa-meal')?.value || defaultMealForHour(new Date().getHours());
+    // F-F-03: reconcile for macro accuracy + stash for the Recipes
+    // dialog shortcut, but DO NOT auto-log. Show the items in the
+    // menu-scan dialog (mode=plate) so the user can uncheck false
+    // positives before logging. A "Log all" button keeps the common-
+    // case UX to one extra tap.
     let dbHits = 0;
     const reconciled = [];
     for (const it of items) {
       const r = reconcileWithFoodDB(it, listCustomFoods());
       if (r.source === 'db') dbHits += 1;
       reconciled.push(r);
-      await logQuickAdd({
-        name: r.name,
-        meal,
-        kcal: Math.round(r.kcal) || 0,
-        protein_g: Math.round(r.protein_g) || 0,
-        carbs_g: Math.round(r.carbs_g) || 0,
-        fat_g: Math.round(r.fat_g) || 0,
-        sat_fat_g: 0,
-        sugars_g: 0,
-        salt_g: 0,
-      });
     }
-    // Stash the plate so the Recipes dialog can offer a "from last plate
-    // scan" shortcut — one tap to save the same components as a reusable
-    // recipe going forward. Ownership moved into /features/recipes-dialog.js
-    // in R9 — this handler just pushes the items through the setter.
     recipesDialog.setLastIdentifiedPlate(reconciled);
     quickAddDialog?.close();
-    await renderDashboard();
-    toast(t('identifyMultiToast', { n: items.length, db: dbHits }), 'ok');
+    setQaStatus(t('identifyMultiPreview', { n: items.length, db: dbHits }), 'ok');
+    await openMenuScan(reconciled, { mode: 'plate' });
   } catch (err) {
     console.warn('[identifyMultiFood]', err);
     setQaStatus(t('identifyFailed'), 'error');

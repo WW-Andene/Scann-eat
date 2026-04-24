@@ -25,6 +25,12 @@ export const STRINGS = {
     start: 'Commencer',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'Tous les objectifs atteints aujourd\'hui 🌿',
+    // F-F-03 — plate confirm flow (reuses menu-scan dialog, mode=plate)
+    identifyMultiPreview_one: '{n} aliment détecté ({db} via la base) — confirme avant de logger.',
+    identifyMultiPreview_other: '{n} aliments détectés ({db} via la base) — confirme avant de logger.',
+    plateLogAll_one: 'Ajouter {n} aliment',
+    plateLogAll_other: 'Ajouter les {n} aliments',
+    plateAllLogged: '✓ Tous ajoutés',
     // F-F-04 — grocery per-ingredient recipe breakdown
     groceryFrom: '↳ {sources}',
     // F-DST-05 — LLM phase-rotating status messages
@@ -782,6 +788,12 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     start: 'Start',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'All targets met today 🌿',
+    // F-F-03 — plate confirm flow (reuses menu-scan dialog, mode=plate)
+    identifyMultiPreview_one: '{n} item detected ({db} via the database) — confirm before logging.',
+    identifyMultiPreview_other: '{n} items detected ({db} via the database) — confirm before logging.',
+    plateLogAll_one: 'Add {n} item',
+    plateLogAll_other: 'Add all {n} items',
+    plateAllLogged: '✓ All added',
     // F-F-04 — grocery per-ingredient recipe breakdown
     groceryFrom: '↳ {sources}',
     // F-DST-05 — LLM phase-rotating status messages
