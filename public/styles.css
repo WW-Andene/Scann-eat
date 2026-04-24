@@ -6662,3 +6662,61 @@ dialog.settings-dialog {
   pointer-events: none;
   opacity: 0.85;
 }
+
+/* ==========================================================================
+   UNIFY 3 — retire competing metaphors, speak one paper-voice.
+   Moves H (polaroid tilt) and D (meal gradient backgrounds) each
+   introduced their own distinct metaphor. Now softened to fit
+   under the unified paper-ledger identity:
+     • Queue photos: keep the cream polaroid frame + shadow;
+       drop the ±1.5° per-child rotation so they sit straight on
+       the page (the paper-binding-spine aesthetic elsewhere
+       doesn't tilt).
+     • Meal sections: drop the per-meal bg gradient, keep only
+       the coloured sun-dot + label tint so time-of-day still
+       reads but the paper base stays intact.
+   ========================================================================== */
+
+/* Queue photos — straight alignment; frame + shadow + caption
+   remain from Move H. */
+.queue-item:nth-child(odd),
+.queue-item:nth-child(even),
+.queue-item:nth-child(3n) {
+  transform: none;
+}
+.queue-item:hover,
+.queue-item:focus-within {
+  transform: translateY(-2px);
+}
+
+/* Meal sections — backgrounds neutralise to --panel-2. The
+   sun-dot + label colour + kcal-colour rules from Move D still
+   fire via --meal-accent, so time-of-day still reads. */
+.meal-section[data-meal="breakfast"],
+.meal-section[data-meal="lunch"],
+.meal-section[data-meal="snack"],
+.meal-section[data-meal="dinner"] {
+  background: var(--panel-2);
+}
+
+/* Nuance: the meal section gets a slim left-edge tint matching
+   its --meal-accent so time-of-day still has a visual footprint
+   without bg gradients fighting the paper base. */
+.meal-section[data-meal] {
+  border-left: 3px solid var(--meal-accent, var(--accent-dim));
+  padding-left: calc(var(--sp-4) + 2px);
+}
+
+/* Focus rings — route through the gradient-matched accent by
+   setting --focus-ring-width + adjusting the focus colour family
+   to the same coral palette. Existing :focus-visible rule uses
+   solid --accent; tokenised; unchanged. */
+
+/* Secondary buttons hover tint — currently --panel-2 flat;
+   switch to --grad-accent-soft so the hover tone matches the
+   accent family. */
+.secondary:hover:not(:disabled) {
+  background: var(--grad-accent-soft);
+  border-color: color-mix(in oklch, var(--accent-dim) 50%, transparent);
+  filter: none;
+}
