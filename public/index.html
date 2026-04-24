@@ -14,8 +14,8 @@
   </head>
   <body>
     <noscript>
-      <section class="noscript-warning">
-        <h1>Scann-eat</h1>
+      <section class="noscript-warning" aria-labelledby="noscript-title">
+        <h2 id="noscript-title">Scann-eat</h2>
         <p>Cette application nécessite JavaScript pour analyser les étiquettes. Merci de l'activer dans ton navigateur.</p>
         <p lang="en">This app needs JavaScript to read food labels. Please enable it in your browser.</p>
       </section>
@@ -37,7 +37,7 @@
     <header role="banner">
       <button id="profile-btn" class="settings-btn profile-btn" type="button" data-i18n-aria-label="profile" aria-label="Profil">&#128100;</button>
       <button id="settings-btn" class="settings-btn" type="button" data-i18n-aria-label="settings" aria-label="Réglages">&#9881;</button>
-      <h1>Scann-eat</h1>
+      <h1 data-i18n="appName">Scann-eat</h1>
       <p class="tagline" data-i18n="tagline">Photographie une étiquette → note de 0 à 100</p>
     </header>
 
@@ -217,17 +217,17 @@
         <p data-i18n="onboarding1Body">Prends jusqu'à 4 photos…</p>
       </div>
       <div class="ob-slide" data-slide="2" hidden>
-        <span class="ob-icon">📦</span>
+        <span class="ob-icon" aria-hidden="true">📦</span>
         <h2 data-i18n="onboarding2Title">Scan code-barres instantané</h2>
         <p data-i18n="onboarding2Body">Open Food Facts lookup…</p>
       </div>
       <div class="ob-slide" data-slide="3" hidden>
-        <span class="ob-icon">⚙</span>
+        <span class="ob-icon" aria-hidden="true">⚙️</span>
         <h2 data-i18n="onboarding3Title">Configurable, hors ligne, exportable</h2>
         <p data-i18n="onboarding3Body">Groq key, language, preferences…</p>
       </div>
       <div class="ob-slide" data-slide="4" hidden>
-        <span class="ob-icon">ⓘ</span>
+        <span class="ob-icon" aria-hidden="true">ⓘ</span>
         <h2 data-i18n="onboarding4Title">Information, pas conseil médical</h2>
         <p data-i18n="onboarding4Body">—</p>
       </div>

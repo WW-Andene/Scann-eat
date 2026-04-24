@@ -8,6 +8,7 @@
 // Internal consumers in this file still access the local binding.
 export const STRINGS = {
   fr: {
+    appName: 'Scann-eat',
     tagline: 'Photographie une étiquette → note de 0 à 100',
     addPhoto: 'Prendre / choisir une photo',
     addAnotherPhoto: 'Ajouter une autre photo',
@@ -716,6 +717,7 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     scoringAnchors: 'Mifflin-St Jeor 1990 (BMR) · FAO/WHO/UNU 2004 (PAL) · WHO BMI 2000 · EFSA 2012 (PRI protéines)',
   },
   en: {
+    appName: 'Scann-eat',
     tagline: 'Photograph a label → score out of 100',
     addPhoto: 'Take or pick a photo',
     addAnotherPhoto: 'Add another photo',
@@ -1516,7 +1518,10 @@ function detectDefaultLang() {
   // clear "EN fallback" note for users who opt in explicitly.
   const nav = (navigator.language || 'fr').toLowerCase().slice(0, 2);
   if (STRINGS[nav]) return nav;
-  return 'en';
+  // Brand default per docs/00-brief.md is French — fall back to FR for
+  // unknown navigator locales so the audience the app was designed for
+  // gets their language before opening Settings. See audit F-N-05.
+  return 'fr';
 }
 
 export let currentLang = detectDefaultLang();

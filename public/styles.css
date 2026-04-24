@@ -26,7 +26,9 @@
   /* action */
   --accent:        #FF6B45;   /* orange button */
   --accent-dim:    #D15637;
-  --accent-ink:    #1B1B1F;   /* text color on accent button */
+  /* Darker ink pushes dark-theme contrast from 4.3:1 (AA-large only)
+     to ~4.9:1 (AA normal). See audit F-DC-04. */
+  --accent-ink:    #0E0E11;   /* text color on accent button */
   /* Canonical signature gradient — applied to every primary
      accent surface (buttons, progress fills, focal halos, active
      states). The SINGLE coral gradient of the whole app. */
@@ -2053,7 +2055,7 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   background: rgba(229, 75, 94, 0.12);
   border-left: 4px solid var(--danger);
 }
-.pa-row.veto-row .pa-points { color: var(--danger); font-weight: 900; }
+.pa-row.veto-row .pa-points { color: var(--danger); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
 .pa-row.veto {
   grid-template-columns: 1fr;
   background: rgba(229, 75, 94, 0.10);
@@ -2548,7 +2550,7 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-sm);
   font-size: var(--text-xs, 0.72rem);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   white-space: pre-wrap;
   word-break: break-word;
   margin-top: var(--sp-2);
@@ -3068,6 +3070,9 @@ body.reduce-motion .hyd-fill { transition: none; }
   background: var(--panel-2);
   border-radius: var(--r-pill);
   overflow: hidden;
+  /* Hairline keeps the empty track visible in light theme where
+     --panel-2 (#FAF5E9) on --panel (#FFFFFF) is 1.02:1. See F-DDV-03. */
+  border: 1px solid var(--border);
 }
 .dash-fill {
   display: block;
@@ -4018,7 +4023,7 @@ details li.warn     { color: var(--warning); }
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   padding: var(--sp-2);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-sm, 0.85rem);
   resize: vertical;
 }
@@ -4540,6 +4545,10 @@ button:not(.secondary):not(.chip-btn):active:not(:disabled) {
   --text-xl:   1.44rem;   /* 23.0 px (was 1.5) */
   --text-2xl:  1.73rem;   /* 27.7 px (was 2.0) */
   --text-3xl:  2.07rem;   /* 33.2 px — added for display numerics */
+  /* Monospace — data export blocks, numeric alignments where tabular-
+     nums on the body font isn't enough. Two-site use currently; see
+     audit F-DT-05. */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 /* §DT3 craft signals — applied once at the body level so every

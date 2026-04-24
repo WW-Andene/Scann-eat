@@ -148,3 +148,20 @@ describe('SUPPORTED_LANGS contract', () => {
     }
   });
 });
+
+describe('document.documentElement.lang sync (F-G-05)', () => {
+  // applyStaticTranslations() is called from setLang(); it must sync
+  // document.documentElement.lang to the new locale so screen readers
+  // announce content with the right pronunciation + spell-check uses the
+  // right dictionary. Pinning the behaviour so future refactors can't
+  // silently drop it.
+  it('sets document.documentElement.lang on every setLang() call', () => {
+    const doc = (globalThis as { document: { documentElement: { lang: string } } }).document;
+    setLang('en');
+    assert.equal(doc.documentElement.lang, 'en');
+    setLang('fr');
+    assert.equal(doc.documentElement.lang, 'fr');
+    setLang('es');
+    assert.equal(doc.documentElement.lang, 'es');
+  });
+});
