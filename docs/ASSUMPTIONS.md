@@ -109,3 +109,18 @@ work; doesn't invalidate any infrastructure.
 **Invalidation check:** User chooses a beta locale and says "it's not
 translated".
 **Status:** `[STILL ASSUMED]`
+
+## [2026-04-24] LTR-only layout (no RTL locales)
+
+**Assumption:** All shipped and planned locales (FR, EN, ES, IT, DE) are
+LTR. The CSS uses `margin-left` / `margin-right` (not logical properties
+like `margin-inline-*`), `<html dir="ltr">` is implicit. No RTL mirroring
+rules.
+**Basis:** Target audience per docs/00-brief.md is French-speaking users;
+all current and beta locales are LTR European languages.
+**Falsification cost:** Medium. Adding Arabic / Hebrew / Persian would
+require: (1) adopting CSS logical properties across the 7360-line
+stylesheet, (2) setting `<html dir>` from currentLang, (3) icon flip
+rules for chevrons / arrows / progress fills.
+**Invalidation check:** Product owner asks for an RTL locale.
+**Status:** `[STILL ASSUMED]` (audit F-N-06 flagged this)
