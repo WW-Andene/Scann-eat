@@ -463,7 +463,10 @@ summary:focus-visible,
   border-radius: var(--r-sm);
 }
 
-/* Chip button — pill-shaped tag */
+/* Chip button — pill-shaped tag.
+   Canonical rule block: all .chip-btn defaults live here. The
+   audit F-DCO-01 consolidated three historical Step-N layers.
+   If you're editing .chip-btn in two places, one is wrong. */
 .chip-btn {
   background: transparent;
   color: var(--text);
@@ -472,7 +475,17 @@ summary:focus-visible,
   padding: 10px 16px;
   font-size: var(--text-sm);
   min-height: 40px;
-  font-weight: 500;
+  /* F-DCO-01: font-weight was 500 in the original rule then later
+     re-declared 600 in a Step N overlay; collapsed to 600 here. */
+  font-weight: 600;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+.chip-btn.compact {
+  /* Moved from the retired Step N overlay. */
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: var(--text-xs);
 }
 .chip-btn:hover:not(:disabled) {
   border-color: var(--accent);
@@ -484,6 +497,8 @@ summary:focus-visible,
   color: var(--accent-ink);
   border-color: var(--accent);
   font-weight: 600;
+  /* F-DCO-01: elevation was set in a Step N overlay; folded back. */
+  box-shadow: var(--elev-1);
 }
 .chip-btn.accent:hover:not(:disabled) {
   filter: brightness(1.08);
@@ -4433,22 +4448,8 @@ dialog.settings-dialog .dialog-actions button {
    Every chip-btn — regardless of nested context — renders at the same
    height/weight/radius. The .compact modifier becomes a single source of
    truth for list-density rows. */
-.chip-btn {
-  min-height: 40px;
-  border-radius: var(--r-pill);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  letter-spacing: 0;
-  box-shadow: none;
-}
-.chip-btn.compact {
-  min-height: 36px;
-  padding: 6px 14px;
-  font-size: var(--text-xs);
-}
-.chip-btn.accent {
-  box-shadow: var(--elev-1);
-}
+/* F-DCO-01: .chip-btn / .compact / .accent definitions folded into
+   the canonical block above. Kept this comment as a breadcrumb. */
 
 /* -- row primitive: used anywhere list-like UI accreted ad-hoc spacing ---
    Defined here so any new feature can compose on it. Existing rows keep
