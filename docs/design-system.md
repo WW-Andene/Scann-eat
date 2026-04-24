@@ -38,19 +38,23 @@ Everything else composes from these three.
 
 ## Tokens
 
-Defined as CSS custom properties on `[data-theme="dark"]` (default) and
-`[data-theme="light"]`. 53 tokens total. Theme switching flips the
-`data-theme` attribute on `<html>`; every downstream rule reads the same
-variable name.
+Defined as CSS custom properties on `:root, [data-theme="dark"]` (default)
+and `[data-theme="light"]`. **~80 tokens total** (regenerated from source
+2026-04 per audit F-DTA-04; previous "53 tokens" figure was stale).
+Theme switching flips the `data-theme` attribute on `<html>`; every
+downstream rule reads the same variable name.
 
 ### Background + surface
 
 | Token | Dark | Light | Use |
 |-------|------|-------|-----|
-| `--bg` | `#F54B5E` vibrant coral | `#F8C8CF` pale coral paper | Page background behind cards |
+| `--bg` | `#E84A5F` | `#F6D0D6` | Page background (refined 2026-04 from prior #F54B5E / #F8C8CF — calmer) |
+| `--bg-deep` | `#D94458` | `#F0B7BF` | Bottom of body gradient |
 | `--panel` | `#1B1B1F` near-black | `#FFFFFF` | Card surfaces |
 | `--panel-2` | `#2A2A30` | `#FAF5E9` | Nested card / input background |
-| `--panel-3` | `#3A3A42` | `#EFE9DB` | Hover / deeper nesting |
+| `--panel-3` | `#3A3A42` | `#EFE9DB` | Deepest nesting / fallback hover |
+| `--surface-hover` | `#242429` | `#FFFDF7` | New rules hover state (preferred over --panel-3) |
+| `--surface-pressed` | `#2D2D33` | `#F5EFDF` | New rules pressed state |
 
 ### Text
 
@@ -60,39 +64,50 @@ variable name.
 | `--text-on-bg` | `#1B1B1F` | `#1B1B1F` | Text placed directly on `--bg` |
 | `--muted` | `#9A948B` | `#5B564A` | Secondary text, hints |
 | `--muted-on-bg` | `rgba(27, 27, 31, 0.65)` | same | Muted text on `--bg` |
+| `--text-disabled` | `rgba(245,240,232,0.38)` | `rgba(27,27,31,0.38)` | Disabled form controls |
 
 ### Accent + state
 
 | Token | Dark | Light | Use |
 |-------|------|-------|-----|
-| `--accent` | `#FF6B45` orange | `#B0431F` | Primary button / CTA |
-| `--accent-dim` | `#D15637` | `#8A3316` | Accent hover / pressed |
-| `--accent-ink` | `#1B1B1F` | `#FFFFFF` | Text drawn on `--accent` |
-| `--danger` | `#E54B5E` | (inherits) | Destructive actions, veto states |
-| `--success` | `#6BE584` | (inherits) | Confirmations, good scores |
-| `--warning` | `#F5A64B` | (inherits) | Caution, moderate issues |
+| `--accent` | `#FF6B45` orange | `#B0431F` darkened for AA | Primary CTA |
+| `--accent-dim` | `#D15637` | `#8A3316` | Accent hover / pressed legacy |
+| `--accent-ink` | `#0E0E11` (AA 4.9:1, audit F-DC-04) | `#FFFFFF` (5.7:1) | Text drawn on `--accent` |
+| `--accent-warm` | `#E8B76B` | `#B0761E` | Informational chips (life-stage, beta notices) |
+| `--accent-hover` | `#FF8867` | `#C94D25` | Fine-grained hover state |
+| `--accent-focus` | `#FF7E5F` | `#B0431F` | Focus-ring color |
+| `--grad-accent` | coral gradient 135deg | same direction, darker | Canonical signature gradient |
+| `--tension` | `#2FC7B2` teal | `#0F8F7E` | Counter-accent, ≤5 usages (audit F-DC-05) |
+| `--danger` | `#E54B5E` | inherits | Destructive |
+| `--success` | `#6BE584` | inherits | Confirmations |
+| `--warning` | `#F5A64B` | inherits | Caution (⚠ same hex as --grade-c — see F-DC-01) |
 
 ### Grade palette (A+ → F, score chips)
 
 `--grade-aplus` `#6BE584` · `--grade-a` `#A3E067` · `--grade-b` `#F5D651` ·
 `--grade-c` `#F5A64B` · `--grade-d` `#F56E4B` · `--grade-f` `#E54B5E`.
 
-A diverging scale from green to red, intentionally more than 5 stops so
-the step between C and D is visually distinct (the scoring engine
-often decides between those two).
+Diverging scale from green to red, 6 stops. Used **as background fill**
+behind dark `--on-muted` text (`#1B1B1F`) — all six pass WCAG AA in both
+themes. Color-blind users are served by per-grade PATTERN OVERLAYS (dots,
+stripes, cross-hatch) on `.recent-grade`, `.compare-grade`, etc. — these
+patterns are protected (audit F-DC-03).
 
 ### Radii
 
-`--r-xs` 8 · `--r-sm` 12 · `--r-md` 18 · `--r-lg` 24 · `--r-xl` 32 · `--r-pill` 999.
+Generic scale: `--r-xs` 8 · `--r-sm` 12 · `--r-md` 18 · `--r-lg` 24 ·
+`--r-xl` 32 · `--r-pill` 999.
+Purpose-named (only those earning their place): `--r-input` 10 · `--r-modal-lg` 36.
 
-Cards use `--r-md` · buttons use `--r-pill` by default · full-screen
-dialogs use `--r-lg` on the top edges where they hang off the bottom of
-the viewport.
+Cards use `--r-md` · buttons use `--r-pill` · full-screen dialogs use
+`--r-lg` · settings dialogs `--r-modal-lg`.
+(Audit F-DTA-01 retired `--r-btn`, `--r-card`, `--r-badge`, `--r-modal` —
+they were pure aliases with 0 refs; call-sites go direct to the underlying.)
 
 ### Spacing scale
 
 `--sp-1` 4 · `--sp-2` 8 · `--sp-3` 12 · `--sp-4` 16 · `--sp-5` 20 · `--sp-6` 24 ·
-`--sp-7` 32 · `--sp-8` 48.
+`--sp-7` 32. (`--sp-8` retired; 0 refs.)
 
 All paddings, gaps, and margins reference this scale. No ad-hoc
 `padding: 14px`; if you're reaching for one, it's either a bug or a new
@@ -100,10 +115,8 @@ token.
 
 ### Borders + inputs
 
-`--border` (low-contrast line, typical dividers) · `--border-strong`
-(when a divider needs to read against a dim background) · `--input-bg`
-(distinguishable from the card surface so inputs don't blend in on
-`--panel-2` contexts) · `--on-muted` (text drawn on muted chips).
+`--border` · `--border-strong` · `--border-focus` (= `--accent-focus`) ·
+`--input-bg` · `--on-muted` (text drawn on muted chips).
 
 ## Theme switching
 
@@ -114,16 +127,17 @@ third option ("auto") watches `prefers-color-scheme` via
 
 ## Typography
 
-### Scale (v2)
+### Scale (v2, regenerated 2026-04 per audit F-DT-06)
 
 | Token | Size | Use |
 |---|---|---|
 | `--text-xs`   | 0.72rem (≈11.5px) | metadata, counters, timestamps |
-| `--text-sm`   | 0.85rem (≈13.6px) | secondary labels, chips |
+| `--text-sm`   | 0.87rem (≈13.9px) | secondary labels, chips (bumped from 0.85) |
 | `--text-base` | 1rem (16px)       | body default |
-| `--text-lg`   | 1.15rem (≈18.4px) | card headings |
-| `--text-xl`   | 1.5rem (24px)     | dashboard numerics |
-| `--text-2xl`  | 2rem (32px)       | scan grade, big numbers |
+| `--text-lg`   | 1.2rem  (≈19.2px) | card headings (bumped from 1.15) |
+| `--text-xl`   | 1.44rem (≈23px)   | dashboard numerics (was 1.5) |
+| `--text-2xl`  | 1.73rem (≈27.7px) | scan grade, big numbers (was 2.0) |
+(`--text-3xl` 2.07rem was defined but unused — retired 2026-04.)
 
 ### Numerics
 `--num-feat: "tnum", "lnum"` is set on `body`. Every dashboard /
@@ -136,8 +150,16 @@ columns align without custom `font-variant-numeric` rules per site.
 - Everything else: default (no manual tracking).
 
 ### Fonts
-- Font stack: system UI primary with an optional `--font-lexend` opt-in
-  (body can carry `.font-lexend` class — toggled from Settings).
+- **Body stack** (from `body { font-family: … }`): Atkinson Hyperlegible
+  → system UI chain. Lexend is opt-in via `.font-lexend` body class
+  (Settings → Reading → Font).
+- **Monospace:** `var(--font-mono)` → `ui-monospace, SFMono-Regular,
+  Menlo, Consolas, "Liberation Mono", monospace`. Used in `.app-toast-action`
+  and the progress-dialog CSV export textarea.
+- **Loading:** Google Fonts `<link>` in `index.html` (not CSS `@import`)
+  so discovery happens during HTML parse. 4 weights shipped: Atkinson
+  400/700, Lexend 400/600/700 (italic + Lexend 500 retired 2026-04 per
+  audit F-DT-01 — unused in the 131 weight declarations).
 - Two size modifiers on `<body>`: `.font-size-large` (20px) and
   `.font-size-xlarge` (22px). Default inherits from the browser.
 - No custom web fonts shipped by default — first paint stays under the
