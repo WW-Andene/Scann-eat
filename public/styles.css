@@ -6885,3 +6885,67 @@ button:disabled {
     transform: none;
   }
 }
+
+/* ==========================================================================
+   REFINE 3 — input states per art-direction §INPUTS spec.
+   Prescribed states:
+     Rest: inset shadow + subtle bg shift (already in place).
+     Hover: border shifts toward accent + bg lightens.
+     Focus: accent ring + bg brightens.
+     Filled: distinct from empty (persistent bg tone).
+     Error: border-colour + adjacent message (§DST3 panels shipped).
+     Disabled: reduced opacity + clear unavailability.
+   ========================================================================== */
+
+/* Hover border-shift — border becomes accent-dim at 50% alpha
+   when the user mouses over an input. Signals "hot" without
+   triggering the full focus ring. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not(:focus):not(:disabled):hover,
+textarea:not(:focus):not(:disabled):hover,
+select:not(:focus):not(:disabled):hover {
+  border-color: color-mix(in oklch, var(--accent-dim) 50%, var(--border));
+  background: color-mix(in oklch, var(--input-bg, var(--panel-2)) 88%, var(--accent-dim));
+}
+
+/* Focus — the unified coral halo (Unify 4) already handles the
+   ring. Here we add the border-colour shift to --accent (not
+   --accent-dim) + bg brightens. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--input-bg, var(--panel-2)) 75%, var(--panel));
+}
+
+/* Filled — inputs that contain a value get a persistent
+   bg-tone shift so they read distinct from empty. Uses
+   :not(:placeholder-shown) to detect user content; the
+   placeholder-shown pseudo matches an empty input that has
+   a placeholder. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not(:focus):not(:placeholder-shown),
+textarea:not(:focus):not(:placeholder-shown) {
+  background: color-mix(in oklch, var(--input-bg, var(--panel-2)) 86%, var(--panel));
+  border-color: color-mix(in oklch, var(--border-strong) 80%, var(--accent-dim));
+}
+
+/* Error — inputs in an invalid state get a --danger border +
+   a matching inset glow. Paired with .error-panel below the
+   field for text (Step 14). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):user-invalid,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"])[aria-invalid="true"],
+textarea:user-invalid,
+textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 0 0 2px color-mix(in oklch, var(--danger) 20%, transparent);
+}
+
+/* Disabled — reduced opacity + clear "unavailable" cursor. */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: saturate(0.6);
+}
