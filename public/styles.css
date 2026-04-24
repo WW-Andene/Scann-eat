@@ -5927,3 +5927,118 @@ a {
     max-width: 1320px;
   }
 }
+
+/* ==========================================================================
+   DESIGN MOVE A — capture section as a scanner viewfinder.
+   First surface users see; transforms from generic panel to a
+   framed viewfinder with cropping corner marks, subtle scan-line
+   background, and a hero-emphasised Analyser CTA.
+   ========================================================================== */
+
+.capture {
+  position: relative;
+  /* Warmer tinted surface so the capture reads as "the work area"
+     vs the "reference area" of the dashboard card. */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--panel) 88%, var(--accent-dim)) 0%,
+      var(--panel) 45%
+    );
+  /* Subtle horizontal scan-lines reminiscent of a viewfinder grid. */
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 38px,
+      color-mix(in oklch, var(--muted) 10%, transparent) 38px,
+      color-mix(in oklch, var(--muted) 10%, transparent) 39px
+    );
+}
+
+/* Four L-shaped cropping marks — one per corner of .capture.
+   Purely decorative, non-interactive, signals "framing a shot." */
+.capture::before,
+.capture::after,
+.capture > .capture-actions::before,
+.capture > .capture-actions::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent-dim);
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0.75;
+}
+.capture::before {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+}
+.capture::after {
+  top: 10px;
+  right: 10px;
+  border-left: none;
+  border-bottom: none;
+}
+.capture > .capture-actions {
+  position: relative;
+}
+.capture > .capture-actions::before {
+  bottom: -20px;
+  left: -10px;
+  border-right: none;
+  border-top: none;
+}
+.capture > .capture-actions::after {
+  bottom: -20px;
+  right: -10px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Analyser CTA — hero when enabled. Coral halo + slight scale
+   pulse on :not(:disabled) to say "ready." Falls flat (and dim)
+   when disabled (waiting on photos). */
+#scan-btn {
+  font-size: var(--text-lg, 1.15rem);
+  font-weight: 700;
+  min-height: 60px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: var(--r-md);
+}
+#scan-btn:not(:disabled) {
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--accent) 30%, transparent),
+    var(--elev-1-tonal, var(--elev-1));
+  animation: scanneat-scan-ready 2200ms var(--ease-ui, ease) infinite;
+}
+#scan-btn:disabled {
+  opacity: 0.55;
+  letter-spacing: 0.01em;
+}
+@keyframes scanneat-scan-ready {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px color-mix(in oklch, var(--accent) 30%, transparent),
+      var(--elev-1-tonal, var(--elev-1));
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px color-mix(in oklch, var(--accent) 22%, transparent),
+      var(--elev-2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #scan-btn:not(:disabled) { animation: none; }
+}
+
+/* Hint reads as a marginalia footnote under the capture frame. */
+.capture > .hint {
+  padding-left: var(--sp-4);
+  border-left: 2px solid color-mix(in oklch, var(--accent-dim) 28%, transparent);
+  font-style: italic;
+}
