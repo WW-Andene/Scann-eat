@@ -4000,7 +4000,27 @@ function renderLineChart(container, values, opts = {}) {
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('preserveAspectRatio', 'none');
   svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', opts.ariaLabel || 'chart');
+
+  // F-DDV-01 — chart a11y. Give the SVG a real name via <title>,
+  // describe the trend in <desc>, and cross-reference both with
+  // aria-labelledby/-describedby. Never fall back to the literal
+  // string "chart" — if callers don't provide ariaLabel, we at
+  // least say "Chart: N points" so screen readers get a number.
+  const ariaName = opts.ariaLabel || `Chart (${numeric.length} points)`;
+  const delta = numeric[numeric.length - 1] - numeric[0];
+  const direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+  const descText = `${numeric.length} points. Min ${round1(min)}, max ${round1(max)}. Trend ${direction}${delta !== 0 ? ' by ' + Math.abs(round1(delta)) : ''}${opts.unit ? ' ' + opts.unit : ''}.`;
+  const uid = 'pc-' + Math.random().toString(36).slice(2, 8);
+  const titleEl = document.createElementNS(SVG_NS, 'title');
+  titleEl.setAttribute('id', uid + '-t');
+  titleEl.textContent = ariaName;
+  const descEl = document.createElementNS(SVG_NS, 'desc');
+  descEl.setAttribute('id', uid + '-d');
+  descEl.textContent = descText;
+  svg.appendChild(titleEl);
+  svg.appendChild(descEl);
+  svg.setAttribute('aria-labelledby', uid + '-t');
+  svg.setAttribute('aria-describedby', uid + '-d');
 
   if (path_d) {
     const line = document.createElementNS(SVG_NS, 'path');
@@ -4015,6 +4035,13 @@ function renderLineChart(container, values, opts = {}) {
       dot.setAttribute('cx', last.x.toFixed(1));
       dot.setAttribute('cy', last.y.toFixed(1));
       dot.setAttribute('r', '3.5');
+      // Keyboard-focusable "latest value" marker with a per-point
+      // <title> so screen-reader users can get the exact number.
+      dot.setAttribute('tabindex', '0');
+      dot.setAttribute('role', 'img');
+      const dotTitle = document.createElementNS(SVG_NS, 'title');
+      dotTitle.textContent = `Latest: ${round1(numeric[numeric.length - 1])}${opts.unit ? ' ' + opts.unit : ''}`;
+      dot.appendChild(dotTitle);
       svg.appendChild(dot);
     }
     // Axis labels: min at bottom-left, max at top-left.
@@ -4073,9 +4100,9 @@ async function renderProgressCharts() {
     return Number.isFinite(n) && n > 0 ? n : null;
   });
 
-  const w = renderLineChart($('progress-weight-chart'), weightSeries, { ariaLabel: t('progressWeight') });
-  const k = renderLineChart($('progress-kcal-chart'), kcalSeries, { ariaLabel: t('progressKcal') });
-  const wt = renderLineChart($('progress-water-chart'), waterSeries, { ariaLabel: t('progressWater') });
+  const w = renderLineChart($('progress-weight-chart'), weightSeries, { ariaLabel: t('progressWeight'), unit: 'kg' });
+  const k = renderLineChart($('progress-kcal-chart'), kcalSeries, { ariaLabel: t('progressKcal'), unit: 'kcal' });
+  const wt = renderLineChart($('progress-water-chart'), waterSeries, { ariaLabel: t('progressWater'), unit: 'ml' });
 
   const fmtSummary = (el, res) => {
     if (!el) return;
