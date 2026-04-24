@@ -127,7 +127,7 @@
   box-shadow: var(--elev-2);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition: opacity var(--motion-enter) var(--ease-ui), transform var(--motion-enter) var(--ease-ui);
   z-index: 10000;
   max-width: min(520px, 92vw);
   text-align: center;
@@ -197,7 +197,7 @@
   font-weight: 700;
   text-decoration: none;
   z-index: 9999;
-  transition: top 160ms ease;
+  transition: top var(--motion-enter) var(--ease-ui);
 }
 .skip-link:focus-visible {
   top: var(--sp-3, 12px);
@@ -267,10 +267,10 @@ h1, h2, h3, h4 {
   background: var(--accent);
   color: var(--accent-ink);
 }
-h1 { font-size: 1.55em; }
-h2 { font-size: 1.25em; }
-h3 { font-size: 1.05em; }
-h4 { font-size: 1em; }
+h1 { font-size: var(--text-xl); }
+h2 { font-size: var(--text-lg); }
+h3 { font-size: var(--text-base); }
+h4 { font-size: var(--text-base); }
 p  { margin: 0; }
 
 strong { font-weight: 700; }
@@ -360,7 +360,7 @@ header h1 {
   border: none;
   display: grid;
   place-items: center;
-  transition: transform 140ms ease, background 140ms ease;
+  transition: transform var(--motion-base) var(--ease-ui), background var(--motion-base) var(--ease-ui);
 }
 .settings-btn:active { transform: scale(0.94); background: var(--surface-pressed); }
 .settings-btn:hover  { background: var(--surface-hover); }
@@ -385,7 +385,7 @@ button {
   min-height: 56px;   /* large tap target */
   background: var(--accent);
   color: var(--accent-ink);
-  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+  transition: transform var(--motion-base) var(--ease-ui), opacity var(--motion-base) var(--ease-ui), background var(--motion-base) var(--ease-ui);
 }
 button:active { transform: scale(0.98); }
 button:hover:not(:disabled) { filter: brightness(1.05); }
@@ -607,7 +607,7 @@ summary:focus-visible,
   font-weight: 500;
   min-height: 52px;
   box-sizing: border-box;
-  transition: border-color 120ms ease;
+  transition: border-color var(--motion-base) var(--ease-ui);
 }
 .settings-dialog input:focus-visible,
 .settings-dialog select:focus-visible,
@@ -687,7 +687,7 @@ body.returning-user main > .capture         { order: 1; }
   font-weight: 700;
   text-align: left;
   cursor: pointer;
-  transition: transform 120ms ease;
+  transition: transform var(--motion-base) var(--ease-ui);
 }
 .capture-btn:active { transform: scale(0.985); }
 .capture-btn:hover:not(:disabled) { filter: brightness(1.05); }
@@ -1236,7 +1236,7 @@ body.returning-user main > .capture         { order: 1; }
   border: 2px solid transparent;
   border-radius: var(--r-md);
   cursor: pointer;
-  transition: border-color 140ms ease, transform 100ms ease;
+  transition: border-color var(--motion-base) var(--ease-ui), transform var(--motion-fast) var(--ease-ui);
 }
 
 /* ========== ALTERNATIVES ================================================
@@ -1421,7 +1421,7 @@ body.returning-user main > .capture         { order: 1; }
   font-size: 1em;
   cursor: pointer;
   margin-bottom: var(--sp-3);
-  transition: transform 120ms ease;
+  transition: transform var(--motion-base) var(--ease-ui);
 }
 .qa-voice-btn[data-state="listening"] {
   background: var(--danger);
@@ -1865,7 +1865,7 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   width: 10px; height: 10px;
   border-radius: 50%;
   background: var(--border-strong);
-  transition: background 180ms ease;
+  transition: background var(--motion-enter) var(--ease-ui);
 }
 .ob-dot.active { background: var(--accent); width: 28px; border-radius: var(--r-pill); }
 
@@ -2961,7 +2961,7 @@ body.reduce-motion .wbar-col { transition: none; }
   width: 0%;
   background: linear-gradient(90deg, #4FC3F7, #29B6F6);
   border-radius: var(--r-pill);
-  transition: width 240ms ease;
+  transition: width var(--motion-enter) var(--ease-ui);
 }
 body.reduce-motion .hyd-fill { transition: none; }
 .hyd-fill[data-state="done"] { background: linear-gradient(90deg, var(--grade-a), var(--grade-aplus)); }
@@ -3087,7 +3087,7 @@ body.reduce-motion .hyd-fill { transition: none; }
   display: block;
   height: 100%;
   background: var(--accent);
-  transition: width 260ms ease;
+  transition: width var(--motion-nav) var(--ease-ui);
   border-radius: var(--r-pill);
 }
 .dash-fill[data-state="ok"]   { background: var(--success); }
@@ -3146,7 +3146,7 @@ body.reduce-motion .hyd-fill { transition: none; }
   content: "▸  ";
   display: inline-block;
   width: 1em;
-  transition: transform 160ms ease;
+  transition: transform var(--motion-enter) var(--ease-ui);
 }
 .dashboard-log[open] summary::before { content: "▾  "; }
 #dashboard-entries {
@@ -3619,7 +3619,7 @@ button {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.1s ease, opacity 0.15s ease;
+  transition: transform var(--motion-fast) var(--ease-ui), opacity var(--motion-exit) var(--ease-ui);
 }
 button:hover { opacity: 0.92; }
 button:active { transform: scale(0.98); }
@@ -3893,7 +3893,7 @@ button:active { transform: scale(0.98); }
 }
 .flag-col li.explainable {
   cursor: pointer;
-  transition: background 120ms ease;
+  transition: background var(--motion-base) var(--ease-ui);
 }
 .flag-col li.explainable:hover { background: var(--panel-3); }
 
@@ -3921,7 +3921,7 @@ details > summary::before {
   display: inline-block;
   width: 1.2em;
   color: var(--muted);
-  transition: transform 160ms ease;
+  transition: transform var(--motion-enter) var(--ease-ui);
 }
 details[open] > summary::before { content: "▾  "; }
 details ul, details ol {
@@ -7009,7 +7009,7 @@ button:disabled {
 }
 .recent-item:active {
   transform: translateY(0) scale(0.995);
-  transition-duration: 80ms;
+  transition-duration: var(--motion-fast);
 }
 
 .pairing-chip:hover {
@@ -7021,7 +7021,7 @@ button:disabled {
 }
 .pairing-chip:active {
   transform: translateY(0) scale(0.97);
-  transition-duration: 80ms;
+  transition-duration: var(--motion-fast);
 }
 
 /* Alt-item (alternatives list) gets the same lift. */
@@ -7181,7 +7181,7 @@ body.reduce-motion::after { display: none; }
 .capture[aria-busy="true"] > details {
   opacity: 0.35;
   filter: saturate(0.6);
-  transition: opacity 200ms var(--ease-ui, ease), filter 200ms var(--ease-ui, ease);
+  transition: opacity var(--motion-enter) var(--ease-ui), filter var(--motion-enter) var(--ease-ui);
 }
 
 /* Scanning sweep — a coral gradient line that moves across the
