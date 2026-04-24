@@ -6415,3 +6415,91 @@ a {
 #nutrition-list li:nth-child(even) strong {
   background: color-mix(in oklch, var(--panel) 94%, var(--accent-dim));
 }
+
+/* ==========================================================================
+   DESIGN MOVE H — queue photos as polaroid prints.
+   Queue items were 1:1 black squares with a transparent border.
+   Transforms each into a polaroid-style print: cream photo frame
+   around the image, slight alternating rotation, soft drop shadow.
+   The row of queued photos now reads as "a stack of Polaroids
+   waiting to be processed," matching the paper/notebook identity.
+   ========================================================================== */
+
+.queue {
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0 var(--sp-4);
+}
+
+.queue-item {
+  aspect-ratio: 1 / 1.15;        /* Classic polaroid 1 : 1.15 ratio */
+  background: var(--panel);
+  padding: 8px 8px 24px;          /* Bigger white bottom border */
+  border: 1px solid color-mix(in oklch, var(--border-strong) 40%, transparent);
+  border-radius: 4px;
+  overflow: visible;               /* Let the drop shadow breathe */
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.14),
+    0 6px 16px rgba(0, 0, 0, 0.10);
+  transition:
+    transform var(--motion-base, 140ms) var(--ease-ui, ease),
+    box-shadow var(--motion-base, 140ms) var(--ease-ui, ease);
+}
+
+.queue-item img {
+  border-radius: 2px;
+  /* The image is clipped by the padding into the print's viewport. */
+  background: #000;
+}
+
+/* Alternate tilt — each print rotates slightly so the grid
+   reads as "hand-placed" not "lined up." :nth-child varies.
+   When hovered / focused, straighten + lift — the user is
+   picking up the print. */
+.queue-item:nth-child(odd)  { transform: rotate(-1.5deg); }
+.queue-item:nth-child(even) { transform: rotate(1.2deg); }
+.queue-item:nth-child(3n)   { transform: rotate(-0.6deg); }
+.queue-item:hover,
+.queue-item:focus-within {
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.18),
+    0 14px 28px rgba(0, 0, 0, 0.14);
+  border-color: color-mix(in oklch, var(--accent-dim) 60%, transparent);
+  z-index: 2;
+}
+
+.queue-item.has-barcode {
+  border: 1px solid var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--accent) 25%, transparent),
+    0 1px 2px rgba(0, 0, 0, 0.14),
+    0 6px 16px rgba(0, 0, 0, 0.10);
+}
+
+/* Barcode label becomes a "handwritten caption" on the polaroid's
+   bottom border. */
+.queue-barcode {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 4px;
+  font-size: var(--text-xs, 0.72rem);
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-style: italic;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.queue-item.has-barcode .queue-barcode { color: var(--accent); }
+
+/* Reduced-motion users get perfectly-aligned prints (no tilt). */
+@media (prefers-reduced-motion: reduce) {
+  .queue-item,
+  .queue-item:nth-child(odd),
+  .queue-item:nth-child(even),
+  .queue-item:nth-child(3n) {
+    transform: none;
+  }
+}
