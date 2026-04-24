@@ -1489,6 +1489,25 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   color: var(--success, var(--accent));
   border-left: 3px solid var(--success, var(--accent));
 }
+/* F-DST-05 — LLM-loading visual cue. Subtle pulse on the status bg
+   tells the user something is happening during the 3–10 s the LLM
+   round-trips; complements the rotating phase text set in JS. */
+.qa-ai-status[data-state="loading"] {
+  border-left: 3px solid var(--accent-dim);
+  background: linear-gradient(90deg,
+    var(--panel-2) 0%,
+    color-mix(in oklch, var(--panel-2) 80%, var(--accent)) 50%,
+    var(--panel-2) 100%);
+  background-size: 200% 100%;
+  animation: qa-ai-loading var(--motion-loop-long) ease-in-out infinite;
+}
+@keyframes qa-ai-loading {
+  0%   { background-position: 0% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qa-ai-status[data-state="loading"] { animation: none; background: var(--panel-2); }
+}
 .recent-item:hover { border-color: var(--accent); }
 .recent-item:active { transform: scale(0.99); }
 .recent-thumb {

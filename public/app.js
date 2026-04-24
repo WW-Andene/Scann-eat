@@ -2721,11 +2721,32 @@ const qaAiStatus = $('qa-ai-status');
 
 function setQaStatus(text, state) {
   if (!qaAiStatus) return;
+  // Stop any rotating-phase loop when the caller transitions to a
+  // final text (success/warn/error/empty).
+  if (_qaPhaseTimer) { clearInterval(_qaPhaseTimer); _qaPhaseTimer = null; }
   if (!text) { hide(qaAiStatus); return; }
   qaAiStatus.textContent = text;
   if (state) qaAiStatus.dataset.state = state;
   else delete qaAiStatus.dataset.state;
   show(qaAiStatus);
+}
+
+// F-DST-05 — rotating-phase loading indicator for async LLM ops.
+// Replaces the single static "Analyse en cours…" line while the LLM
+// round-trips (often 3–10 s). phases[] rotates every 1.4 s; caller
+// calls setQaStatus(finalText, state) to stop.
+let _qaPhaseTimer = null;
+function setQaLoadingPhases(phases) {
+  if (!qaAiStatus || !Array.isArray(phases) || phases.length === 0) return;
+  if (_qaPhaseTimer) clearInterval(_qaPhaseTimer);
+  let i = 0;
+  qaAiStatus.textContent = phases[0];
+  qaAiStatus.dataset.state = 'loading';
+  show(qaAiStatus);
+  _qaPhaseTimer = setInterval(() => {
+    i = (i + 1) % phases.length;
+    qaAiStatus.textContent = phases[i];
+  }, 1400);
 }
 
 // Shared helper for the three qa-photo-* flows. Takes the image payload
@@ -2764,7 +2785,12 @@ qaPhotoInput?.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   e.target.value = ''; // allow re-selecting the same file
   if (!file) return;
-  setQaStatus(t('identifyingFood'));
+  // F-DST-05: phase-rotating status while the LLM round-trips.
+  setQaLoadingPhases([
+    t('identifyPhaseCompressing'),
+    t('identifyPhaseAnalyzing'),
+    t('identifyPhaseReconciling'),
+  ]);
   try {
     const compressed = await compressImage(file);
     const images = [{ base64: compressed.base64, mime: compressed.mime }];
@@ -2802,7 +2828,11 @@ $('qa-photo-multi-input')?.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   e.target.value = '';
   if (!file) return;
-  setQaStatus(t('identifyingFood'));
+  setQaLoadingPhases([
+    t('identifyPhaseCompressing'),
+    t('identifyPhasePlateItems'),
+    t('identifyPhaseReconciling'),
+  ]);
   try {
     const compressed = await compressImage(file);
     const images = [{ base64: compressed.base64, mime: compressed.mime }];
@@ -2857,7 +2887,10 @@ $('qa-photo-menu-input')?.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   e.target.value = '';
   if (!file) return;
-  setQaStatus(t('identifyingMenu'));
+  setQaLoadingPhases([
+    t('identifyPhaseCompressing'),
+    t('identifyPhaseMenu'),
+  ]);
   try {
     const compressed = await compressImage(file);
     const images = [{ base64: compressed.base64, mime: compressed.mime }];

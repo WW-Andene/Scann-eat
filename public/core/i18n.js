@@ -25,6 +25,12 @@ export const STRINGS = {
     start: 'Commencer',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'Tous les objectifs atteints aujourd\'hui 🌿',
+    // F-DST-05 — LLM phase-rotating status messages
+    identifyPhaseCompressing: 'Compression de l\'image…',
+    identifyPhaseAnalyzing: 'Identification de l\'aliment…',
+    identifyPhaseReconciling: 'Croisement avec la base CIQUAL…',
+    identifyPhasePlateItems: 'Détection des éléments du plat…',
+    identifyPhaseMenu: 'Lecture des plats du menu…',
     // F-F-05 — CSV import skipped-row details
     csvImportSkippedDetails_one: 'Voir la ligne ignorée',
     csvImportSkippedDetails_other: 'Voir les {n} lignes ignorées',
@@ -774,6 +780,12 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     start: 'Start',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'All targets met today 🌿',
+    // F-DST-05 — LLM phase-rotating status messages
+    identifyPhaseCompressing: 'Compressing image…',
+    identifyPhaseAnalyzing: 'Identifying food…',
+    identifyPhaseReconciling: 'Cross-checking with CIQUAL database…',
+    identifyPhasePlateItems: 'Detecting plate items…',
+    identifyPhaseMenu: 'Reading menu dishes…',
     // F-F-05 — CSV import skipped-row details
     csvImportSkippedDetails_one: 'Show the skipped row',
     csvImportSkippedDetails_other: 'Show the {n} skipped rows',
