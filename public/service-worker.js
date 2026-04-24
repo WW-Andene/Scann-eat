@@ -2,7 +2,14 @@
 // Missing modules used to hydrate via stale-while-revalidate on first
 // online use, but first-launch-offline-after-install crashed on their
 // imports. Every module the app reaches at boot now precaches.
-const CACHE = 'scann-eat-shell-r35';
+//
+// r36 — bump after ~60 commits of UI/UX rework (coral gradient,
+// notebook signature, tile grid, per-meal time-of-day cues, polaroid
+// queue, tonal shadows, focal glow, milestone-burst, forced-colors,
+// dashboard tile grid HTML restructure, etc.). Any already-installed
+// PWA was serving the pre-session CSS/JS out of r35; r36 forces a
+// fresh fetch on next load so the visible delta actually lands.
+const CACHE = 'scann-eat-shell-r36';
 const SHELL = [
   '/',
   '/index.html',
