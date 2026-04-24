@@ -7104,3 +7104,51 @@ body.reduce-motion::after { display: none; }
     background-position: 0 40%, 0 0;
   }
 }
+
+/* ==========================================================================
+   §CULTURAL — language-aware typography (art-direction §CULTURAL).
+   French typography prefers hyphenation rules + proper non-breaking
+   spacing. Tag-level lang targeting keeps these scoped per content.
+   ========================================================================== */
+
+:lang(fr) {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphenate-limit-chars: 6 3 3;          /* word / before / after */
+}
+:lang(en) {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+
+/* ==========================================================================
+   §DCO5 + §DH1 — scroll-fade mask on scrollable dialogs.
+   Long settings / recipe / planning dialogs were abrupt at the top
+   and bottom of their scroll area. A linear mask fades content
+   into/out of view so scrolling reads continuous.
+   ========================================================================== */
+
+dialog.settings-dialog {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 24px,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 24px,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+}
+
+/* Opt-out for dialogs that shouldn't fade (e.g. very short dialogs
+   where the fade would trim the title). Short dialogs can add
+   .no-scroll-fade to disable. */
+dialog.settings-dialog.no-scroll-fade {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
