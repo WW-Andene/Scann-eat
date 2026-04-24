@@ -986,6 +986,15 @@ async function openGroceryList() {
       grams.textContent = it.grams > 0 ? `${it.grams} g` : '';
       li.appendChild(name);
       li.appendChild(grams);
+      // F-F-04: show per-ingredient recipe breakdown when the
+      // ingredient is used in ≥ 2 recipes (the "why 400g of oignon?"
+      // question). Single-source rows stay clean.
+      if (Array.isArray(it.sources) && it.sources.length > 1) {
+        const from = document.createElement('span');
+        from.className = 'grocery-from';
+        from.textContent = t('groceryFrom', { sources: it.sources.join(' + ') });
+        li.appendChild(from);
+      }
       list.appendChild(li);
     }
   }
@@ -1265,6 +1274,14 @@ $('meal-plan-grocery')?.addEventListener('click', async (e) => {
       grams.textContent = it.grams > 0 ? `${it.grams} g` : '';
       li.appendChild(name);
       li.appendChild(grams);
+      // F-F-04: per-ingredient source breakdown (same treatment as
+      // the recipes-dialog path — keeps both flows in sync).
+      if (Array.isArray(it.sources) && it.sources.length > 1) {
+        const from = document.createElement('span');
+        from.className = 'grocery-from';
+        from.textContent = t('groceryFrom', { sources: it.sources.join(' + ') });
+        li.appendChild(from);
+      }
       list.appendChild(li);
     }
   }

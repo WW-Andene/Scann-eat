@@ -7582,3 +7582,14 @@ dialog.settings-dialog.no-scroll-fade {
   padding: 2px 0;
   border-bottom: 1px dashed var(--border);
 }
+
+/* F-F-04 — per-ingredient recipe-source hint under the gram count.
+   Subtle, italic, muted — answers "why 400g of oignon?" without
+   cluttering the list. Only renders when sources.length > 1. */
+.grocery-from {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 2px;
+}

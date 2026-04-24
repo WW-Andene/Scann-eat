@@ -25,6 +25,8 @@ export const STRINGS = {
     start: 'Commencer',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'Tous les objectifs atteints aujourd\'hui 🌿',
+    // F-F-04 — grocery per-ingredient recipe breakdown
+    groceryFrom: '↳ {sources}',
     // F-DST-05 — LLM phase-rotating status messages
     identifyPhaseCompressing: 'Compression de l\'image…',
     identifyPhaseAnalyzing: 'Identification de l\'aliment…',
@@ -780,6 +782,8 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     start: 'Start',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'All targets met today 🌿',
+    // F-F-04 — grocery per-ingredient recipe breakdown
+    groceryFrom: '↳ {sources}',
     // F-DST-05 — LLM phase-rotating status messages
     identifyPhaseCompressing: 'Compressing image…',
     identifyPhaseAnalyzing: 'Identifying food…',
