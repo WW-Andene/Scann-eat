@@ -6584,3 +6584,81 @@ button:not(.secondary):not(.btn-destructive):not(.btn-loading):not(.chip-btn):no
     0 8px 24px color-mix(in oklch, var(--grade-f) 30%, transparent),
     var(--elev-1-tonal, var(--elev-1));
 }
+
+/* ==========================================================================
+   UNIFY 2 — notebook-margin rule as the app's visual logo.
+   The 2px coral-dim vertical band lived only on .score-card::before.
+   Extends to every top-level hero card so it becomes the shared
+   signature visible on every screen. Implemented via a new
+   .hero-card-rule selector list rather than a class so HTML
+   stays untouched.
+   ========================================================================== */
+
+.daily-dashboard,
+.recent-scans,
+dialog.settings-dialog,
+.alternatives,
+.progress-dialog-card,
+.product {
+  position: relative;
+}
+
+.daily-dashboard::before,
+.recent-scans::before,
+dialog.settings-dialog::before,
+.alternatives::before,
+.progress-dialog-card::before,
+.product::before {
+  content: "";
+  position: absolute;
+  top: var(--sp-5);
+  bottom: var(--sp-5);
+  left: calc(var(--sp-3) + 2px);
+  width: 2px;
+  background: var(--grad-accent-dim);
+  border-radius: 2px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Padding-left bump on hero cards so content sits clear of the
+   margin rule. Uses extra-left-padding variable so existing
+   rules keep their horizontal rhythm. */
+.daily-dashboard,
+.recent-scans,
+.alternatives,
+.progress-dialog-card,
+.product {
+  padding-left: calc(var(--sp-5) + 8px);
+}
+dialog.settings-dialog {
+  padding-left: calc(var(--sp-6) + 8px);
+}
+
+/* .score-card already has a ::before from Move 1 — promote its
+   solid --accent-dim to the gradient so the app's signature
+   moment matches every other hero card. */
+.score-card::before {
+  background: var(--grad-accent-dim);
+  opacity: 0.6;
+}
+
+/* .pairings (Move E) has a solid left border in a different
+   coral tone — migrate to the gradient so it reads as the same
+   family. */
+.pairings {
+  border-left: none;
+  position: relative;
+}
+.pairings::before {
+  content: "";
+  position: absolute;
+  top: var(--sp-3);
+  bottom: var(--sp-3);
+  left: 0;
+  width: 3px;
+  background: var(--grad-accent);
+  border-radius: 3px 0 0 3px;
+  pointer-events: none;
+  opacity: 0.85;
+}
