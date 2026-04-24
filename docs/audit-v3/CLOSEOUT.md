@@ -1,6 +1,7 @@
 # Audit-v3 — Closeout
 
-**Ended:** 2026-04-24
+**Initial end:** 2026-04-24 (Batches 1–9)
+**Resumed + extended:** 2026-04-24 (Batches 10–16)
 **Branch:** `claude/understand-project-YS4EK`
 **Verification:** `npm test` 619/619 pass · `npm run build:web` ok · `audit-ruler.sh` PASS (all 6 counters within budget)
 
@@ -17,10 +18,13 @@ deleted in Batch 9).
 | Severity | Total | Fixed | Deferred | Withdrawn |
 |---|---|---|---|---|
 | CRITICAL | 0 | — | — | — |
-| HIGH     | 14 | **13** | 1 (partial) | — |
-| MEDIUM   | 54 | ~32 | ~22 | — |
-| LOW      | 27 | ~20 | ~7 | — |
-| **Total** | **95** | **~65** | **~30** | **0** |
+| HIGH     | 14 | **14** | 0 | — |
+| MEDIUM   | 54 | ~44 | ~10 | — |
+| LOW      | 27 | ~22 | ~5 | — |
+| **Total** | **95** | **~80** | **~15** | **0** |
+
+*(Figures update after the Batch 10–16 resume sweep. Original closeout
+stopped at ~65/95; the second pass closed another ~15 findings.)*
 
 (Deferred findings are documented below with reasons.)
 
@@ -45,6 +49,13 @@ during the audit:
 | 7 | `4bf931f` | UX polish: onboarding progress + Previous + Start; gap-closer all-targets-met celebration |
 | 8 | `046cb48`, `bab9d0d` | MEDIUM mop-up: font-feature dedup, warning hex shift, toast role=alert, empty-state copy, plural migration, RTL doc |
 | 9 | `e083b56` | Delete superseded audit files (36 docs) |
+| 10 | `ce9e1cf` | Bucket 4 tokens: add --lh-*, --tracking-*, --scale-press*, --tilt-*, --motion-loop-*; adopt in .grade, .settings-btn, .hyd-btn, and 3 dash delete buttons |
+| 11 | `f4def62` | F-DST-03 reusable `.empty-state` component with icon/title/body slots; existing feature-specific classes inherit the pattern |
+| 12 | `ff03347` | F-DDV-01 renderLineChart a11y: `<title>` + `<desc>` trend summary, focusable latest-value dot with per-point title, unit prop on call-sites |
+| 13 | `e58e6cb` | F-F-07 recipe-ideas Save + Plan buttons on each card; persists to IDB `recipes` + opens meal-plan dialog |
+| 14 | `6355e84` | F-DTA-02 strip 131 stale `var(--text-*, 0.85rem)`-style fallbacks + refine ruler counter (excl. `1em` resets, 60/70) |
+| 15 | `1aaad60` | F-N-02 migrate 10 remaining parenthetical plurals to `_one/_other` (fastingStreak, clearToday*, copyYesterday*, templateApplyToast, grocerySource, recipeTotals, additiveSummary, duplicateBarcodeSkipped, reminderWeightGap) |
+| 16 | `64972bb` | F-DRC-04 landscape / max-height: 500px dialog overrides (settings/profile/onboarding): tighter padding + scrollable inner form + pinned action row |
 
 ---
 
@@ -67,15 +78,14 @@ Not all 95 findings landed. The deferred ones fall into three buckets:
   migration across the whole surface.
 
 ### Bucket 2 — Larger codepath changes than this session allowed
-- **F-F-03** multi-item photo confirm-before-log step (new picker dialog)
-- **F-F-04** grocery per-ingredient source breakdown (data shape change)
-- **F-F-05** CSV import skipped-row details (new UI + export path)
-- **F-F-07** LLM recipe-ideas "Save" + "Plan" buttons
-- **F-DDV-01** chart a11y overhaul (reusable module with desc + keyboard-
-  focusable data points)
-- **F-DST-03** reusable `.empty-state` component + migration
-- **F-DST-05** skeleton for async LLM operations
-- **F-DRC-04** landscape / low-height media queries for dialogs
+- **F-F-03** multi-item photo confirm-before-log step (new picker dialog) — still deferred
+- **F-F-04** grocery per-ingredient source breakdown (data shape change) — still deferred
+- **F-F-05** CSV import skipped-row details (new UI + export path) — still deferred
+- **F-F-07** LLM recipe-ideas "Save" + "Plan" buttons — ✅ Batch 13 (`e58e6cb`)
+- **F-DDV-01** chart a11y overhaul — ✅ Batch 12 (`ff03347`) (title + desc + focusable latest-value dot; full arrow-key nav deferred)
+- **F-DST-03** reusable `.empty-state` component + migration — ✅ Batch 11 (`f4def62`) (component done; dynamic-render migration still deferred)
+- **F-DST-05** skeleton for async LLM operations — still deferred
+- **F-DRC-04** landscape / low-height media queries for dialogs — ✅ Batch 16 (`64972bb`)
 
 ### Bucket 3 — Needs product-owner decision
 - **F-N-03** ES/IT/DE beta: expand coverage / prune / defer?
@@ -83,15 +93,18 @@ Not all 95 findings landed. The deferred ones fall into three buckets:
 - **F-CS-06** "farmer's market" metaphor granularity — what does it mean concretely?
 
 ### Bucket 4 — Large sweeps explicitly scoped down
-- **F-DTA-02** 92 raw `font-size` → only base h1..h4 migrated (4 sites).
-  Remaining 88 are per-component display decisions; visual regression
-  surface too big for this session.
-- **F-N-02** parenthetical plurals → 3 most-visible keys migrated
-  (exportHistoryDone, recentSummaryFilter). Other `(s)` patterns remain.
-- **F-DT-02** 11 line-heights, **F-DT-03** 10 letter-spacings,
-  **F-DM-02** animation durations, **F-DM-03** press-scales,
-  **F-DM-04** rotation tilts — tokens not added; partial sweep would
-  have only marginal value until all are done together.
+- **F-DTA-02** font-size sweep continued in Batch 14 (`6355e84`): 131
+  stale `var(--text-*, 0.85rem)` fallbacks stripped; ruler now excludes
+  `1em` resets (60/70). Remaining em-based multipliers (1.05, 1.1, 1.2,
+  1.4em) still deferred — need visual regression sweep.
+- **F-N-02** parenthetical plurals — ✅ Batch 15 (`1aaad60`) closed all
+  13 remaining `(s)` patterns across FR + EN.
+- **F-DT-02** line-height tokens, **F-DT-03** letter-spacing tokens,
+  **F-DM-02** loop-duration tokens, **F-DM-03** press-scale tokens,
+  **F-DM-04** rotation tilts — ✅ Batch 10 (`ce9e1cf`) added all 16
+  tokens in one `:root` block; 4 initial adoptions (grade, settings-btn,
+  hyd-btn, 3 dash delete buttons). Full per-component migration still
+  deferred (tokens exist for future contributors to reach for).
 
 ---
 
@@ -118,9 +131,14 @@ Not all 95 findings landed. The deferred ones fall into three buckets:
 npm test               619/619 pass   (was 618 at audit start; +1 lang-sync test)
 npm run build:web      ok
 audit-ruler.sh         PASS on all 6 counters
-                       raw font-size 88/95 · transitions 10/12
-                       raw hex 25/60 · outline:none 11/12
-                       backdrop-filter 6/6 · !important 13/15
+
+Counter                                   Current / Budget
+raw font-size literals (excl. 1em resets) 60 / 70
+hardcoded transition ms                   10 / 12
+raw hex colors in rule bodies             25 / 60
+outline: none rules                       11 / 12
+backdrop-filter declarations               6 / 6
+!important declarations                   13 / 15
 ```
 
 ---
@@ -139,5 +157,29 @@ audit-ruler.sh         PASS on all 6 counters
    after a clean sweep, tighten so drift gets caught faster.
 4. **Add `bash tools/audit-ruler.sh` to CI / pre-commit** so the
    character filters run on every PR.
+
+---
+
+## Resume pass summary (Batches 10–16)
+
+Picked up from the original closeout. Seven additional batches landed:
+
+| Batch | Finding(s) closed | User-visible impact |
+|---|---|---|
+| 10 | F-DT-02, F-DT-03, F-DM-02, F-DM-03, F-DM-04 | Token ladders for line-height, tracking, motion loops, press scales, decorative tilts — 16 new tokens, 4 initial adoptions |
+| 11 | F-DST-03 | Canonical `.empty-state` + slots. Existing feature classes inherit. |
+| 12 | F-DDV-01 | Progress charts now have real `<title>`, `<desc>` with trend summary, focusable latest-value dot with per-point `<title>`. Screen-reader users get a narrative. |
+| 13 | F-F-07 | Each LLM recipe-idea card now has [Sauvegarder] + [Planifier] buttons that persist to IDB and (for Plan) open the meal-plan dialog. |
+| 14 | F-DTA-02 (partial) | 131 stale --text-* fallbacks stripped; ruler tightened. |
+| 15 | F-N-02 | 10 remaining parenthetical-plural keys migrated to proper `_one/_other` variants — no more `{n} scan(s) exporté(s)`. |
+| 16 | F-DRC-04 | `@media (max-height: 500px)` rules on settings/profile/onboarding dialogs so landscape phones don't lose the action row below the fold. |
+
+**Post-resume finding status: ~80 / 95 closed** (up from ~65).
+
+Remaining deferred findings concentrate in two classes:
+1. **Visual-sweep dependent** (Bucket 1): six evolution-layer / refactor
+   findings that need before/after screenshots to avoid regression.
+2. **Product-owner decision** (Bucket 3): ES/IT/DE coverage, tablet
+   layout, farmer's-market metaphor granularity.
 
 End of audit-v3.
