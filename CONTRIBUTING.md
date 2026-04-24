@@ -61,6 +61,23 @@ tests`. When in doubt, apply them.
 
 ---
 
+## Button families (per audit F-DCO-05)
+
+Five button classes exist; the cleanest mental model is three families:
+
+| Family | Class(es) | When to use |
+|---|---|---|
+| **Icon-only** | `.settings-btn` | Gear / profile / dismiss / torch — tiny glyph-only controls. Always give an explicit `aria-label`. |
+| **Pill chip** | `.chip-btn` | The workhorse. `+ .accent` = primary action; `+ .compact` = dense list row. Default for almost every CTA. |
+| **Hero display** | `.capture-btn`, `.log-btn` | Large rectangular action buttons on the scan + log flow (Scanner, Logger). Not for secondary actions. |
+| *modifier* | `.secondary` | Applied on top of any of the above to de-emphasize. |
+
+If a proposed button doesn't fit these, open an issue — don't invent a
+sixth family. The design-system lists three primitives (Card/Chip/Row);
+buttons should stay in line with that vocabulary.
+
+---
+
 ## Dialog shell naming (`.modal-dialog`)
 
 Historically every modal used `class="settings-dialog"` whether or not
