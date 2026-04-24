@@ -4085,6 +4085,11 @@ details li.warn     { color: var(--warning); }
   /* type feature settings — enable numerics tabular everywhere values
      are compared (dashboards, macros, grade scores) */
   --num-feat: "tnum", "lnum";
+  /* §OPENTYPE — advanced features enabled globally:
+     "kern"=kerning (proper letter spacing)
+     "liga"=standard ligatures (fi, fl, etc.)
+     "calt"=contextual alternates (Atkinson pairs) */
+  --type-feat: "kern" 1, "liga" 1, "calt" 1;
 }
 [data-theme="light"] {
   --bg: #F6D0D6;                       /* cooler than prior #F8C8CF */
@@ -4098,7 +4103,10 @@ body {
      shouting. Reduce-motion users still see the static version. */
   background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
   background-attachment: fixed;
-  font-feature-settings: var(--num-feat);
+  /* Full OpenType stack: kerning + ligatures + contextual alternates
+     + tabular + lining numerics. One declaration covers every
+     typographic refinement the skill's §OPENTYPE chapter prescribes. */
+  font-feature-settings: var(--type-feat), var(--num-feat);
 }
 body.reduce-motion { background: var(--bg); }
 
