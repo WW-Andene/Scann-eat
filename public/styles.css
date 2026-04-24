@@ -366,7 +366,7 @@ header h1 {
   place-items: center;
   transition: transform var(--motion-base) var(--ease-ui), background var(--motion-base) var(--ease-ui);
 }
-.settings-btn:active { transform: scale(0.94); background: var(--surface-pressed); }
+.settings-btn:active { transform: scale(var(--scale-press-sm)); background: var(--surface-pressed); }
 .settings-btn:hover  { background: var(--surface-hover); }
 .settings-btn:focus-visible {
   outline: 3px solid var(--accent);
@@ -2991,7 +2991,7 @@ body.reduce-motion .hyd-fill { transition: none; }
   place-items: center;
 }
 .hyd-btn.hyd-plus { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-.hyd-btn:active { transform: scale(0.96); }
+.hyd-btn:active { transform: scale(var(--scale-press)); }
 .hyd-hint {
   font-size: var(--text-xs, 0.72rem);
   color: var(--muted);
@@ -3731,7 +3731,7 @@ button:active { transform: scale(0.98); }
 .grade {
   font-size: 3.2em;
   font-weight: 700;
-  line-height: 1;
+  line-height: var(--lh-tight);
   background: var(--muted);
   color: var(--on-muted);
   width: 4rem;
@@ -4560,6 +4560,39 @@ button:not(.secondary):not(.chip-btn):active:not(:disabled) {
   --text-xl:   1.44rem;   /* 23.0 px (was 1.5) */
   --text-2xl:  1.73rem;   /* 27.7 px (was 2.0) */
   /* --text-3xl retired 2026-04 (0 refs, no 33px display number in UI) */
+
+  /* F-DT-02 — line-height ladder (4 steps). Replaces the 11 ad-hoc
+     values that were drifting across rules. */
+  --lh-tight: 1;          /* display numerics, grade badge */
+  --lh-snug:  1.25;       /* headings, chip text */
+  --lh-base:  1.5;        /* body, paragraphs */
+  --lh-loose: 1.6;        /* long-form copy, day notes */
+
+  /* F-DT-03 — letter-spacing ladder (5 steps). Replaces the 10
+     ad-hoc em values + the 2px anomaly. */
+  --tracking-tight: -0.02em;  /* --text-xl, --text-2xl display */
+  --tracking-snug:  -0.01em;  /* --text-lg headings */
+  --tracking-base:   0;       /* body */
+  --tracking-wide:   0.02em;  /* --text-sm secondary */
+  --tracking-caps:   0.08em;  /* uppercase small caps */
+
+  /* F-DM-02 — animation-loop duration bands. Replaces the 5 literals
+     (900, 1400, 2000, 2200, 9000ms) at the per-animation level. */
+  --motion-loop-short: 1000ms;  /* pulse, short reveal — was --motion-loop */
+  --motion-loop-long:  2000ms;  /* scan sweeps, milestone pulses */
+  --motion-loop-xlong: 8000ms;  /* ambient shimmer (skeleton) */
+
+  /* F-DM-03 — press-scale ladder. Replaces 5 ad-hoc scale values. */
+  --scale-press:    0.96;   /* standard button/chip press */
+  --scale-press-sm: 0.94;   /* small / high-touch tap targets */
+
+  /* F-DM-04 — decorative rotation tilts. Scrapbook / paper-ledger
+     metaphor; used on recent-scans tiles, polaroid thumbs, signature
+     moments. Per-tile angle signs (+/-) stay with nth-child rules. */
+  --tilt-subtle:  0.6deg;   /* ambient */
+  --tilt-medium:  1.5deg;   /* default scrapbook tile */
+  --tilt-strong:  3deg;     /* featured moment */
+  --tilt-extreme: 12deg;    /* signature — use sparingly */
   /* Monospace — data export blocks, numeric alignments where tabular-
      nums on the body font isn't enough. Two-site use currently; see
      audit F-DT-05. */
@@ -4641,7 +4674,7 @@ dialog.settings-dialog h2,
 .rc-remove:active,
 .rc-swap:active,
 .act-entry-del:active {
-  transform: scale(0.96);
+  transform: scale(var(--scale-press));
 }
 @media (prefers-reduced-motion: reduce) {
   .chip-btn:active,
