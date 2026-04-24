@@ -5215,10 +5215,17 @@ html {
          goals-closed). JS will add the class when the moment lands.
    ========================================================================== */
 
-/* §DST1 — CTA slot inside empty-state tiles. The existing paper-
-   tile treatment (Step 4226 block) keeps its shape; adding a
-   button child now renders an invite action centered below the
-   copy. Gap tuned to --sp-3. */
+/* §DST1 + F-DST-03 — empty-state component. Canonical class is
+   .empty-state; feature-specific classes (.dash-entry-empty,
+   .tpl-empty, .add-to-recipe-empty) inherit the pattern so existing
+   HTML doesn't need a rename.
+
+   Slots (all optional, compose via children):
+     .empty-state-icon   — emoji/SVG, aria-hidden
+     .empty-state-title  — one-line headline
+     .empty-state-body   — hint / explanation
+     .empty-state-cta    — primary action button */
+.empty-state,
 .dash-entry-empty,
 .tpl-empty,
 .add-to-recipe-empty {
@@ -5226,6 +5233,26 @@ html {
   flex-direction: column;
   align-items: center;
   gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-4);
+  text-align: center;
+  color: var(--muted);
+  line-height: var(--lh-snug);
+}
+.empty-state-icon {
+  font-size: 2.2em;
+  line-height: var(--lh-tight);
+  opacity: 0.85;
+}
+.empty-state-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+.empty-state-body {
+  margin: 0;
+  font-size: var(--text-sm);
+  max-width: 38ch;
 }
 .dash-entry-empty > button,
 .tpl-empty > button,
