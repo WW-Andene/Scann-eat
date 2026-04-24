@@ -6720,3 +6720,52 @@ dialog.settings-dialog {
   border-color: color-mix(in oklch, var(--accent-dim) 50%, transparent);
   filter: none;
 }
+
+/* ==========================================================================
+   UNIFY 4 — focus ring as a coral-halo glow, same gesture everywhere.
+   Prior focus-visible rule used a flat outline: 3px solid --accent.
+   Replaces with a 2-layer box-shadow halo (solid inner ring +
+   soft outer bloom) that reads as the same gradient-accent
+   signature applied elsewhere. Consistent focus gesture across
+   buttons, inputs, chips, links, dialogs, etc.
+   ========================================================================== */
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+label.chip-btn:focus-within,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 var(--focus-ring-width, 3px) var(--accent),
+    0 0 0 calc(var(--focus-ring-width, 3px) + 4px)
+      color-mix(in oklch, var(--accent) 28%, transparent);
+}
+
+/* Primary button keeps its existing elevation on top of the
+   focus halo. */
+button:focus-visible:not(:disabled) {
+  box-shadow:
+    0 0 0 var(--focus-ring-width, 3px) var(--accent),
+    0 0 0 calc(var(--focus-ring-width, 3px) + 4px)
+      color-mix(in oklch, var(--accent) 28%, transparent),
+    var(--elev-1-tonal, var(--elev-1));
+}
+
+/* Forced-colors still gets a system Highlight outline (see Step 27). */
+@media (forced-colors: active) {
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible,
+  summary:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+}
