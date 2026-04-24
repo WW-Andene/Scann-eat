@@ -3894,13 +3894,38 @@ details li.warn     { color: var(--warning); }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2);
-  margin: 0 0 var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  background:
+    linear-gradient(90deg,
+      color-mix(in oklch, var(--panel) 78%, var(--accent-dim)) 0%,
+      var(--panel-2) 60%);
+  border: 1px solid color-mix(in oklch, var(--accent-dim) 40%, transparent);
   border-radius: var(--r-md);
   font-size: var(--text-sm, 0.85rem);
+  box-shadow: var(--elev-1-tonal, var(--elev-1));
+  position: relative;
+}
+/* Install-banner signature — mini ledger-rule at the bottom so
+   it reads as part of the app's paper language even as a
+   top-floating aside. */
+.install-banner::after {
+  content: "";
+  position: absolute;
+  left: var(--sp-4);
+  right: var(--sp-4);
+  bottom: 2px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-dim) 20%,
+    var(--accent-dim) 80%,
+    transparent 100%
+  );
+  opacity: 0.35;
+  pointer-events: none;
 }
 .install-banner > *:first-child { flex: 0 0 auto; font-weight: 600; }
 .install-banner-hint {
