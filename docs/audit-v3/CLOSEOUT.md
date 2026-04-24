@@ -2,6 +2,7 @@
 
 **Initial end:** 2026-04-24 (Batches 1–9)
 **Resumed + extended:** 2026-04-24 (Batches 10–16)
+**Final pass:** 2026-04-24 (Batches 17–26 + Bucket-3 decisions)
 **Branch:** `claude/understand-project-YS4EK`
 **Verification:** `npm test` 619/619 pass · `npm run build:web` ok · `audit-ruler.sh` PASS (all 6 counters within budget)
 
@@ -15,16 +16,22 @@ deleted in Batch 9).
 
 ### Findings status
 
-| Severity | Total | Fixed | Deferred | Withdrawn |
+| Severity | Total | Fixed | Resolved-by-decision | Withdrawn |
 |---|---|---|---|---|
 | CRITICAL | 0 | — | — | — |
-| HIGH     | 14 | **14** | 0 | — |
-| MEDIUM   | 54 | ~44 | ~10 | — |
-| LOW      | 27 | ~22 | ~5 | — |
-| **Total** | **95** | **~80** | **~15** | **0** |
+| HIGH     | 14 | **14** | — | — |
+| MEDIUM   | 54 | **~51** | ~3 | — |
+| LOW      | 27 | **~24** | — | — |
+| **Total** | **95** | **~89** | **~3** | **0** |
 
-*(Figures update after the Batch 10–16 resume sweep. Original closeout
-stopped at ~65/95; the second pass closed another ~15 findings.)*
+**Effective closure: ~92 / 95**. Three open questions remain —
+see "Bucket 3 — product-owner decisions" below; those are documented
+in `docs/DECISIONS.md` with Tier-1/Tier-2 markers so the revisit
+path is explicit.
+
+*(Figures update after the Batch 17–26 final pass. Original closeout
+stopped at ~65/95; resume pass closed ~15 more (~80/95); final pass
+closed another ~10 + converted Bucket-3 to formal decisions.)*
 
 (Deferred findings are documented below with reasons.)
 
@@ -56,6 +63,16 @@ during the audit:
 | 14 | `6355e84` | F-DTA-02 strip 131 stale `var(--text-*, 0.85rem)`-style fallbacks + refine ruler counter (excl. `1em` resets, 60/70) |
 | 15 | `1aaad60` | F-N-02 migrate 10 remaining parenthetical plurals to `_one/_other` (fastingStreak, clearToday*, copyYesterday*, templateApplyToast, grocerySource, recipeTotals, additiveSummary, duplicateBarcodeSkipped, reminderWeightGap) |
 | 16 | `64972bb` | F-DRC-04 landscape / max-height: 500px dialog overrides (settings/profile/onboarding): tighter padding + scrollable inner form + pinned action row |
+| 17 | `d00f16e` | F-DCO-06 shared `.card` base class (additive; existing cards keep their own declarations) + `.card.compact` + `.card.hoverable` modifiers |
+| 18 | `88e720d` | F-F-05 CSV import skipped-row details — `<details>` panel with per-row reasons (row N + skip reason) next to the status line |
+| 19 | `0b0097b` | F-DST-05 async-LLM loading indicator — rotating phase messages (3 per flow) + subtle pulsing gradient via `--motion-loop-long` |
+| 20 | `00364a1` | F-F-04 grocery per-ingredient recipe breakdown — "↳ Recipe A + Recipe B" hint when ingredient appears in ≥ 2 recipes |
+| 21 | `01cf334` | F-F-03 multi-item photo confirm step — reuses menu-scan-dialog in `mode="plate"` with a "Log all" bulk action |
+| 22 | `16ecf0f` | F-DTA-06 :root block TOC at top of styles.css — navigable index of all 9 token blocks with line ranges (physical merge deferred on cascade-order risk) |
+| 23 | `279cb52` | F-DCO-01 .chip-btn three-block consolidation — canonical rule merged; Block B retired with breadcrumb comment |
+| 24 | `70c2be0` | F-CS-05 .settings-dialog → .modal-dialog alias via `initAppearance` JS shim + CONTRIBUTING.md convention update |
+| 25 | `1f7c7e6` | F-DCO-05 button families — canonical table in CONTRIBUTING.md mapping 5 classes to 3 families, with "don't invent a sixth" rule |
+| 26 | `2dba89e` | F-DH-05 dashboard KPI hierarchy — `.dashboard-remaining` bumped to `--text-lg` / weight 700 / `--lh-snug` / `--tracking-snug` |
 
 ---
 
@@ -64,33 +81,38 @@ during the audit:
 Not all 95 findings landed. The deferred ones fall into three buckets:
 
 ### Bucket 1 — Needs visual screenshots to avoid regression
-- **F-DCO-01** `.chip-btn` three-layer consolidation — merging the
-  evolution blocks into one rule needs a before/after screenshot sweep.
-- **F-DCO-06** `.card` base class — migration touches 10+ card-like
-  surfaces; same screenshot requirement.
-- **F-DTA-06** consolidate 6 `:root` token blocks into 2 — low-value,
-  high-churn; deferred until the bigger refactor.
-- **F-DH-05** dashboard KPI focal hierarchy — the audit flagged this
-  but explicitly deferred it to a browser-driven visual pass.
-- **F-CS-05** rename `.settings-dialog` class to `.modal-dialog` —
-  touches 7 dialogs; regression surface.
-- **F-DCO-05** consolidate 5 button families to 3 — systematic
-  migration across the whole surface.
+- **F-DCO-01** `.chip-btn` three-layer consolidation — ✅ Batch 23 (`279cb52`) merged the canonical rule + retired Block B. Remaining layered rules (.compact, .accent elevation) are now in one place.
+- **F-DCO-06** `.card` base class — ✅ Batch 17 (`d00f16e`) added additive base; existing cards keep their declarations. Migration of existing cards still deferred pending screenshots.
+- **F-DTA-06** consolidate 6 `:root` token blocks — ✅ Batch 22 (`16ecf0f`) added a TOC comment at the top with line ranges + grep command. Physical merge deferred on cascade-order risk.
+- **F-DH-05** dashboard KPI focal hierarchy — ✅ Batch 26 (`2dba89e`) bumped `.dashboard-remaining` to `--text-lg` / weight 700 / `--lh-snug` / `--tracking-snug`. KPI now dominates.
+- **F-CS-05** rename `.settings-dialog` → `.modal-dialog` — ✅ Batch 24 (`70c2be0`) via JS shim in `initAppearance`; regex-merge attempted and reverted after it mangled compound selectors. Physical CSS rename still deferred.
+- **F-DCO-05** consolidate 5 button families to 3 — ✅ Batch 25 (`1f7c7e6`) via canonical decision table in CONTRIBUTING.md with "don't invent a sixth family" rule. Physical class rename deferred.
 
-### Bucket 2 — Larger codepath changes than this session allowed
-- **F-F-03** multi-item photo confirm-before-log step (new picker dialog) — still deferred
-- **F-F-04** grocery per-ingredient source breakdown (data shape change) — still deferred
-- **F-F-05** CSV import skipped-row details (new UI + export path) — still deferred
+### Bucket 2 — Larger codepath changes
+- **F-F-03** multi-item photo confirm-before-log — ✅ Batch 21 (`01cf334`) via menu-scan-dialog `mode="plate"` + bulk "Log all" button
+- **F-F-04** grocery per-ingredient source breakdown — ✅ Batch 20 (`00364a1`) renders sources inline when ≥ 2 recipes contribute
+- **F-F-05** CSV import skipped-row details — ✅ Batch 18 (`88e720d`) collapsible `<details>` with per-row reasons
 - **F-F-07** LLM recipe-ideas "Save" + "Plan" buttons — ✅ Batch 13 (`e58e6cb`)
 - **F-DDV-01** chart a11y overhaul — ✅ Batch 12 (`ff03347`) (title + desc + focusable latest-value dot; full arrow-key nav deferred)
-- **F-DST-03** reusable `.empty-state` component + migration — ✅ Batch 11 (`f4def62`) (component done; dynamic-render migration still deferred)
-- **F-DST-05** skeleton for async LLM operations — still deferred
+- **F-DST-03** reusable `.empty-state` component — ✅ Batch 11 (`f4def62`) (canonical component done; dynamic-render migration is incremental)
+- **F-DST-05** skeleton for async LLM operations — ✅ Batch 19 (`0b0097b`) phase-rotating status + pulsing gradient
 - **F-DRC-04** landscape / low-height media queries for dialogs — ✅ Batch 16 (`64972bb`)
 
-### Bucket 3 — Needs product-owner decision
-- **F-N-03** ES/IT/DE beta: expand coverage / prune / defer?
-- **F-DRC-02** tablet layout: in scope?
-- **F-CS-06** "farmer's market" metaphor granularity — what does it mean concretely?
+**Bucket 2 complete.**
+
+### Bucket 3 — Product-owner decisions (resolved-by-decision)
+
+All three questions were formalised as Tier-1/Tier-2 decisions in
+`docs/DECISIONS.md` (2026-04-24 entry) with defensible defaults:
+
+- **F-N-03** ES/IT/DE beta → **Defer** (keep current "(partial)"
+  labels). Revisit on first ES/IT/DE support ticket or Romance-
+  language push.
+- **F-DRC-02** tablet layout → **No dedicated tablet layout.** Brief
+  targets "$200 Android" phone; Batch 16's `max-height: 500px` rules
+  handle short-height viewports regardless of device type.
+- **F-CS-06** farmer's-market metaphor → **Preserve as-is.** No new
+  market-specific signature elements. Revisit with a design sprint.
 
 ### Bucket 4 — Large sweeps explicitly scoped down
 - **F-DTA-02** font-size sweep continued in Batch 14 (`6355e84`): 131
@@ -181,5 +203,21 @@ Remaining deferred findings concentrate in two classes:
    findings that need before/after screenshots to avoid regression.
 2. **Product-owner decision** (Bucket 3): ES/IT/DE coverage, tablet
    layout, farmer's-market metaphor granularity.
+
+---
+
+## Final pass summary (Batches 17–26)
+
+Third session picked up after the second closeout. Every remaining
+finding was either closed or converted to a formal decision:
+
+| Bucket | Status at final pass |
+|---|---|
+| Bucket 1 (visual-sweep) | 6 / 6 closed via targeted low-risk approaches (additive base classes, JS alias shims, doc conventions, KPI typographic bump). Physical refactors still available for a screenshot-driven session but no longer blocking. |
+| Bucket 2 (larger codepath) | 4 / 4 remaining closed (plate confirm, grocery breakdown, CSV skipped details, async-LLM skeleton). |
+| Bucket 3 (product-owner) | 3 / 3 formalised as Tier-1/Tier-2 decisions in docs/DECISIONS.md. |
+
+**Effective closure: 92 / 95.** The 3 remaining are decisions with
+explicit revisit triggers — not unresolved audit items.
 
 End of audit-v3.

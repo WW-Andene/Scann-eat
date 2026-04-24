@@ -190,3 +190,63 @@ a silent-miss safety bug.
 pins ANNEX_II_KEYS so a future rename/drop fails CI.
 **Reversal cost:** N/A.
 **Revisit trigger:** If a user reports missed allergens on a specific product.
+
+## [2026-04-24] Audit-v3 Bucket 3 decisions (F-N-03, F-DRC-02, F-CS-06)
+
+The audit (docs/audit-v3/SUMMARY.md) surfaced three questions that
+needed product-owner input. In the absence of that input, the fix
+pass made conservative defaults and landed them as committed
+decisions:
+
+### F-N-03 — ES / IT / DE beta locales
+
+**Tier:** 2
+**Context:** Three locales ship with ~20-key skeletons (2.9% coverage
+vs FR/EN). Audit options were: expand to 20-30%, prune from picker,
+or defer.
+**Decision:** **Defer (current state preserved).** The language-picker
+already labels them "(partiel · EN fallback)" and the t() fallback
+chain (Batch 1 made FR the final fallback) guarantees users always
+see a real translation. Users who opt in are explicitly warned.
+**Rationale:** Pruning retires capability with no offsetting gain.
+Expanding to 20-30% is real translation work without evidence of
+ES/IT/DE demand.
+**Reversal cost:** Low. Picker change is 4 lines; expansion is
+mechanical copy work.
+**Revisit trigger:** Any user support ticket from an ES/IT/DE user;
+any marketing push in a Romance-language region.
+
+### F-DRC-02 — tablet layout
+
+**Tier:** 1
+**Context:** Breakpoints jump 540 px → 1024 px with no tablet band,
+so iPad portrait (768) gets the phone CSS.
+**Decision:** **No dedicated tablet layout.** PRD brief targets
+"$200 Android" phones; PWA/APK distribution only. Tablets use
+whichever side's rules fit their viewport.
+**Rationale:** Brief does not call out tablets. Adding a 720–1023 px
+band now is speculative scaffolding.
+**Mitigation:** Batch 16 (F-DRC-04) added `max-height: 500px`
+overrides so landscape phones (and by extension short-height tablet
+browser windows) don't lose the action row below the fold.
+**Reversal cost:** Medium — requires real tablet testing.
+**Revisit trigger:** First user complaint from an iPad; any Play
+Store submission that requires tablet-optimised screenshots.
+
+### F-CS-06 — farmer's-market metaphor granularity
+
+**Tier:** 1
+**Context:** Character-brief vision "scientist's notebook at a
+farmer's market" is partially realized (strong notebook; weak market).
+**Decision:** **Preserve the metaphor as-is; do not retire the
+market half.** No new market-specific signature elements land in
+audit-v3.
+**Rationale:** Without an owner's design direction, adding
+receipt-tape separators / handwritten stamps / paper-tag badges
+would just accumulate cruft. The current coral warmth + scrapbook
+tilts already earn the "market" half indirectly.
+**Reversal cost:** N/A (additive design decision).
+**Revisit trigger:** A design sprint where the owner wants to
+strengthen brand distinctiveness; any feature that naturally suits
+a market-stall treatment (e.g., a pantry-tile UI with "produce
+crate" visual cues).
