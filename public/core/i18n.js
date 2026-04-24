@@ -1610,6 +1610,26 @@ function pluralRules(lang) {
   return _pluralCache.get(lang);
 }
 
+// F-DI-01/02 — per audit-v3, emojis embedded in i18n strings get
+// rendered via textContent, which means (a) no aria-hidden wrapping
+// (screen reader announces "tear-off calendar Planning") and (b) no
+// .icon-glyph calibration applied. Rather than refactor 684 keys per
+// locale, detect a leading emoji at render time and split it into a
+// hidden-to-AT .icon-glyph span + plain-text rest. Values come from
+// OUR own i18n table so innerHTML is safe (no user input path).
+const LEADING_EMOJI_RE = /^([\p{Extended_Pictographic}️✅-➿ -⯿]+)(\s+)(.*)$/u;
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function applyI18nValue(el, value) {
+  const m = LEADING_EMOJI_RE.exec(value);
+  if (m) {
+    el.innerHTML = `<span class="icon-glyph" aria-hidden="true">${escapeHtml(m[1])}</span>${escapeHtml(m[2])}${escapeHtml(m[3])}`;
+  } else {
+    el.textContent = value;
+  }
+}
+
 /**
  * Apply translations to elements that declare a `data-i18n` attribute.
  * For static text on load (and after a language change).
@@ -1618,7 +1638,7 @@ export function applyStaticTranslations() {
   document.documentElement.lang = currentLang;
   for (const el of document.querySelectorAll('[data-i18n]')) {
     const key = el.getAttribute('data-i18n');
-    if (key) el.textContent = t(key);
+    if (key) applyI18nValue(el, t(key));
   }
   for (const el of document.querySelectorAll('[data-i18n-placeholder]')) {
     const key = el.getAttribute('data-i18n-placeholder');
