@@ -49,4 +49,12 @@ export function initAppearance() {
   // Re-paint if the user flips their OS light/dark mode while we're on
   // the 'auto' setting.
   window.matchMedia?.('(prefers-color-scheme: light)')?.addEventListener('change', applyTheme);
+  // F-CS-05: class alias so new dialogs can use class="modal-dialog"
+  // (the intent-clearer name per audit) and still pick up the
+  // existing .settings-dialog styling. Retire the shim once every
+  // dialog.settings-dialog selector has been duplicated to also
+  // match .modal-dialog.
+  for (const el of document.querySelectorAll('.modal-dialog:not(.settings-dialog)')) {
+    el.classList.add('settings-dialog');
+  }
 }

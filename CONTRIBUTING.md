@@ -61,6 +61,25 @@ tests`. When in doubt, apply them.
 
 ---
 
+## Dialog shell naming (`.modal-dialog`)
+
+Historically every modal used `class="settings-dialog"` whether or not
+it was actually a settings panel (Quick-Add, Weight, Templates, and
+more reuse the styling). Per audit F-CS-05 the canonical class going
+forward is **`.modal-dialog`**.
+
+For **new** dialogs:
+- Markup: `<dialog class="modal-dialog" aria-labelledby="…">…</dialog>`
+- Nothing else needed — `features/appearance.js initAppearance()` adds
+  the legacy `settings-dialog` class at init so CSS picks up.
+
+For **existing** dialogs: leave the class as `settings-dialog`. They'll
+continue to work. A future sweep will duplicate every
+`dialog.settings-dialog` selector to also match `.modal-dialog` and
+drop the shim.
+
+---
+
 ## Protected elements (do not simplify away)
 
 Flagged by the 2026-04-24 audit (`docs/audit-v3/`) as load-bearing signature
