@@ -27,6 +27,12 @@
   --accent:        #FF6B45;   /* orange button */
   --accent-dim:    #D15637;
   --accent-ink:    #1B1B1F;   /* text color on accent button */
+  /* Canonical signature gradient — applied to every primary
+     accent surface (buttons, progress fills, focal halos, active
+     states). The SINGLE coral gradient of the whole app. */
+  --grad-accent:   linear-gradient(135deg, #FF6B45 0%, #E54B5E 100%);
+  --grad-accent-dim: linear-gradient(135deg, #D15637 0%, #B03852 100%);
+  --grad-accent-soft: linear-gradient(135deg, rgba(255,107,69,0.16) 0%, rgba(229,75,94,0.16) 100%);
   /* Warm accent used by informational chips (life-stage, etc.). Sits
      between --accent (call-to-action) and --muted (tertiary text) —
      reads as "noteworthy but not urgent". */
@@ -85,6 +91,9 @@
      The previous #E0552F only met AA-large, which fails on button labels. */
   --accent:        #B0431F;
   --accent-dim:    #8A3316;
+  --grad-accent:   linear-gradient(135deg, #B0431F 0%, #8E2C3F 100%);
+  --grad-accent-dim: linear-gradient(135deg, #8A3316 0%, #6B2034 100%);
+  --grad-accent-soft: linear-gradient(135deg, rgba(176,67,31,0.14) 0%, rgba(142,44,63,0.14) 100%);
   --accent-ink:    #FFFFFF;
   /* Light-theme warm accent — a touch darker than the dark-theme one so
      it stays AA-readable on #FAF5E9. */
@@ -6502,4 +6511,76 @@ a {
   .queue-item:nth-child(3n) {
     transform: none;
   }
+}
+
+/* ==========================================================================
+   UNIFY 1 — canonical coral gradient applied to every accent surface.
+   Today --accent is solid in some places and gradient in others —
+   reads inconsistent. This block routes every primary-accent
+   surface through --grad-accent so the app has ONE signature
+   accent treatment visible everywhere.
+   ========================================================================== */
+
+/* Primary button (default <button>) + scan CTA + chip-btn.accent
+   all wear the gradient fill. Accent-ink keeps its colour. */
+button:not(.secondary):not(.btn-destructive):not(.btn-loading):not(.chip-btn):not(.capture-btn) {
+  background: var(--grad-accent);
+}
+#scan-btn:not(:disabled) {
+  background: var(--grad-accent);
+}
+.chip-btn.accent {
+  background: var(--grad-accent);
+  border: none;
+}
+.capture-btn:not(.capture-btn-secondary) {
+  background: var(--grad-accent);
+}
+
+/* Macro progress fill (default state — no data-state) matches
+   the gradient so the default-fill reads as "primary accent
+   ink," not solid. State variants (ok/near/over) keep their
+   already-defined gradients from Move B. */
+.dash-fill:not([data-state]) {
+  background: var(--grad-accent);
+}
+
+/* Hydration + fasting fills use their tile-specific gradients
+   defined in Move 2; unchanged here. */
+
+/* Progress-chart line gradient — switch the solid stroke to a
+   linearGradient via SVG stroke attribute isn't easily
+   overridable in CSS on arbitrary path elements, but the
+   pc-dot (the "you are here" marker) can take the gradient via
+   a coloured halo. */
+.progress-chart .pc-dot {
+  fill: var(--accent);
+  /* Halo glow gives the dot the gradient's warmth. */
+  filter: drop-shadow(0 0 4px color-mix(in oklch, var(--accent) 70%, var(--grade-f)));
+}
+
+/* Active-nav chip state (Step 17 [aria-current]) picks up the
+   gradient as its filled background instead of the prior
+   color-mix tint. */
+.chip-btn[aria-current="page"],
+.chip-btn[aria-current="true"] {
+  background: var(--grad-accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+
+/* Toast 'ok' + 'warn' keep semantic colours. Accent-tinted
+   toast variant for neutral-success uses the gradient. */
+
+/* .success-burst already uses box-shadow halos; leave them. */
+
+/* Hover lift gradient — when an interactive element hovers its
+   accent, we want a gradient halo glow, not a solid color one.
+   Subtle: apply via outline-style gradient-ring-shadow. */
+.chip-btn.accent:hover:not(:disabled),
+#scan-btn:not(:disabled):hover {
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--accent) 35%, transparent),
+    0 8px 24px color-mix(in oklch, var(--grade-f) 30%, transparent),
+    var(--elev-1-tonal, var(--elev-1));
 }
