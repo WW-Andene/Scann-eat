@@ -208,6 +208,16 @@ function toast(text, variantOrMs) {
   toastEl.textContent = String(text);
   if (variant) toastEl.dataset.variant = variant;
   else delete toastEl.dataset.variant;
+  // Audit F-DCO-04: error variants need role="alert" + aria-live
+  // "assertive" so screen readers interrupt to announce them. Everything
+  // else stays polite.
+  if (variant === 'error') {
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+  } else {
+    toastEl.setAttribute('role', 'status');
+    toastEl.setAttribute('aria-live', 'polite');
+  }
   toastEl.dataset.visible = 'true';
   // Ensure any lingering action slot from a previous toastWithUndo is
   // cleared so plain toast() calls don't inherit a stale button.

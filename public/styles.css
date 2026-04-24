@@ -47,7 +47,11 @@
   --border-strong: rgba(245, 240, 232, 0.22);
   --danger:        #E54B5E;
   --success:       #6BE584;
-  --warning:       #F5A64B;
+  /* Shifted from #F5A64B (audit F-DC-01): that value collided with
+     --grade-c (same hex, different meaning — grade vs state). A slight
+     yellow lean lets warning read as "caution" without impersonating a
+     grade C. Still AA-safe on both themes. */
+  --warning:       #F5B441;
 
   /* form controls — true surface for typing contrast */
   --input-bg:      #2A2A30;    /* panel-2 level, distinguishable from card */
@@ -3736,11 +3740,9 @@ button:active { transform: scale(0.98); }
   place-items: center;
   border-radius: var(--r-pill);
   flex-shrink: 0;
-  /* Tabular numerals + lining figures: crisp, aligned characters in the
-     grade + score display. Signature typographic detail — Atkinson
-     Hyperlegible ships both variants. */
-  font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
+  /* Tabular + lining nums already set at body level via --num-feat.
+     Audit F-DT-07: removed the per-component duplication here and on
+     .score — if the global token changes, grade/score follow. */
 }
 .score-card:not(.dual) .grade {
   width: 5.5rem;
@@ -3758,8 +3760,7 @@ button:active { transform: scale(0.98); }
   display: flex;
   align-items: baseline;
   gap: 4px;
-  font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
+  /* tabular-nums + lining-nums inherited from body via --num-feat */
 }
 .score strong {
   font-size: 2.4em;
