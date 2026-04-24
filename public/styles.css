@@ -4066,8 +4066,8 @@ details li.warn     { color: var(--warning); }
   --text-xl:   1.5rem;    /* 24 px — dashboard numerics */
   --text-2xl:  2rem;      /* 32 px — scan grade, big numbers */
   /* elevation — one step up from flat, used by cards + primary buttons */
-  --elev-1: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.06);
-  --elev-2: 0 2px 6px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.10);
+  --elev-1: 0 1px 3px rgba(30, 18, 22, 0.10), 0 4px 12px rgba(30, 18, 22, 0.08);
+  --elev-2: 0 2px 6px rgba(40, 18, 24, 0.14), 0 12px 28px rgba(40, 18, 24, 0.12);
   /* motion — one speed everywhere */
   --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
   --speed-ui: 140ms;
@@ -4078,8 +4078,8 @@ details li.warn     { color: var(--warning); }
 [data-theme="light"] {
   --bg: #F6D0D6;                       /* cooler than prior #F8C8CF */
   --bg-deep: #F0B7BF;
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 3px 10px rgba(0, 0, 0, 0.05);
-  --elev-2: 0 2px 4px rgba(0, 0, 0, 0.08), 0 8px 20px rgba(0, 0, 0, 0.08);
+  --elev-1: 0 1px 2px rgba(72, 28, 34, 0.08), 0 3px 10px rgba(72, 28, 34, 0.07);
+  --elev-2: 0 2px 4px rgba(82, 32, 40, 0.10), 0 10px 22px rgba(82, 32, 40, 0.10);
 }
 
 body {
@@ -4801,13 +4801,13 @@ body.reduce-motion:has(dialog[open])::before {
    so the shadow doesn't darken the coral paper). */
 :root {
   --elev-3:
-    0 2px 6px rgba(0, 0, 0, 0.22),
-    0 14px 42px rgba(0, 0, 0, 0.32);
+    0 2px 6px rgba(40, 18, 24, 0.24),
+    0 16px 44px rgba(60, 22, 30, 0.32);
 }
 [data-theme="light"] {
   --elev-3:
-    0 2px 4px rgba(0, 0, 0, 0.10),
-    0 14px 36px rgba(0, 0, 0, 0.14);
+    0 2px 4px rgba(82, 32, 40, 0.12),
+    0 16px 40px rgba(82, 32, 40, 0.16);
 }
 
 dialog.settings-dialog {
