@@ -10,6 +10,10 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fonts loaded from <link> rather than CSS @import so discovery
+         happens during HTML parse, not behind a render-blocking CSS
+         waterfall. See audit F-DT-01. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;600;700&display=swap" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -117,7 +121,7 @@
             <button id="profiles-save" type="button" class="chip-btn" data-i18n="profilesSave">💾 Sauvegarder profil</button>
           </div>
           <div class="backup-actions">
-            <select id="profiles-switch-select" aria-label="Changer de profil"></select>
+            <select id="profiles-switch-select" data-i18n-aria-label="a11yProfileSwitch" aria-label="Changer de profil"></select>
             <button id="profiles-switch" type="button" class="chip-btn" data-i18n="profilesSwitch">🔄 Changer</button>
             <button id="profiles-delete" type="button" class="chip-btn" data-i18n="profilesDelete">🗑 Supprimer</button>
           </div>
@@ -145,7 +149,7 @@
           <label class="reminder-row">
             <input id="reminder-hydration" type="checkbox" />
             <span data-i18n="remindersHydration">💧 Hydratation (toutes les N h)</span>
-            <input id="reminder-hydration-every" type="number" min="1" max="6" step="1" value="2" aria-label="Fréquence (heures)" />
+            <input id="reminder-hydration-every" type="number" min="1" max="6" step="1" value="2" data-i18n-aria-label="a11yHydrationFreq" aria-label="Fréquence (heures)" />
           </label>
           <label class="reminder-row">
             <input id="reminder-weight" type="checkbox" />
@@ -433,6 +437,7 @@
               autocomplete="off"
               data-i18n-placeholder="manualBarcodePlaceholder"
               placeholder="8-13 chiffres"
+              data-i18n-aria-label="a11yBarcodeInput"
               aria-label="Code-barres"
             />
             <button id="manual-barcode-submit" type="submit" class="chip-btn accent compact" data-i18n="manualBarcodeSubmit">Analyser</button>
@@ -462,7 +467,7 @@
       <section id="daily-dashboard" class="daily-dashboard" hidden>
         <div class="dashboard-header">
           <h2><span data-i18n="todayTitle">Aujourd'hui</span> · <span id="dashboard-date"></span></h2>
-          <div class="view-toggle" role="tablist" aria-label="Vue">
+          <div class="view-toggle" role="tablist" data-i18n-aria-label="a11yView" aria-label="Vue">
             <button id="view-day" type="button" role="tab" aria-selected="true" class="view-tab active" data-view="day" data-i18n="viewDay">Jour</button>
             <button id="view-week" type="button" role="tab" aria-selected="false" class="view-tab" data-view="week" data-i18n="viewWeek">7 jours</button>
             <button id="view-month" type="button" role="tab" aria-selected="false" class="view-tab" data-view="month" data-i18n="viewMonth">30 jours</button>
@@ -525,7 +530,7 @@
         </details>
         <div id="fasting-start-row" class="fasting-start-row">
           <span class="fasting-start-label" data-i18n="fastingStartLabel">Démarrer un jeûne :</span>
-          <select id="fasting-target" aria-label="Durée">
+          <select id="fasting-target" data-i18n-aria-label="a11yFastingTarget" aria-label="Durée">
             <option value="12">12 h</option>
             <option value="14">14 h</option>
             <option value="16" selected>16 h</option>
@@ -538,13 +543,13 @@
 
         <section id="weekly-view" class="weekly-view" hidden>
           <div class="weekly-summary" id="weekly-summary"></div>
-          <div class="weekly-bars" id="weekly-bars" role="img" aria-label="Graphique barres 7 jours"></div>
+          <div class="weekly-bars" id="weekly-bars" role="img" data-i18n-aria-label="a11yWeeklyChart" aria-label="Graphique barres 7 jours"></div>
           <button id="weekly-share" type="button" class="secondary compact" data-i18n="weeklyShare">📤 Partager cette semaine</button>
         </section>
 
         <section id="monthly-view" class="weekly-view" hidden>
           <div class="weekly-summary" id="monthly-summary"></div>
-          <div class="weekly-bars" id="monthly-bars" role="img" aria-label="Graphique barres 30 jours"></div>
+          <div class="weekly-bars" id="monthly-bars" role="img" data-i18n-aria-label="a11yMonthlyChart" aria-label="Graphique barres 30 jours"></div>
           <button id="monthly-share" type="button" class="secondary compact" data-i18n="monthlyShare">📤 Partager ces 30 jours</button>
         </section>
 
@@ -705,7 +710,7 @@
           <h2 id="grocery-title" data-i18n="groceryTitle">🛒 Liste de courses</h2>
           <p id="grocery-source" class="hint"></p>
           <ul id="grocery-list" class="tpl-list grocery-list"></ul>
-          <textarea id="grocery-text" rows="6" class="grocery-text" readonly aria-label="Liste de courses (texte)"></textarea>
+          <textarea id="grocery-text" rows="6" class="grocery-text" readonly data-i18n-aria-label="a11yGroceryText" aria-label="Liste de courses (texte)"></textarea>
           <label class="inline-check">
             <input id="grocery-markdown" type="checkbox" />
             <span data-i18n="groceryMarkdown">Format Markdown (cases à cocher)</span>

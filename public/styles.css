@@ -3,7 +3,9 @@
    Built for fast, calm reading. Big type, high contrast, soft corners.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Lexend:wght@400;500;600;700&display=swap');
+/* Fonts now loaded via <link rel="stylesheet"> in index.html — see
+   audit F-DT-01. Italic Atkinson variants + Lexend 500 were unused in
+   131 font-weight declarations, so both were dropped from the set. */
 
 /* ========== TOKENS ========================================================
    Coral background · near-black cards · cream text · orange action.
@@ -1153,7 +1155,10 @@ body.returning-user main > .capture         { order: 1; }
 .recent-summary-grade:focus-visible {
   background: var(--surface-2);
   border-color: var(--border);
-  outline: none;
+}
+.recent-summary-grade:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
 }
 .recent-summary-grade[data-active="true"] {
   background: var(--accent);
@@ -1200,7 +1205,10 @@ body.returning-user main > .capture         { order: 1; }
 .custom-food-label:hover,
 .custom-food-label:focus-visible {
   text-decoration: underline;
-  outline: none;
+}
+.custom-food-label:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
 }
 .inline-check {
   display: flex;
@@ -2491,7 +2499,7 @@ body.reduce-motion .qa-voice-btn[data-state="listening"] { animation: none; }
   min-height: 44px;
 }
 .add-to-recipe-item:hover,
-.add-to-recipe-item:focus-visible { background: var(--panel-2); outline: none; }
+.add-to-recipe-item:focus-visible { background: var(--panel-2); outline: 2px solid var(--accent-focus); outline-offset: 1px; }
 
 /* Gap fixes #24 + #25 — allergen / diet warning chip on recipe &
    template list rows. Muted-orange so it reads as "attention" not
@@ -3037,8 +3045,9 @@ body.reduce-motion .hyd-fill { transition: none; }
   border: none;
   color: var(--muted);
   font-size: 1.1em;
-  width: 32px;
-  height: 32px;
+  /* WCAG AAA 2.5.5 hit-area target — see audit F-G-02. */
+  width: 44px;
+  height: 44px;
   min-height: auto;
   padding: 0;
   border-radius: var(--r-pill);
@@ -3227,15 +3236,16 @@ body.reduce-motion .hyd-fill { transition: none; }
   color: var(--muted);
   font-size: 1.1em;
   padding: 0;
-  width: 40px;
-  height: 40px;
+  /* WCAG AAA 2.5.5 hit-area target — see audit F-G-02. */
+  width: 44px;
+  height: 44px;
   min-height: auto;
   border-radius: var(--r-pill);
   display: grid;
   place-items: center;
   cursor: pointer;
 }
-.dash-entry-del { font-size: 1.3em; width: 44px; height: 44px; }
+.dash-entry-del { font-size: 1.3em; }
 .dash-entry-del:hover,
 .dash-entry-del:focus-visible { background: var(--panel-3); color: var(--danger); outline: none; }
 .dash-entry-edit:hover,
@@ -4674,22 +4684,22 @@ dialog.settings-dialog h2,
    instead of generic rgba(10,10,10,0.65). Keeps the warm ambiance
    consistent when a dialog opens; stays readable because body
    content behind is already dim under a 50% warm scrim. */
+/* Canonical dialog backdrop. Per character brief §Material: glass is
+   demoted across the app; the ONLY legitimate backdrop-filter usage is
+   this scrim (a paper cover with tint, not a frosted iOS sheet). The
+   actual blur amount comes from --blur-glass (Step 9 below) which wins
+   the cascade — don't re-declare backdrop-filter anywhere else. */
 dialog::backdrop {
   background:
     linear-gradient(180deg,
       var(--scrim-top, rgba(232, 74, 95, 0.55)) 0%,
       var(--scrim-bottom, rgba(217, 68, 88, 0.65)) 100%);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 [data-theme="light"] dialog::backdrop {
   background:
     linear-gradient(180deg,
       var(--scrim-top) 0%,
       var(--scrim-bottom) 100%);
-}
-@media (prefers-reduced-motion: reduce) {
-  dialog::backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 
 /* §DSA3 — paper-grain overlay at 2%. Tiny SVG noise data URI avoids
@@ -4741,16 +4751,9 @@ main, header, .skip-link {
                "Twemoji Mozilla", sans-serif;
 }
 
-/* §DDT1 — bump glassmorphism blur from 6px to 12px to hit the
-   skill's minimum quality bar. Below 12px blur reads as "slightly
-   frosted card" rather than the intended depth/atmosphere. */
-dialog::backdrop {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-@media (prefers-reduced-motion: reduce) {
-  dialog::backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; }
-}
+/* Historical Step 7 (blur(12px)) is superseded by the Step 9 rule below
+   which uses var(--blur-glass). The reduce-motion override consolidates
+   into the final rule too. See audit F-CS-02. */
 
 /* ==========================================================================
    STEP 8 — §DBI brand identity (design DNA + anti-genericness).
@@ -4857,6 +4860,32 @@ textarea::placeholder {
 input::-webkit-input-placeholder,
 textarea::-webkit-input-placeholder {
   color: var(--muted);
+}
+
+/* §DCO-03 — explicit input state matrix. Hover gives a subtle border
+   cue; disabled reads as muted + not-allowed; invalid (after the user
+   has typed, thanks to :not(:placeholder-shown)) shows the danger border.
+   See audit F-DCO-03. */
+input:not(:disabled):hover,
+select:not(:disabled):hover,
+textarea:not(:disabled):hover {
+  border-color: var(--border-strong);
+}
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--panel-3);
+}
+input:invalid:not(:placeholder-shown),
+select:invalid,
+textarea:invalid:not(:placeholder-shown) {
+  border-color: var(--danger);
+}
+input:required:not(:placeholder-shown):valid,
+textarea:required:not(:placeholder-shown):valid {
+  border-color: var(--success);
 }
 [contenteditable][data-placeholder]:empty::before {
   content: attr(data-placeholder);
