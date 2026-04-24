@@ -3731,6 +3731,9 @@ async function renderDashboard() {
       if (bucket.entries.length === 0) continue;
       const section = document.createElement('section');
       section.className = 'meal-section';
+      // data-meal lets CSS give each meal its own time-of-day
+      // visual cue (morning warmth / daylight / evening dim / snack).
+      section.dataset.meal = m;
       const header = document.createElement('div');
       header.className = 'meal-header';
       const name = document.createElement('strong');

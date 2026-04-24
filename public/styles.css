@@ -6170,3 +6170,68 @@ a {
   outline: none;
   filter: drop-shadow(0 0 4px color-mix(in oklch, var(--accent) 55%, transparent));
 }
+
+/* ==========================================================================
+   DESIGN MOVE D — meal sections with time-of-day visual cues.
+   [data-meal] attribute (set by app.js at render time) gates
+   per-meal styling. Each section picks up a small time-of-day
+   "sun dot" on the left of its header and a faint gradient tint
+   appropriate to its time slot (morning warm → evening cool).
+   ========================================================================== */
+
+/* Meal-header anchor for the sun-dot pseudo-element. */
+.meal-section[data-meal] .meal-header {
+  position: relative;
+  padding-left: 22px;
+}
+.meal-section[data-meal] .meal-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  border-radius: var(--r-pill);
+  background: var(--meal-accent, var(--muted));
+  box-shadow: 0 0 10px color-mix(in oklch, var(--meal-accent, var(--accent)) 70%, transparent);
+}
+
+/* —— Breakfast: dawn — warm peach glow + bright dot ———————— */
+.meal-section[data-meal="breakfast"] {
+  --meal-accent: var(--grade-b);        /* warm sun-yellow */
+  background:
+    linear-gradient(90deg,
+      color-mix(in oklch, var(--panel-2) 70%, var(--grade-b)) 0%,
+      var(--panel-2) 55%);
+}
+
+/* —— Lunch: daylight — neutral panel-2, steady orange dot —— */
+.meal-section[data-meal="lunch"] {
+  --meal-accent: var(--grade-c);        /* midday orange */
+  background: var(--panel-2);
+}
+
+/* —— Snack: afternoon lull — lighter coral tint ———————————— */
+.meal-section[data-meal="snack"] {
+  --meal-accent: var(--accent-dim);     /* warm coral */
+  background:
+    linear-gradient(90deg,
+      color-mix(in oklch, var(--panel-2) 82%, var(--accent-dim)) 0%,
+      var(--panel-2) 60%);
+}
+
+/* —— Dinner: dusk — deeper coral/evening tint —————————————— */
+.meal-section[data-meal="dinner"] {
+  --meal-accent: var(--grade-d);        /* sunset coral-red */
+  background:
+    linear-gradient(90deg,
+      color-mix(in oklch, var(--panel-2) 72%, var(--grade-d)) 0%,
+      color-mix(in oklch, var(--panel-2) 88%, var(--accent-dim)) 100%);
+}
+
+/* Meal-kcal small text picks up a tinge of the meal's accent
+   so the summary line reads as part of the meal's identity. */
+.meal-section[data-meal] .meal-kcal {
+  color: color-mix(in oklch, var(--muted) 55%, var(--meal-accent));
+}
