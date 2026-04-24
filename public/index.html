@@ -38,10 +38,10 @@
       <button id="pending-retry" type="button" class="pending-retry" data-i18n="retryAll">Réessayer</button>
     </aside>
 
-    <header role="banner">
+    <header role="banner" aria-labelledby="app-title">
       <button id="profile-btn" class="settings-btn profile-btn" type="button" data-i18n-aria-label="profile" aria-label="Profil">&#128100;</button>
       <button id="settings-btn" class="settings-btn" type="button" data-i18n-aria-label="settings" aria-label="Réglages">&#9881;</button>
-      <h1 data-i18n="appName">Scann-eat</h1>
+      <h1 id="app-title" data-i18n="appName">Scann-eat</h1>
       <p class="tagline" data-i18n="tagline">Photographie une étiquette → note de 0 à 100</p>
     </header>
 
@@ -395,7 +395,7 @@
       </div>
     </dialog>
 
-    <main id="main-content" role="main">
+    <main id="main-content" role="main" aria-labelledby="app-title">
 
       <aside id="install-banner" class="install-banner" hidden role="region" aria-labelledby="install-banner-title">
         <span id="install-banner-title" data-i18n="installBannerTitle">📱 Installer Scann-eat ?</span>
@@ -468,9 +468,9 @@
         <div class="dashboard-header">
           <h2><span data-i18n="todayTitle">Aujourd'hui</span> · <span id="dashboard-date"></span></h2>
           <div class="view-toggle" role="tablist" data-i18n-aria-label="a11yView" aria-label="Vue">
-            <button id="view-day" type="button" role="tab" aria-selected="true" class="view-tab active" data-view="day" data-i18n="viewDay">Jour</button>
-            <button id="view-week" type="button" role="tab" aria-selected="false" class="view-tab" data-view="week" data-i18n="viewWeek">7 jours</button>
-            <button id="view-month" type="button" role="tab" aria-selected="false" class="view-tab" data-view="month" data-i18n="viewMonth">30 jours</button>
+            <button id="view-day" type="button" role="tab" aria-selected="true" aria-controls="dashboard-rows" class="view-tab active" data-view="day" data-i18n="viewDay">Jour</button>
+            <button id="view-week" type="button" role="tab" aria-selected="false" aria-controls="weekly-view" class="view-tab" data-view="week" data-i18n="viewWeek">7 jours</button>
+            <button id="view-month" type="button" role="tab" aria-selected="false" aria-controls="monthly-view" class="view-tab" data-view="month" data-i18n="viewMonth">30 jours</button>
           </div>
           <p id="dashboard-streak" class="dashboard-streak" hidden></p>
           <div class="dashboard-actions">
@@ -520,7 +520,7 @@
               <span id="fasting-state" class="hyd-hint">—</span>
             </div>
           </div>
-          <div id="weight-summary" class="weight-summary" hidden></div>
+          <div id="weight-summary" class="weight-summary" role="group" aria-label="Poids" data-i18n-aria-label="weightBtn" hidden></div>
         </div>
         <p id="fasting-streak" class="fasting-streak" hidden></p>
         <details class="fasting-history" id="fasting-history-wrap" hidden>
@@ -539,15 +539,15 @@
           </select>
           <button id="fasting-start" type="button" class="chip-btn accent compact" data-i18n="fastingStart">Démarrer</button>
         </div>
-        <ul id="dashboard-rows" class="dashboard-rows"></ul>
+        <ul id="dashboard-rows" class="dashboard-rows" role="tabpanel" aria-labelledby="view-day"></ul>
 
-        <section id="weekly-view" class="weekly-view" hidden>
+        <section id="weekly-view" class="weekly-view" role="tabpanel" aria-labelledby="view-week" hidden>
           <div class="weekly-summary" id="weekly-summary"></div>
           <div class="weekly-bars" id="weekly-bars" role="img" data-i18n-aria-label="a11yWeeklyChart" aria-label="Graphique barres 7 jours"></div>
           <button id="weekly-share" type="button" class="secondary compact" data-i18n="weeklyShare">📤 Partager cette semaine</button>
         </section>
 
-        <section id="monthly-view" class="weekly-view" hidden>
+        <section id="monthly-view" class="weekly-view" role="tabpanel" aria-labelledby="view-month" hidden>
           <div class="weekly-summary" id="monthly-summary"></div>
           <div class="weekly-bars" id="monthly-bars" role="img" data-i18n-aria-label="a11yMonthlyChart" aria-label="Graphique barres 30 jours"></div>
           <button id="monthly-share" type="button" class="secondary compact" data-i18n="monthlyShare">📤 Partager ces 30 jours</button>
@@ -961,7 +961,7 @@
         <p class="compare-delta" id="compare-delta"></p>
       </section>
 
-      <section id="result" class="result" hidden>
+      <section id="result" class="result" aria-labelledby="product-name" hidden>
         <div class="score-card dual" id="score-card">
           <div class="score-slot">
             <span class="score-kind" data-i18n="classicScore">Score classique</span>
