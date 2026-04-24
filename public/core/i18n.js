@@ -25,6 +25,11 @@ export const STRINGS = {
     start: 'Commencer',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'Tous les objectifs atteints aujourd\'hui 🌿',
+    // F-F-07 — recipe-ideas card actions (Save / Plan)
+    recipeIdeasSave: 'Sauvegarder',
+    recipeIdeasPlan: 'Planifier',
+    recipeIdeasSaved: '✓ Recette sauvegardée. Tu peux l\'éditer depuis la liste.',
+    recipeIdeasSaveFailed: 'Impossible de sauvegarder la recette.',
     // F-F-02 — scan error paths (clearer than the previous terse set)
     scanCameraDenied: 'Accès caméra refusé. Utilise le sélecteur de photo ou autorise la caméra dans les réglages du navigateur.',
     scanDetectorUnsupported: 'Ton navigateur ne lit pas les codes-barres en direct. Utilise le sélecteur de photo à la place.',
@@ -756,6 +761,11 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     start: 'Start',
     // F-F-06 — gap-closer all-targets-met success tile
     gapCloserAllMet: 'All targets met today 🌿',
+    // F-F-07 — recipe-ideas card actions (Save / Plan)
+    recipeIdeasSave: 'Save',
+    recipeIdeasPlan: 'Plan',
+    recipeIdeasSaved: '✓ Recipe saved. You can edit it from the list.',
+    recipeIdeasSaveFailed: 'Could not save recipe.',
     // F-F-02 — scan error paths
     scanCameraDenied: 'Camera access denied. Use the photo picker, or allow camera access in your browser settings.',
     scanDetectorUnsupported: 'Your browser doesn\'t read barcodes live. Use the photo picker instead.',

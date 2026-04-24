@@ -1334,6 +1334,15 @@ body.returning-user main > .capture         { order: 1; }
   flex-direction: column;
   gap: var(--sp-1);
 }
+/* F-F-07 — Save / Plan action row at the bottom of each recipe-idea
+   card. Lets users persist LLM-suggested recipes without losing them
+   when the dialog closes. */
+.recipe-idea-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  flex-wrap: wrap;
+}
 .recipe-idea-card h3 {
   margin: 0;
   font-size: 1em;

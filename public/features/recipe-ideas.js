@@ -16,7 +16,7 @@ let deps = null;
 function $(id) { return document.getElementById(id); }
 
 function renderCards(recipes) {
-  const { t } = deps;
+  const { t, saveRecipe, toast, openMealPlan } = deps;
   const list = $('recipe-ideas-list');
   if (!list) return;
   list.textContent = '';
@@ -60,6 +60,48 @@ function renderCards(recipes) {
         ol.appendChild(li);
       }
       card.appendChild(ol);
+    }
+    // F-F-07 — card actions. Save stashes the idea as a recipe the user
+    // can edit later (components empty; name + synthetic kcal total
+    // preserved). Plan saves AND opens the meal-plan dialog so the
+    // user can drop it onto a day/meal immediately.
+    if (typeof saveRecipe === 'function') {
+      const actions = document.createElement('div');
+      actions.className = 'recipe-idea-actions';
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'chip-btn compact';
+      saveBtn.textContent = t('recipeIdeasSave');
+      const planBtn = document.createElement('button');
+      planBtn.type = 'button';
+      planBtn.className = 'chip-btn accent compact';
+      planBtn.textContent = t('recipeIdeasPlan');
+      const doSave = async () => {
+        try {
+          const kcal = Math.round(r.kcal_estimate || 0);
+          const components = kcal > 0
+            ? [{ product_name: r.name, grams: 0, kcal, carbs_g: 0, fat_g: 0, sat_fat_g: 0, sugars_g: 0, protein_g: 0, salt_g: 0 }]
+            : [];
+          const saved = await saveRecipe({ name: r.name, components, servings: 1 });
+          toast?.(t('recipeIdeasSaved'), 'ok');
+          return saved;
+        } catch (err) {
+          console.warn('[recipeIdeas] save failed', err);
+          toast?.(t('recipeIdeasSaveFailed'), 'error');
+          return null;
+        }
+      };
+      saveBtn.addEventListener('click', doSave);
+      planBtn.addEventListener('click', async () => {
+        const saved = await doSave();
+        if (saved && typeof openMealPlan === 'function') {
+          $('recipe-ideas-dialog')?.close();
+          openMealPlan();
+        }
+      });
+      actions.appendChild(saveBtn);
+      actions.appendChild(planBtn);
+      card.appendChild(actions);
     }
     list.appendChild(card);
   }

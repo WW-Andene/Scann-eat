@@ -3209,7 +3209,13 @@ initBackupIO({
   entriesToHealthJSON, entriesToDailyCSV,
   renderRecentScans, renderDashboard,
 });
-initRecipeIdeas({ t, getMode, getKey, loadEngine });
+initRecipeIdeas({
+  t, getMode, getKey, loadEngine,
+  // F-F-07: card actions need persistence + navigation deps.
+  saveRecipe,
+  toast,
+  openMealPlan: async () => { await renderMealPlan(); mealPlanDialog?.showModal(); },
+});
 initSettingsDialog({
   t, setLang, applyStaticTranslations,
   isCapacitor,
