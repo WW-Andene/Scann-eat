@@ -7638,3 +7638,263 @@ dialog#menu-scan-dialog[data-mode="plate"] #menu-scan-bulk {
   margin-top: var(--sp-3);
   min-height: 44px;
 }
+
+/* ==========================================================================
+   2026-05-01 — VISUAL REFRESH (confidence pass)
+   ==========================================================================
+   Owner directive: rework the UI/UX. Constraints honoured:
+     - Warm × data-dense quadrant (CONTRIBUTING.md) preserved.
+     - Coral paper / cream card two-tone preserved.
+     - Tabular numerics preserved.
+     - Grade pattern overlays + emoji-per-feature signature preserved.
+     - F-CS-06 farmer's-market metaphor preserved (not retired).
+     - The 5 button classes' purposes (button-family table) preserved.
+   What changes:
+     - Refined elevation system (deeper, more confident shadows).
+     - Stronger type hierarchy on hero surfaces (.score-card, KPI numbers).
+     - Polished focus ring (multi-layer glow, accessible).
+     - Cleaner dialog header/body/footer pattern (matches both
+       .settings-dialog and .modal-dialog selectors per F-CS-05).
+     - Modernised loading + empty states.
+     - Refined micro-interactions (subtle scale on press, elevation
+       on hover; respects reduce-motion).
+     - Polished scrollbar styling (themed, thin, unobtrusive).
+   Cannot verify visually here — owner accepted the trade-off ("stop
+   arguing"). Every rule is additive (cascade-last) so the layer can
+   be reverted by deleting this section if regressions surface.
+   ========================================================================== */
+
+/* -- new tokens: deeper elevation, glow rings, hero radius ----------------- */
+:root,
+[data-theme="dark"] {
+  --elev-3:        0 4px 10px rgba(40, 18, 24, 0.16), 0 24px 48px rgba(40, 18, 24, 0.20);
+  --elev-hero:     0 8px 16px rgba(40, 18, 24, 0.20), 0 32px 64px rgba(40, 18, 24, 0.28);
+  --glow-accent:   0 0 0 3px var(--accent-focus), 0 0 0 6px rgba(255, 107, 69, 0.18);
+  --glow-success:  0 0 0 3px var(--success), 0 0 0 6px rgba(107, 229, 132, 0.18);
+  --glow-danger:   0 0 0 3px var(--danger),  0 0 0 6px rgba(229, 75, 94, 0.18);
+  --r-hero:        28px;
+}
+[data-theme="light"] {
+  --elev-3:        0 3px 8px rgba(72, 28, 34, 0.10), 0 20px 40px rgba(72, 28, 34, 0.14);
+  --elev-hero:     0 6px 12px rgba(72, 28, 34, 0.12), 0 28px 56px rgba(72, 28, 34, 0.18);
+  --glow-accent:   0 0 0 3px var(--accent-focus), 0 0 0 6px rgba(176, 67, 31, 0.18);
+  --glow-success:  0 0 0 3px var(--success), 0 0 0 6px rgba(107, 229, 132, 0.20);
+  --glow-danger:   0 0 0 3px var(--danger),  0 0 0 6px rgba(229, 75, 94, 0.20);
+}
+
+/* -- hero card: the score-card after a successful scan --------------------
+   The "decision moment" surface. Bigger radius, deeper elevation, more
+   internal breathing. Kept the coral-gradient tint subtle so it reads as
+   "we have a result for you" without overpowering the grade chip. */
+.score-card {
+  border-radius: var(--r-hero);
+  box-shadow: var(--elev-hero);
+  padding: var(--sp-7) var(--sp-5);
+  position: relative;
+  overflow: hidden;
+}
+/* A whisper of coral on the hero panel — pulled from --grad-accent-soft
+   (already defined). Sits under the content so the cream text stays
+   crisp. */
+.score-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--grad-accent-soft);
+  opacity: 0.35;
+  z-index: 0;
+}
+.score-card > * { position: relative; z-index: 1; }
+
+/* Stronger primary number: the daily-remaining KPI is the dashboard's
+   single most-glanced figure. F-DH-05 bumped it; this pushes weight
+   + tracking a touch further so it owns the hierarchy. */
+#dashboard-remaining {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* -- dialog header pattern (matches .settings-dialog AND .modal-dialog) ----
+   Every dialog gets a consistent title-row treatment. F-CS-05 documented
+   the .modal-dialog rename; this rule serves both selectors so new dialogs
+   adopting the canonical class get the chrome free, and existing ones
+   keep theirs. */
+dialog.settings-dialog .dialog-header,
+dialog.modal-dialog .dialog-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+dialog.settings-dialog .dialog-header h2,
+dialog.modal-dialog .dialog-header h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* -- focus ring: more confident, accessible, character-coherent -----------
+   The audit's F-G-01 batch restored visible focus everywhere. This refines
+   the visual: a 3px solid ring + 6px tinted halo. Reads as "you're here"
+   from a meter away. Chip-sized controls keep the existing 2px (already
+   set in the v2 layer). */
+.score-card:focus-within,
+button:not(.chip-btn):not(.settings-btn):focus-visible,
+.capture-btn:focus-visible,
+.log-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--glow-accent), var(--elev-2);
+}
+
+/* -- empty state: softer, more inviting -----------------------------------
+   The v2 layer added a base. This refresh tightens the look:
+   slightly larger glyph (the optional :first-child can be an emoji),
+   slightly less dashed-border noise, more generous interior. */
+.dash-entry-empty,
+.tpl-empty,
+.add-to-recipe-empty,
+.empty-state {
+  padding: var(--sp-6) var(--sp-5);
+  font-style: normal;       /* italic was reading as "broken", not "invited" */
+  border-style: dashed;
+  border-color: var(--border);   /* lighter than --border-strong */
+  border-width: 1px;
+  line-height: var(--lh-relaxed, 1.55);
+}
+.dash-entry-empty::before,
+.tpl-empty::before,
+.add-to-recipe-empty::before,
+.empty-state[data-icon]::before {
+  content: attr(data-icon);
+  display: block;
+  font-size: 1.6rem;
+  margin-bottom: var(--sp-2);
+  opacity: 0.75;
+}
+
+/* -- loading state: subtle gradient pulse on aria-busy ---------------------
+   F-DST-05 added a phase-rotating message + pulse for async LLM ops. This
+   extends it to any aria-busy region so cold dashboard renders feel less
+   "frozen". The keyframe already exists (scanneat-scanning-sweep); we
+   just pipe it through a softer overlay. Reduce-motion turns it off
+   below. */
+[aria-busy="true"]:not([aria-busy="true"] [aria-busy="true"]) {
+  position: relative;
+  isolation: isolate;
+}
+[aria-busy="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 107, 69, 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: scanneat-scanning-sweep 1.6s ease-in-out infinite;
+  z-index: 0;
+}
+
+/* -- micro-interactions: subtle press + hover on hero buttons ------------ */
+.capture-btn,
+.log-btn {
+  transition:
+    transform var(--motion-base, 180ms) var(--ease-ui),
+    box-shadow var(--motion-base, 180ms) var(--ease-ui);
+}
+.capture-btn:hover:not(:disabled),
+.log-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--elev-3);
+}
+.capture-btn:active:not(:disabled),
+.log-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+/* -- scrollbar styling: thin, themed, unobtrusive -------------------------
+   The cream-on-coral theme deserves a scrollbar that doesn't look like
+   a system default. WebKit + standard. Hidden under reduce-transparency
+   for users who explicitly want chrome. */
+@supports (scrollbar-color: red red) {
+  .modal-dialog,
+  .settings-dialog,
+  .recipes-dialog,
+  .templates-dialog,
+  .pillar-dialog {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+}
+.modal-dialog::-webkit-scrollbar,
+.settings-dialog::-webkit-scrollbar,
+.recipes-dialog::-webkit-scrollbar,
+.templates-dialog::-webkit-scrollbar,
+.pillar-dialog::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-dialog::-webkit-scrollbar-thumb,
+.settings-dialog::-webkit-scrollbar-thumb,
+.recipes-dialog::-webkit-scrollbar-thumb,
+.templates-dialog::-webkit-scrollbar-thumb,
+.pillar-dialog::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--r-pill);
+}
+
+/* -- recent-scans row: tighter density, hoverable ------------------------- */
+.recent-item {
+  transition:
+    background var(--speed-ui) var(--ease-ui),
+    transform var(--speed-ui) var(--ease-ui);
+}
+.recent-item:hover {
+  background: var(--panel-2);
+}
+
+/* -- pillar bars: clearer fill / track separation ------------------------- */
+.pillar-bar-track {
+  background: var(--panel-3);
+}
+.pillar-bar-fill {
+  /* Reach for the canonical signature gradient — the SINGLE coral
+     gradient of the whole app per the v2 layer's comment. */
+  background: var(--grad-accent);
+  transition: width var(--motion-base, 220ms) var(--ease-ui);
+}
+
+/* -- additive summary chip: sits on the result panel ----------------------
+   Currently a flat block; this refresh gives it the chip-row treatment
+   so it visually clusters with the flag pills. */
+.additive-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel-2);
+  border-radius: var(--r-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* -- reduce-motion kill-switch covers the new animations ----------------- */
+@media (prefers-reduced-motion: reduce) {
+  [aria-busy="true"]::after { animation: none; }
+  .capture-btn:hover:not(:disabled),
+  .log-btn:hover:not(:disabled),
+  .recent-item:hover {
+    transform: none;
+  }
+  .pillar-bar-fill {
+    transition: none;
+  }
+}
