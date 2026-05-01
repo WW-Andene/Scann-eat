@@ -8,6 +8,45 @@
 > commit history on `claude/improve-ocr-ingredient-parsing-zxgSf`, converted to
 > the skill's ADR-lite format.
 
+## [2026-05-01] Engine 2.1.0: name-based category inference fallback
+
+**Tier:** 1
+**Context:** When OFF returns `categories_tags: []` and the LLM is
+unsure (or not called), `ProductInput.category` falls through to
+`'other'`. The `'other'` row in `CATEGORY_THRESHOLDS` carries the
+generic `[3, 6, 12]` protein scale and `[1.5, 3, 6]` fiber scale,
+which punishes products whose name alone makes their category
+obvious — "Yaourt grec nature" silently lost ~3 points on pillar 2
+(nutritional density) because it was judged against generic
+thresholds instead of yogurt's `[3, 5, 9]` protein / `[0, 1, 2]`
+fiber scale.
+**Options considered:**
+  - Plumb name-inference into `off.ts` AND `ocr-parser.ts` separately
+    — pro: signal lives close to the source. Con: two regex tables to
+    keep in lockstep + neither catches user-typed names from the
+    quick-add path.
+  - Add a final-fallback in `scoreProduct` itself — pro: every input
+    flows through one place, regardless of source. Con: scoring layer
+    learns about names, which it didn't before.
+  - Do nothing — pro: simpler. Con: silent score drag on the long
+    tail of OFF products with empty `categories_tags`.
+**Decision:** New `inferCategoryFromName()` export + final-fallback in
+`scoreProduct`. Fires only when `category === 'other'`. Surfaces a
+warning so the audit reflects that inference happened.
+**Rationale:** Engine sees every input regardless of source, including
+hand-typed Quick Add names. One regex table in one place. The warning
+preserves provenance ("we did this, not the LLM"). Scoring math is
+unchanged for any input that already had a non-`other` category.
+**Reversal cost:** Trivial — delete the function + the
+`applyCategoryInference` call site, drop the test file.
+**Revisit trigger:** First report of a name being mis-categorised.
+The `NAME_CATEGORY_PATTERNS` table is a pure data list; one PR adds
+or removes an entry.
+**Engine bump:** 2.0.0 → 2.1.0 (per ADR-0006: minor = new bonus /
+penalty / threshold path; products' scores may shift ±1–3 points
+when inference fires, but only for inputs that were previously
+falling through to the generic 'other' scale).
+
 ## [2026-04-22] Empirical pairing source: Ahn 2011 recipe-corpus (s3), not molecular-compound backbone (s2)
 
 **Tier:** 2

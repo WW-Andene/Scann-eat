@@ -948,6 +948,88 @@ export function getThresholds(cat: ProductCategory): CategoryThresholds {
 }
 
 // ============================================================================
+// SECTION 3b: NAME-BASED CATEGORY INFERENCE
+// ============================================================================
+//
+// When OFF returns categories_tags=[] and the LLM is unsure (or not
+// invoked), `category` falls through to 'other', which means the
+// pillar-2 (nutritional density) and pillar-3 (negative nutrients)
+// thresholds use the generic DEFAULT_* scales. That's intentionally
+// conservative but punishes products whose name alone makes their
+// category obvious — "Yaourt grec nature" reading 0/5 fiber against
+// the bread scale, or "Eau Évian" being judged against the snack-sweet
+// kcal range.
+//
+// inferCategoryFromName fires only as a final fallback (called from
+// scoreProduct when product.category === 'other'). Patterns are ordered
+// most-specific first; a hit wins immediately. The list is editorial
+// (not a published taxonomy) but covers the most common French + EN
+// supermarket product types.
+// ============================================================================
+
+// Order: most-specific (composed dishes) first, then specific
+// fish/meat terms, then general categories. Two false-match cases the
+// audit caught:
+//   1. "Filet de saumon" — `saumon` is fish, but a bare `\bfilet\b`
+//      in fresh_meat would have absorbed it. Fish moved above meat.
+//   2. "Sandwich poulet curry" — sandwich must win over the embedded
+//      `\bpoulet\b`. Sandwich moved above meat.
+//   3. "Pâte à tartiner Nutella" — bare `\bp[aâ]t[eé]\b` for pâté/
+//      charcuterie also matched the `pâte` (dough) homograph. Removed
+//      from processed_meat; the more specific snack_sweet pattern
+//      now catches "pâte à tartiner".
+const NAME_CATEGORY_PATTERNS: ReadonlyArray<readonly [RegExp, ProductCategory]> = [
+  // ---- Beverages (clearest signals; check first) ----
+  [/\beau\b|\bwater\b|spring water|eau de source|eau min[eé]rale|eau gaz[eé]use/i, 'beverage_water'],
+  [/\bjus\b|\bjuice\b|\bnectar\b|smoothie|fruit drink/i, 'beverage_juice'],
+  [/\bsoda\b|\bcola\b|boisson gaz[eé]use|soft drink|\btonic\b|limonade|ic[eé][ -]?tea|th[eé] glac[eé]|energy drink|red bull|monster/i, 'beverage_soft'],
+  // ---- Dairy (yogurt before cheese — fromage blanc is yogurt-class) ----
+  [/\byaourts?\b|yoghurt|yogurt|\bskyr\b|fromage[ -]?blanc|faisselle|\bquark\b|petit[- ]suisse/i, 'yogurt'],
+  [/\bfromages?\b|\bcheese\b|\bbrie\b|camembert|cheddar|gruy[eè]re|\bgouda\b|mozzarella|parmesan|\bfeta\b|roquefort|emmental|comt[eé]|reblochon|munster|\bch[eè]vre\b|ricotta|mascarpone|halloumi/i, 'cheese'],
+  // ---- Composed dishes that contain meat names; check before meat ----
+  [/\bsandwich\b|\bburger\b|\bwrap\b|panini|\bkebab\b|\bcroque\b/i, 'sandwich'],
+  // Sweet snacks before meat so "pâte à tartiner" (Nutella class) wins
+  // over any bare meat token a marketing name might carry.
+  [/chocolats?\b|\bchocolate\b|\bbonbon|\bcandy\b|biscuits?\b|cookies?\b|g[aâ]teaux?\b|\bcakes?\b|\btartes?\b|\btarts?\b|brownie|\bdonut\b|beignet|barre chocolat[eé]e|kinder|nutella|m&m|haribo|m[aâ]rs|snickers|twix|bounty|pringles?[ -]?sweet|gauffres?\b|cr[eê]pes?\b|p[aâ]te [aà] tartiner/i, 'snack_sweet'],
+  // ---- Fish (before fresh_meat: "Filet de saumon" must hit fish) ----
+  [/\bsaumon\b|\bthon\b|sardine|maquereau|\bhareng\b|cabillaud|\bmerlu\b|\bcolin\b|\btruite\b|crevette|\bcrabe\b|\bmoules\b|hu[iî]tres|\bbar\b|\bdorade\b/i, 'fish'],
+  // ---- Processed meat (before fresh_meat: saucisson > generic meat) ----
+  [/\bjambon\b|saucisson|chorizo|\bbacon\b|\blardon|\bsalami\b|pancetta|prosciutto|merguez|\brillettes\b|\bp[aâ]t[eé]\b(?! [aà] tartiner)/i, 'processed_meat'],
+  // ---- Fresh meat ----
+  [/\bpoulet\b|\bb[oœ]uf\b|\bporc\b|\bagneau\b|\bdinde\b|\bcanard\b|viande hach[eé]e|\bsteaks?\b|escalope|magret/i, 'fresh_meat'],
+  // ---- Bakery ----
+  [/\bpain\b|\bbread\b|baguette|brioche|focaccia|ciabatta|\btoasts?\b|\bpita\b|tortilla|\bcracotte/i, 'bread'],
+  [/c[eé]r[eé]ales?\b|\bcereal\b|\bmuesli\b|\bgranola\b|porridge|flocons d['']avoine|\boats\b|cornflakes|chocapic|special k|fitness/i, 'breakfast_cereal'],
+  // ---- Ready meals ----
+  [/plat pr[eé]par[eé]|plat cuisin[eé]|ready meal|micro[- ]?ondes|[aà] r[eé]chauffer|lasagne|gratin|paella|risotto|\bcurry\b|chili con carne|hachis parmentier|tartiflette|moussaka/i, 'ready_meal'],
+  // ---- Condiments (before salty: tapenade contains "olive"-like words) ----
+  [/\bsauces?\b|mayonnaise|\bketchup\b|moutarde|mustard|vinaigrette|\bpesto\b|tahin[ei]|harissa|sambal|sriracha|wasabi|chutney|aioli|\btapenade\b/i, 'condiment'],
+  // ---- Oils + butter (before salty: "Huile d'olive" matches `olives?` too) ----
+  [/huile d['']olive|huile de colza|huile de tournesol|huile v[eé]g[eé]tale|\bolive oil\b|sunflower oil|canola oil|margarine|\bbeurre\b|\bbutter\b|saindoux/i, 'oil_fat'],
+  // ---- Salty snacks ----
+  [/\bchips\b|\bcrisps?\b|crackers?\b|biscuits? sal[eé]s?|\bpopcorn\b|\bpretzels?\b|cacahu[eè]tes?\b|noix de cajou|amande grill[eé]e|pistaches?\b|olives?\b/i, 'snack_salty'],
+];
+
+/**
+ * Best-effort category inference from a product name. Returns 'other'
+ * when no pattern matches, so callers can detect "no decision made".
+ *
+ * Editorial: the patterns are FR + EN supermarket vernacular. Adding a
+ * new entry is the right move when a real product comes back from OFF
+ * with category='other' but a name a child could classify. Most-
+ * specific patterns must come first (e.g. "yaourt" before "fromage"
+ * because "fromage blanc" is a yogurt-class product).
+ */
+export function inferCategoryFromName(name: string): ProductCategory {
+  if (!name || typeof name !== 'string') return 'other';
+  for (const [re, cat] of NAME_CATEGORY_PATTERNS) {
+    if (re.test(name)) return cat;
+  }
+  return 'other';
+}
+
+
+// ============================================================================
 // SECTION 4: SHARED KEYWORD CONSTANTS
 // ============================================================================
 
@@ -1868,7 +1950,7 @@ export function scoreIngredientIntegrity(product: ProductInput): PillarScore {
 //     cap at 40 reflects this "carcinogenic to humans" classification.
 // ============================================================================
 
-export const ENGINE_VERSION = '2.0.0';
+export const ENGINE_VERSION = '2.1.0';
 
 function scoreToGrade(score: number): Grade {
   if (score >= 85) return 'A+';
@@ -2073,6 +2155,24 @@ function collectWarnings(product: ProductInput): string[] {
 }
 
 /**
+ * Apply name-based category inference when the input falls through to
+ * 'other'. Returns the (possibly category-overridden) product plus a
+ * flag telling the caller whether to surface a warning.
+ *
+ * Pure: produces a shallow clone when it changes anything, returns the
+ * original reference otherwise.
+ */
+function applyCategoryInference(product: ProductInput): {
+  product: ProductInput;
+  inferred: ProductCategory | null;
+} {
+  if (product.category !== 'other') return { product, inferred: null };
+  const inferred = inferCategoryFromName(product.name);
+  if (inferred === 'other') return { product, inferred: null };
+  return { product: { ...product, category: inferred }, inferred };
+}
+
+/**
  * ============================================================================
  * MAIN SCORING FUNCTION
  * ============================================================================
@@ -2081,7 +2181,12 @@ function collectWarnings(product: ProductInput): string[] {
  * Pure synchronous function — no I/O, no side effects.
  * ============================================================================
  */
-export function scoreProduct(product: ProductInput): ScoreAudit {
+export function scoreProduct(input: ProductInput): ScoreAudit {
+  // Final-fallback category inference: if both OFF and the LLM landed on
+  // 'other', try to recognise the name. A product hand-typed by a user
+  // ("Yaourt grec nature") otherwise scored against the generic scale.
+  const { product, inferred } = applyCategoryInference(input);
+
   const processing = scoreProcessing(product);
   const nutritional_density = scoreNutritionalDensity(product);
   const negative_nutrients = scoreNegativeNutrients(product);
@@ -2135,7 +2240,10 @@ export function scoreProduct(product: ProductInput): ScoreAudit {
     global_penalties,
     veto,
     engine_version: ENGINE_VERSION,
-    warnings: collectWarnings(product),
+    warnings: [
+      ...collectWarnings(product),
+      ...(inferred ? [`Category inferred from name as "${inferred}" (input had category="other")`] : []),
+    ],
     // Fix #2 — eco-score side-channel. buildFlags reads this to
     // surface environmental impact as a red/green flag without
     // disrupting the 5-pillar numeric score.
