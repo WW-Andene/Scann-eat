@@ -13,7 +13,12 @@
  *   This test fails fast on every PR.
  *
  * What we cover:
- *   - All literal t('foo') and t("foo") calls.
+ *   - All literal t('foo') and t("foo") calls in public/ js files.
+ *   - HTML attributes data-i18n="foo", data-i18n-aria-label="foo",
+ *     data-i18n-placeholder="foo" — wired by applyStaticTranslations
+ *     in i18n.js. The audit-v3 F-N-01 batch added the aria-label and
+ *     placeholder variants; without this gate, a typo in the HTML
+ *     would surface as an English/raw-key string in the UI.
  *   - Plural patterns: a call like t('foo', { n }) is satisfied if
  *     EITHER 'foo' exists OR 'foo_one' + 'foo_other' exist (Intl
  *     plural rules; the project follows the _one / _other shorthand
@@ -84,6 +89,21 @@ function collectAllKeys(): Map<string, KeyCallSite> {
       all.set(key, site);
     }
   }
+  // Also harvest HTML attribute keys: data-i18n, data-i18n-aria-label,
+  // data-i18n-placeholder. applyStaticTranslations() reads these on
+  // every locale change to repaint static labels / aria descriptions /
+  // form placeholders.
+  const HTML_ATTR_RE = /data-i18n(?:-(?:aria-label|placeholder))?\s*=\s*["']([A-Za-z_][\w]*)["']/g;
+  const indexHtml = join(PUBLIC_ROOT, 'index.html');
+  try {
+    const html = readFileSync(indexHtml, 'utf8');
+    for (const match of html.matchAll(HTML_ATTR_RE)) {
+      const key = match[1];
+      const site = all.get(key) ?? { key, hasInterpolation: false, files: new Set() };
+      site.files.add('index.html');
+      all.set(key, site);
+    }
+  } catch { /* index.html missing — collectAllKeys still useful */ }
   return all;
 }
 

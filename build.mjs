@@ -45,8 +45,8 @@ await build({
   stdin: {
     contents: `
       export { parseLabel, parseIngredientsText, identifyFood, identifyMultiFood, identifyMenu, identifyRecipe, suggestRecipes, suggestRecipesFromPantry } from './src/ocr-parser.ts';
-      export { scoreProduct, ADDITIVES_DB } from './src/scoring-engine.ts';
-      export { fetchFromOFF, searchOFFByCategory, rankAlternatives, suggestionTagFor } from './src/off.ts';
+      export { scoreProduct, ADDITIVES_DB, ENGINE_VERSION, inferCategoryFromName, findAdditive, countTier1Additives, getThresholds, normalize } from './src/scoring-engine.ts';
+      export { fetchFromOFF, searchOFFByCategory, rankAlternatives, suggestionTagFor, isOFFSparse, mergeOFFWithLLM, detectSourceConflicts } from './src/off.ts';
     `,
     resolveDir: '.',
     loader: 'ts',

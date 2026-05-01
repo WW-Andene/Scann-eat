@@ -505,13 +505,45 @@ async function scanViaServer() {
 }
 async function scanViaDirect() {
   const key = getKey();
-  const { parseLabel, scoreProduct, fetchFromOFF } = await loadEngine();
+  const {
+    parseLabel, scoreProduct, fetchFromOFF,
+    isOFFSparse, mergeOFFWithLLM, detectSourceConflicts,
+  } = await loadEngine();
   const bc = firstBarcode();
+  const payload = queuePayload();
+
   if (bc) {
     const off = await fetchFromOFF(bc);
-    if (off) return { product: off, audit: scoreProduct(off), warnings: [], source: 'openfoodfacts', barcode: bc };
+    if (off) {
+      // Mirror the server-mode hybrid path: when OFF returns a thin
+      // record AND the user supplied label photos AND a Groq key is
+      // configured, run the LLM augmentation pass + surface any
+      // OFF/LLM source conflicts. Previously direct-mode skipped this
+      // step and returned the OFF-only audit even when the photos
+      // could have filled the gaps.
+      if (isOFFSparse(off) && payload.length > 0 && key) {
+        try {
+          const parsed = await parseLabel(payload, { apiKey: key });
+          const merged = mergeOFFWithLLM(off, parsed.product);
+          const conflicts = detectSourceConflicts(off, parsed.product);
+          return {
+            product: merged,
+            audit: scoreProduct(merged),
+            warnings: [...parsed.warnings, ...conflicts],
+            source: 'merged',
+            barcode: bc,
+          };
+        } catch (err) {
+          // LLM failed (rate limit, network) — fall through to OFF
+          // alone so the user still gets a score. 429 is surfaced
+          // for any LLM-only path below; here we just downgrade.
+          console.warn('[scanViaDirect] LLM augmentation failed, falling back to OFF:', err?.message || err);
+        }
+      }
+      return { product: off, audit: scoreProduct(off), warnings: [], source: 'openfoodfacts', barcode: bc };
+    }
   }
-  const payload = queuePayload();
+
   if (payload.length === 0) throw new Error(t('errNoPhotos'));
   if (!key) throw new Error(t('errMissingKey'));
   let parsed;
