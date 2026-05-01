@@ -536,23 +536,58 @@ export function rankAlternatives(
 }
 
 /**
- * Compare OFF vs LLM numbers and return human-readable warnings when they
- * disagree materially (>20 % relative difference on a non-trivial value).
- * Lets the user notice a potentially reformulated product.
+ * Compare OFF + LLM nutrition extractions and warn when they disagree
+ * materially. Per-nutrient thresholds reflect how close to a regulatory
+ * cutoff each value sits — a 20 % swing in protein is rarely actionable,
+ * but the same 20 % on sat-fat can flip a product across the FSA red
+ * line.
+ *
+ * Two gates per check:
+ *   1. Relative threshold (per nutrient).
+ *   2. Absolute floor (per nutrient) — guards against firing on
+ *      "0.05g vs 0.10g" where the % is meaningless.
+ *
+ * Returns a list of human-readable warnings (caller writes them to the
+ * audit's warnings array).
  */
+const CONFLICT_THRESHOLDS: Record<
+  'sugars_g' | 'saturated_fat_g' | 'salt_g' | 'protein_g' | 'trans_fat_g' | 'energy_kcal',
+  { label: string; relativeThreshold: number; absoluteFloor: number; unit: string }
+> = {
+  // Sugars: 20% covers most reformulation deltas. Floor 2g — below
+  // that the absolute difference rarely matters.
+  sugars_g:        { label: 'Sugars',    relativeThreshold: 0.20, absoluteFloor: 2,    unit: 'g' },
+  // Sat fat: 15% — the FSA "red" threshold is 5g/100g; a 15% swing
+  // around that (0.75g) is the line between green and red.
+  saturated_fat_g: { label: 'Sat fat',   relativeThreshold: 0.15, absoluteFloor: 1,    unit: 'g' },
+  // Salt: 15% — 1.5g/100g is the FSA red threshold.
+  salt_g:          { label: 'Salt',      relativeThreshold: 0.15, absoluteFloor: 0.3,  unit: 'g' },
+  // Protein: 25% — less safety-critical; only flag big deltas.
+  protein_g:       { label: 'Protein',   relativeThreshold: 0.25, absoluteFloor: 3,    unit: 'g' },
+  // Trans fat: 10% — WHO REPLACE elimination target means any non-zero
+  // disagreement is interesting. Tight relative threshold + tight floor.
+  trans_fat_g:     { label: 'Trans fat', relativeThreshold: 0.10, absoluteFloor: 0.05, unit: 'g' },
+  // Energy: 20%. A reformulated product with the same macros listed
+  // but different kcal often means one source got fat or carbs wrong.
+  energy_kcal:     { label: 'Energy',    relativeThreshold: 0.20, absoluteFloor: 30,   unit: 'kcal' },
+};
+
 export function detectSourceConflicts(off: ProductInput, llm: ProductInput): string[] {
   const warnings: string[] = [];
-  const check = (label: string, a: number, b: number) => {
-    if (a > 0 && b > 0) {
-      const diff = Math.abs(a - b) / Math.max(a, b);
-      if (diff > 0.20) {
-        warnings.push(`${label}: OFF ${a} vs photo ${b} (−${Math.round(diff * 100)} % difference — possible reformulation)`);
-      }
+  for (const [field, cfg] of Object.entries(CONFLICT_THRESHOLDS) as Array<
+    [keyof typeof CONFLICT_THRESHOLDS, typeof CONFLICT_THRESHOLDS[keyof typeof CONFLICT_THRESHOLDS]]
+  >) {
+    const a = Number(off.nutrition[field] ?? 0);
+    const b = Number(llm.nutrition[field] ?? 0);
+    const peak = Math.max(a, b);
+    if (a <= 0 || b <= 0 || peak < cfg.absoluteFloor) continue;
+    const diff = Math.abs(a - b) / peak;
+    if (diff > cfg.relativeThreshold) {
+      warnings.push(
+        `${cfg.label}: OFF ${a}${cfg.unit} vs photo ${b}${cfg.unit} ` +
+        `(${Math.round(diff * 100)}% difference, threshold ${Math.round(cfg.relativeThreshold * 100)}% — possible reformulation)`,
+      );
     }
-  };
-  check('Sugars', off.nutrition.sugars_g, llm.nutrition.sugars_g);
-  check('Sat fat', off.nutrition.saturated_fat_g, llm.nutrition.saturated_fat_g);
-  check('Salt', off.nutrition.salt_g, llm.nutrition.salt_g);
-  check('Protein', off.nutrition.protein_g, llm.nutrition.protein_g);
+  }
   return warnings;
 }

@@ -12,7 +12,7 @@ import { describe, it } from 'node:test';
 
 import { ENGINE_VERSION } from '../src/scoring-engine.ts';
 
-const EXPECTED_VERSION = '2.1.0';
+const EXPECTED_VERSION = '2.2.0';
 
 describe('engine-version', () => {
   it('matches the pinned version (per ADR-0006)', () => {

@@ -401,12 +401,31 @@ export const ADDITIVES_DB: AdditiveInfo[] = [
     source: 'IARC Monograph Vol 134 (2023) — Group 2B; JECFA 2023 reaffirmed ADI 40 mg/kg bw/day; EFSA ADI 40 mg/kg bw/day (2013).',
   },
   {
-    e_number: 'E150',
-    names: ['caramel', 'colorant caramel', 'e150a', 'e150b', 'e150c', 'e150d'],
+    e_number: 'E150c',
+    names: ['e150c', 'caramel ammoniacal', 'ammonia caramel'],
     tier: 2,
     category: 'colorant',
-    concern: 'Caramel colours III (E150c) and IV (E150d) contain 4-methylimidazole (4-MEI), classified IARC Group 2B. Plain (I) and caustic-sulfite (II) caramels do not.',
-    source: 'IARC Monograph Vol 101 (2013) — 4-MEI Group 2B; EFSA ADI 100–300 mg/kg bw/day by sub-class (2011 re-evaluation).',
+    concern: 'Ammonia caramel. Production yields 4-methylimidazole (4-MEI), classified IARC Group 2B (possibly carcinogenic to humans). Found in colas + dark sauces.',
+    source: 'IARC Monograph Vol 101 (2013) — 4-MEI Group 2B; EFSA Scientific Opinion 2011;9(3):2004 (ADI 100 mg/kg bw/day for E150c, expressed as caramel, with a sub-ADI of 200 µg/kg bw/day for 4-MEI).',
+  },
+  {
+    e_number: 'E150d',
+    names: ['e150d', 'caramel sulfite-ammoniacal', 'sulfite-ammonia caramel'],
+    tier: 2,
+    category: 'colorant',
+    concern: 'Sulfite-ammonia caramel. Same 4-MEI carcinogenicity concern as E150c; the most common caramel sub-class in dark sodas.',
+    source: 'IARC Monograph Vol 101 (2013) — 4-MEI Group 2B; EFSA Scientific Opinion 2011;9(3):2004 (ADI 200 mg/kg bw/day for E150d).',
+  },
+  {
+    // Conservative fallback when the label doesn't disambiguate the
+    // sub-class. Tagged Tier 2 because EU labelling allows just "E150"
+    // and most commercial caramel is c/d in practice.
+    e_number: 'E150',
+    names: ['caramel', 'colorant caramel'],
+    tier: 2,
+    category: 'colorant',
+    concern: 'Caramel colour, sub-class unspecified. EU labelling allows just "E150"; most commercial caramel in dark sodas + sauces is E150c or E150d, both flagged for 4-MEI (IARC Group 2B). Conservative tier when sub-class is ambiguous.',
+    source: 'IARC Monograph Vol 101 (2013); EFSA Scientific Opinion 2011;9(3):2004.',
   },
 
   // ===== TIER 3: Minor / contextual (authorised, no direct authoritative concern) =====
@@ -815,6 +834,157 @@ export const ADDITIVES_DB: AdditiveInfo[] = [
     category: 'sweetener',
     concern: 'Sugar alcohol. Generally safe; laxative effect above ~50 g. Acutely toxic to dogs (irrelevant to human safety).',
     source: 'EU authorisation without ADI; EFSA 2011 opinion on polyol laxative threshold.',
+  },
+
+  // ===== TIER 3: 2026-05-01 batch — common label hits we previously didn't index =====
+  // Splitting E150 into a/b/c/d (above) leaves the safer plain + caustic-
+  // sulfite sub-classes here as Tier 3 cosmetic-processing signals. The
+  // remaining entries fill gaps the audit kept hitting on real OFF data:
+  // colorants, acidulants, lactates, flavour enhancers (E627/631/635
+  // family), and a few common bulkers.
+  {
+    e_number: 'E150a',
+    names: ['e150a', 'caramel ordinaire', 'plain caramel'],
+    tier: 3,
+    category: 'colorant',
+    concern: 'Plain (no-additive) caramel colour. No 4-MEI concern, but presence still signals cosmetic processing.',
+    source: 'EFSA Scientific Opinion 2011;9(3):2004 (no ADI specified for E150a; EU SCF group ADI applies).',
+  },
+  {
+    e_number: 'E150b',
+    names: ['e150b', 'caramel caustique', 'caustic-sulfite caramel'],
+    tier: 3,
+    category: 'colorant',
+    concern: 'Caustic-sulfite caramel colour. No 4-MEI concern; sulfite content can be relevant for sulfite-sensitive individuals.',
+    source: 'EFSA Scientific Opinion 2011;9(3):2004 (ADI 160 mg/kg bw/day, expressed as caramel solids).',
+  },
+  {
+    e_number: 'E101',
+    names: ['riboflavine', 'riboflavin', 'vitamine b2'],
+    tier: 3,
+    category: 'colorant',
+    concern: 'Riboflavin (vitamin B2) used as a yellow colorant. Nutritionally identical to dietary B2; tier reflects cosmetic-processing signal, not safety.',
+    source: 'EFSA Scientific Opinion 2013;11(10):3357 (no numerical ADI needed; "not of safety concern at expected use").',
+  },
+  {
+    e_number: 'E160a',
+    names: ['caroténoïdes', 'beta-carotène', 'beta carotene', 'carotenes'],
+    tier: 3,
+    category: 'colorant',
+    concern: 'Carotenoid colorants (vitamin A precursor). EFSA flags caution at very high supplemental intakes for smokers, but food-additive use is well below those levels.',
+    source: 'EFSA Scientific Opinion 2012;10(3):2593 (β-carotene); EU labelling permitted as colour without an ADI for natural extracts.',
+  },
+  {
+    e_number: 'E163',
+    names: ['anthocyanes', 'anthocyanins', 'extrait de peau de raisin'],
+    tier: 3,
+    category: 'colorant',
+    concern: 'Anthocyanin colorants (red/purple, from grape skins, blackcurrant, etc.). Generally regarded as safe; presence signals cosmetic processing.',
+    source: 'EFSA Scientific Opinion 2013;11(4):3145 (no numerical ADI considered necessary).',
+  },
+  {
+    e_number: 'E170',
+    names: ['carbonate de calcium', 'calcium carbonate'],
+    tier: 3,
+    category: 'colorant',
+    concern: 'Calcium carbonate, used as a white colorant + acidity regulator + calcium-fortification carrier. Identical to dietary calcium chemistry.',
+    source: 'EFSA Scientific Opinion 2011;9(7):2318 (ADI not specified, "not of safety concern at use levels").',
+  },
+  {
+    e_number: 'E260',
+    names: ['acide acétique', 'acetic acid'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Acetic acid (vinegar). Long history of safe use; tier reflects "additive present" signal, not toxicity.',
+    source: 'EU authorisation without numerical ADI (quantum satis).',
+  },
+  {
+    e_number: 'E325',
+    names: ['lactate de sodium', 'sodium lactate'],
+    tier: 3,
+    category: 'preservative',
+    concern: 'Sodium lactate. Common in deli meats as a moisture / shelf-life agent. Authorised without numerical ADI.',
+    source: 'EU Regulation 1333/2008 Annex II (group lactates).',
+  },
+  {
+    e_number: 'E327',
+    names: ['lactate de calcium', 'calcium lactate'],
+    tier: 3,
+    category: 'preservative',
+    concern: 'Calcium lactate. Acidity regulator + calcium fortifier; widely used.',
+    source: 'EU Regulation 1333/2008 Annex II (group lactates).',
+  },
+  {
+    e_number: 'E332',
+    names: ['citrate de potassium', 'potassium citrate'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Citrate buffer. No safety concern.',
+    source: 'EU authorisation without ADI.',
+  },
+  {
+    e_number: 'E460',
+    names: ['cellulose', 'cellulose microcristalline', 'microcrystalline cellulose'],
+    tier: 3,
+    category: 'thickener',
+    concern: 'Cellulose, a plant-fibre derivative. EFSA reaffirmed safety; presence signals processed-food formulation rather than a toxicity concern.',
+    source: 'EFSA Scientific Opinion 2018;16(1):5047 (group cellulose ADI not specified).',
+  },
+  {
+    e_number: 'E509',
+    names: ['chlorure de calcium', 'calcium chloride'],
+    tier: 3,
+    category: 'stabilizer',
+    concern: 'Calcium chloride. Firming agent for canned vegetables + tofu. No safety concern at use levels.',
+    source: 'EU Regulation 1333/2008 Annex II (quantum satis).',
+  },
+  {
+    e_number: 'E575',
+    names: ['glucono-delta-lactone', 'glucono delta lactone', 'gdl'],
+    tier: 3,
+    category: 'acidulant',
+    concern: 'Slow-release acidulant used in baked goods + tofu coagulation. Hydrolyses to gluconic acid in the gut.',
+    source: 'EU authorisation without numerical ADI.',
+  },
+  {
+    e_number: 'E627',
+    names: ['guanylate disodique', 'disodium guanylate'],
+    tier: 3,
+    category: 'flavor_enhancer',
+    concern: 'Nucleotide flavour enhancer, almost always paired with E621 (MSG) for synergistic umami. Authorised without specific ADI; presence signals UPF flavour engineering.',
+    source: 'EFSA Scientific Opinion 2017;15(7):4910 (group ribonucleotides + glutamates).',
+  },
+  {
+    e_number: 'E631',
+    names: ['inosinate disodique', 'disodium inosinate'],
+    tier: 3,
+    category: 'flavor_enhancer',
+    concern: 'Nucleotide flavour enhancer, paired with MSG for umami synergy. Often derived from animal sources (fish, meat) — relevant for vegetarian / vegan diets.',
+    source: 'EFSA Scientific Opinion 2017;15(7):4910.',
+  },
+  {
+    e_number: 'E635',
+    names: ['ribonucléotides disodiques', 'disodium ribonucleotides'],
+    tier: 3,
+    category: 'flavor_enhancer',
+    concern: 'Disodium ribonucleotides (inosinate + guanylate mix). Same umami-synergy + UPF-marker context as E631 / E627.',
+    source: 'EFSA Scientific Opinion 2017;15(7):4910.',
+  },
+  {
+    e_number: 'E901',
+    names: ['cire d\'abeille', 'beeswax'],
+    tier: 3,
+    category: 'glazing_agent',
+    concern: 'Glazing agent (apple shine, confectionery coatings). Authorised; not vegan.',
+    source: 'EFSA Scientific Opinion 2007 (re-evaluated; no ADI specified).',
+  },
+  {
+    e_number: 'E920',
+    names: ['l-cystéine', 'l cysteine', 'cystéine', 'cysteine'],
+    tier: 3,
+    category: 'flour_treatment',
+    concern: 'Dough conditioner used in industrial bakery. Often derived from animal hair / feathers — relevant for vegetarian / vegan diets even though synthetic + microbial sources exist.',
+    source: 'EU Regulation 1333/2008 Annex II (industrial bakery quantum satis).',
   },
 ];
 
@@ -1950,7 +2120,7 @@ export function scoreIngredientIntegrity(product: ProductInput): PillarScore {
 //     cap at 40 reflects this "carcinogenic to humans" classification.
 // ============================================================================
 
-export const ENGINE_VERSION = '2.1.0';
+export const ENGINE_VERSION = '2.2.0';
 
 function scoreToGrade(score: number): Grade {
   if (score >= 85) return 'A+';

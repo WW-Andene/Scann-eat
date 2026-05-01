@@ -206,6 +206,59 @@ describe('detectSourceConflicts', () => {
     });
     assert.deepEqual(detectSourceConflicts(off, llm), []);
   });
+
+  // ---- Engine 2.2.0: per-nutrient thresholds ----
+
+  it('sat-fat threshold is tighter than sugar threshold (15% vs 20%)', () => {
+    // 18% delta on sat-fat: must trigger (>15% threshold).
+    const offA = p({ nutrition: { ...p({}).nutrition, saturated_fat_g: 5 } });
+    const llmA = p({ nutrition: { ...p({}).nutrition, saturated_fat_g: 6.1 } });
+    assert.ok(detectSourceConflicts(offA, llmA).some((w) => /Sat fat/.test(w)));
+
+    // 18% delta on sugars: must NOT trigger (<20% threshold).
+    const offB = p({ nutrition: { ...p({}).nutrition, sugars_g: 10 } });
+    const llmB = p({ nutrition: { ...p({}).nutrition, sugars_g: 12.1 } });
+    assert.deepEqual(
+      detectSourceConflicts(offB, llmB).filter((w) => /Sugars/.test(w)),
+      [],
+    );
+  });
+
+  it('absolute floor suppresses noisy small-value deltas', () => {
+    // Salt floor is 0.3g. 0.05g vs 0.10g is a 50% relative delta but
+    // the peak (0.10g) is below floor — should NOT warn.
+    const off = p({ nutrition: { ...p({}).nutrition, salt_g: 0.05 } });
+    const llm = p({ nutrition: { ...p({}).nutrition, salt_g: 0.10 } });
+    assert.deepEqual(detectSourceConflicts(off, llm), []);
+  });
+
+  it('trans fat fires at 10% delta (any disagreement matters)', () => {
+    // 12% delta on trans fat: must trigger.
+    const off = p({ nutrition: { ...p({}).nutrition, trans_fat_g: 0.20 } });
+    const llm = p({ nutrition: { ...p({}).nutrition, trans_fat_g: 0.226 } });
+    assert.ok(detectSourceConflicts(off, llm).some((w) => /Trans fat/.test(w)));
+  });
+
+  it('energy mismatch >20% surfaces a separate Energy warning', () => {
+    const off = p({ nutrition: { ...p({}).nutrition, energy_kcal: 200 } });
+    const llm = p({ nutrition: { ...p({}).nutrition, energy_kcal: 260 } });
+    const ws = detectSourceConflicts(off, llm);
+    assert.ok(ws.some((w) => /Energy/.test(w)));
+  });
+
+  it('protein needs >25% delta to fire (less safety-critical)', () => {
+    // 23% delta — under threshold.
+    const offA = p({ nutrition: { ...p({}).nutrition, protein_g: 10 } });
+    const llmA = p({ nutrition: { ...p({}).nutrition, protein_g: 13 } });
+    assert.deepEqual(
+      detectSourceConflicts(offA, llmA).filter((w) => /Protein/.test(w)),
+      [],
+    );
+    // 30% delta — over threshold.
+    const offB = p({ nutrition: { ...p({}).nutrition, protein_g: 10 } });
+    const llmB = p({ nutrition: { ...p({}).nutrition, protein_g: 14.5 } });
+    assert.ok(detectSourceConflicts(offB, llmB).some((w) => /Protein/.test(w)));
+  });
 });
 
 // ============================================================================

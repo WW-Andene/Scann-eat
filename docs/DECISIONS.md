@@ -8,6 +8,47 @@
 > commit history on `claude/improve-ocr-ingredient-parsing-zxgSf`, converted to
 > the skill's ADR-lite format.
 
+## [2026-05-01] Engine 2.2.0: ADDITIVES_DB expansion + per-nutrient conflict thresholds
+
+**Tier:** 1
+**Context:** The ADDITIVES_DB was at 69 entries; common French
+supermarket additives still came back as null from findAdditive (the
+dark-soda caramel sub-classes E150c/d, the umami-pair E627/E631/E635,
+plain colorants E101/E160a/E163, common acidulants/lactates). Each
+miss meant the audit's additive-risk pillar surfaced no info on a
+real product feature.
+
+`detectSourceConflicts` used a flat 20% relative threshold for every
+nutrient. That misses sat-fat reformulations near the FSA red line
+(20% of 5g sat-fat is 1g — the exact distance between green and red)
+while spamming on protein deltas that don't matter for safety.
+
+**Decision:** Two changes in one engine version bump:
+  1. ADDITIVES_DB grows by 18 entries with sourced concerns:
+     - E150 split into a/b (Tier 3, no 4-MEI), c/d (Tier 2, 4-MEI
+       carcinogenicity per IARC Vol 101). Bare "E150" stays Tier 2 as
+       conservative fallback when sub-class isn't disambiguated.
+     - 6 colorants/buffers (E101, E160a, E163, E170, E260, E332).
+     - 2 lactates (E325, E327).
+     - 1 thickener (E460), 1 stabiliser (E509), 1 acidulant (E575).
+     - 3 ribonucleotide flavour enhancers (E627, E631, E635).
+     - 2 misc (E901 beeswax, E920 L-cysteine).
+  2. detectSourceConflicts gets per-nutrient thresholds: sat-fat 15%,
+     salt 15% (both close to FSA red), sugars 20% (current), protein
+     25% (less safety-critical), trans fat 10% (any disagreement
+     matters per WHO REPLACE), energy 20% (new — kcal mismatches
+     signal one source got fat or carbs wrong). Each check also
+     gates on an absolute floor so 0.05g vs 0.10g doesn't fire a
+     50%-delta warning.
+**Reversal cost:** Trivial. Both changes are localised to the engine
++ off.ts; no schema, no UI dependency.
+**Revisit trigger:** Audit signal that adds more E-numbers commonly
+seen on labels but missing from DB. Or a product owner decision
+that the conflict-warning rate is too noisy / too quiet.
+**Engine bump:** 2.1.0 → 2.2.0 (per ADR-0006: minor — new entries in
+ADDITIVES_DB and a tightened threshold path can shift scores ±1 to
+±3 points but don't change the pillar contract or grade breakpoints).
+
 ## [2026-05-01] Engine 2.1.0: name-based category inference fallback
 
 **Tier:** 1
