@@ -12,6 +12,7 @@ reverse) decision + Tier-1 decisions whose rationale is non-obvious.
 | [0003](0003-data-provenance-pipeline-over-checked-in-data.md) | Data-generation pipelines shipped as infrastructure | Accepted |
 | [0004](0004-features-folder-pattern.md) | Feature-folder pattern under `public/features/` | Accepted |
 | [0005](0005-test-stack-node-test-experimental-strip-types.md) | Test stack is `node --test --experimental-strip-types` | Accepted |
+| [0006](0006-engine-version-independence.md) | Scoring engine version is independent of `package.json` version | Accepted |
 
 ## Writing a new ADR
 
