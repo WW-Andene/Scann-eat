@@ -57,44 +57,50 @@ describe('pruneOld', () => {
   });
 });
 
+// Frozen "today" so test data dated 2026-04-22 isn't pruned by the
+// 7-day window once the wall clock passes 2026-04-29. Without this,
+// every test that writes a slot on 2026-04-22 silently lost it on the
+// next day's CI run. Threaded into the storage layer in 2026-05-01.
+const NOW = new Date('2026-04-22T12:00:00Z').getTime();
+
 describe('storage CRUD', () => {
   beforeEach(() => { store.clear(); });
 
   it('setSlot then getDayPlan round-trips', () => {
-    setSlot('2026-04-22', 'lunch', { kind: 'recipe', id: 'r1', name: 'Pesto pâtes' });
-    assert.deepEqual(getDayPlan('2026-04-22'), {
+    setSlot('2026-04-22', 'lunch', { kind: 'recipe', id: 'r1', name: 'Pesto pâtes' }, NOW);
+    assert.deepEqual(getDayPlan('2026-04-22', NOW), {
       lunch: { kind: 'recipe', id: 'r1', name: 'Pesto pâtes' },
     });
   });
 
   it('setSlot with null deletes the slot', () => {
-    setSlot('2026-04-22', 'lunch', { kind: 'note', text: 'x' });
-    setSlot('2026-04-22', 'lunch', null);
-    assert.deepEqual(getDayPlan('2026-04-22'), {});
+    setSlot('2026-04-22', 'lunch', { kind: 'note', text: 'x' }, NOW);
+    setSlot('2026-04-22', 'lunch', null, NOW);
+    assert.deepEqual(getDayPlan('2026-04-22', NOW), {});
   });
 
   it('removes the date entry when last slot is deleted', () => {
-    setSlot('2026-04-22', 'lunch', { kind: 'note', text: 'x' });
-    setSlot('2026-04-22', 'lunch', null);
-    assert.equal(Object.keys(getMealPlan()).length, 0);
+    setSlot('2026-04-22', 'lunch', { kind: 'note', text: 'x' }, NOW);
+    setSlot('2026-04-22', 'lunch', null, NOW);
+    assert.equal(Object.keys(getMealPlan(NOW)).length, 0);
   });
 
   it('clearDay nukes the date', () => {
-    setSlot('2026-04-22', 'lunch', { kind: 'note', text: 'x' });
-    setSlot('2026-04-22', 'dinner', { kind: 'note', text: 'y' });
-    clearDay('2026-04-22');
-    assert.deepEqual(getMealPlan(), {});
+    setSlot('2026-04-22', 'lunch', { kind: 'note', text: 'x' }, NOW);
+    setSlot('2026-04-22', 'dinner', { kind: 'note', text: 'y' }, NOW);
+    clearDay('2026-04-22', NOW);
+    assert.deepEqual(getMealPlan(NOW), {});
   });
 
   it('rejects unknown meals silently', () => {
-    setSlot('2026-04-22', 'brunch' as never, { kind: 'note', text: 'x' });
-    assert.deepEqual(getMealPlan(), {});
+    setSlot('2026-04-22', 'brunch' as never, { kind: 'note', text: 'x' }, NOW);
+    assert.deepEqual(getMealPlan(NOW), {});
   });
 
   it('clearAll wipes', () => {
-    setSlot('2026-04-22', 'lunch', { kind: 'note', text: 'x' });
+    setSlot('2026-04-22', 'lunch', { kind: 'note', text: 'x' }, NOW);
     clearAll();
-    assert.deepEqual(getMealPlan(), {});
+    assert.deepEqual(getMealPlan(NOW), {});
   });
 });
 
@@ -102,22 +108,22 @@ describe('planRecipes', () => {
   beforeEach(() => { store.clear(); });
 
   it('resolves recipe-slot ids against the recipe store', () => {
-    setSlot('2026-04-22', 'lunch', { kind: 'recipe', id: 'r1', name: 'A' });
-    setSlot('2026-04-23', 'dinner', { kind: 'recipe', id: 'r2', name: 'B' });
-    setSlot('2026-04-23', 'snack',  { kind: 'note', text: 'biscuit' }); // ignored
+    setSlot('2026-04-22', 'lunch', { kind: 'recipe', id: 'r1', name: 'A' }, NOW);
+    setSlot('2026-04-23', 'dinner', { kind: 'recipe', id: 'r2', name: 'B' }, NOW);
+    setSlot('2026-04-23', 'snack',  { kind: 'note', text: 'biscuit' }, NOW); // ignored
     const recipes = [
       { id: 'r1', name: 'A', components: [] },
       { id: 'r2', name: 'B', components: [] },
       { id: 'r3', name: 'C', components: [] },
     ];
-    const got = planRecipes(['2026-04-22', '2026-04-23'], recipes);
+    const got = planRecipes(['2026-04-22', '2026-04-23'], recipes, NOW);
     assert.equal(got.length, 2);
     assert.deepEqual(got.map((r) => r.id), ['r1', 'r2']);
   });
 
   it('skips slots whose recipe id is missing from the store', () => {
-    setSlot('2026-04-22', 'lunch', { kind: 'recipe', id: 'gone', name: 'X' });
-    const got = planRecipes(['2026-04-22'], []);
+    setSlot('2026-04-22', 'lunch', { kind: 'recipe', id: 'gone', name: 'X' }, NOW);
+    const got = planRecipes(['2026-04-22'], [], NOW);
     assert.equal(got.length, 0);
   });
 });

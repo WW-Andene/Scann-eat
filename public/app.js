@@ -15,7 +15,7 @@ import { initScanner, openCameraScanner, closeCameraScanner } from '/features/sc
 import { maybeShowOnboarding } from '/features/onboarding.js';
 import { initInstallBanner } from '/features/install-banner.js';
 import { initBackupIO } from '/features/backup-io.js';
-import { initFasting, renderFasting } from '/features/fasting.js';
+import { initFasting, renderFasting, isFastingActive } from '/features/fasting.js';
 import { initAppearance, applyAppearance, applyTheme, applyReadingPrefs } from '/features/appearance.js';
 import { shareOrCopy } from '/core/share.js';
 import { dateFormatter, localeFor } from '/core/date-format.js';
@@ -2530,9 +2530,15 @@ if (compareArmed()) {
 })();
 
 checkForUpdate();
-setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
+// Hold the interval id so pagehide can clear it. Unbounded setInterval
+// stacking shows up under HMR / multiple-tab restores; a single clear
+// path on pagehide keeps us at one timer per tab lifetime.
+let _updateIntervalId = setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') { checkForUpdate(); updatePendingBanner(); }
+});
+window.addEventListener('pagehide', () => {
+  if (_updateIntervalId) { clearInterval(_updateIntervalId); _updateIntervalId = null; }
 });
 
 // ============================================================================
@@ -2653,20 +2659,9 @@ $('unit-convert-input')?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); applyUnitConvert(); }
 });
 
-// Fix #26 — check if a fast is in progress. Reads the same LS keys
-// as /features/fasting.js. Used by logBtn + qaSave to surface a
-// non-blocking warn so the user can still log if they choose (app
-// respects autonomy — the fasting feature is self-reported, not a
-// hard constraint).
-function isFastingInProgress() {
-  const start = Number(localStorage.getItem('scanneat.fasting.start')) || 0;
-  if (start <= 0) return false;
-  const targetH = Number(localStorage.getItem('scanneat.fasting.target')) || 16;
-  const elapsedH = (Date.now() - start) / 3_600_000;
-  // Consider "in progress" only while still within the target window;
-  // past target is "completion window" where logging shouldn't nag.
-  return elapsedH >= 0 && elapsedH < targetH;
-}
+// `isFastingActive` is now exported from /features/fasting.js, which
+// owns the LS keys. Previously this file duplicated the key strings
+// inline; that broke silently when fasting.js renamed them (R27).
 
 logBtn?.addEventListener('click', async () => {
   // R10.3: tell the user *why* the log button is a no-op when they
@@ -2687,7 +2682,7 @@ logBtn?.addEventListener('click', async () => {
     logToast.textContent = t('logged', { grams: effectiveGrams, kcal: Math.round(entry.kcal) });
     show(logToast);
     // Fix #26 — warn (non-blocking) when logging during a fast.
-    if (isFastingInProgress()) toast(t('fastingActiveWarn'), 'warn');
+    if (isFastingActive()) toast(t('fastingActiveWarn'), 'warn');
     await renderDashboard();
   } catch (err) {
     console.error('[log]', err);
@@ -3026,7 +3021,7 @@ qaSave?.addEventListener('click', async (e) => {
       }
     } catch { /* never block the save */ }
     // Fix #26 — fasting-window warn (non-blocking).
-    if (isFastingInProgress()) toast(t('fastingActiveWarn'), 'warn');
+    if (isFastingActive()) toast(t('fastingActiveWarn'), 'warn');
     quickAddDialog.close();
     await renderDashboard();
   } catch (err) {

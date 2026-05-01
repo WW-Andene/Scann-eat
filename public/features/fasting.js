@@ -36,6 +36,22 @@ function getState() {
   };
 }
 
+/**
+ * Is a fast currently in progress (within its target window)? Past the
+ * target hour the fast is in its "completion window" and this returns
+ * false — the UI should not nag at logging time once the fast is done.
+ *
+ * Exported so app.js + other features don't have to read fasting.js's
+ * private localStorage keys directly. Previously app.js duplicated this
+ * inline, which silently broke whenever the storage keys changed (R27).
+ */
+export function isFastingActive(now = Date.now()) {
+  const s = getState();
+  if (!s) return false;
+  const elapsedH = (now - s.start_ms) / 3_600_000;
+  return elapsedH >= 0 && elapsedH < s.target_hours;
+}
+
 function start(targetHours) {
   localStorage.setItem(LS_START, String(Date.now()));
   localStorage.setItem(LS_TARGET, String(targetHours));

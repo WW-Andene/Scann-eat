@@ -88,18 +88,21 @@ export function pruneOld(plan, now = Date.now()) {
   return out;
 }
 
-export function getMealPlan() {
-  return pruneOld(readAll());
+// `now` is threaded through the storage layer so tests can pin a fixed
+// "today" without mocking Date.now globally. Production callers omit it
+// and pruning happens against the real wall clock.
+export function getMealPlan(now = Date.now()) {
+  return pruneOld(readAll(), now);
 }
 
-export function getDayPlan(date) {
-  const all = getMealPlan();
+export function getDayPlan(date, now = Date.now()) {
+  const all = getMealPlan(now);
   return all[date] || {};
 }
 
-export function setSlot(date, meal, slot) {
+export function setSlot(date, meal, slot, now = Date.now()) {
   if (!date || !MEALS.includes(meal)) return;
-  const all = pruneOld(readAll());
+  const all = pruneOld(readAll(), now);
   const built = buildSlot(slot);
   if (!all[date]) all[date] = {};
   if (built) all[date][meal] = built;
@@ -108,9 +111,9 @@ export function setSlot(date, meal, slot) {
   writeAll(all);
 }
 
-export function clearDay(date) {
+export function clearDay(date, now = Date.now()) {
   if (!date) return;
-  const all = pruneOld(readAll());
+  const all = pruneOld(readAll(), now);
   delete all[date];
   writeAll(all);
 }
@@ -126,8 +129,8 @@ export function clearAll() {
  *
  * `recipeStore` = result of listRecipes().
  */
-export function planRecipes(dateRange, recipeStore) {
-  const plan = getMealPlan();
+export function planRecipes(dateRange, recipeStore, now = Date.now()) {
+  const plan = getMealPlan(now);
   const recipesById = new Map((recipeStore ?? []).map((r) => [r.id, r]));
   const out = [];
   for (const date of dateRange) {

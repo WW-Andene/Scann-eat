@@ -120,6 +120,61 @@ describe('mergeOFFWithLLM', () => {
     assert.equal(merged.organic, true);
     assert.equal(merged.origin_transparent, true);
   });
+
+  it('preserves micronutrients across the full nutrition surface', () => {
+    // Pre-2026-05-01, only iron / Ca / vit_D / B12 survived the merge —
+    // every other declared vitamin / mineral was silently dropped.
+    // This test pins that the union-merge now carries them all.
+    const off = p({
+      nutrition: {
+        ...p({}).nutrition,
+        iron_mg: 2.5,
+        calcium_mg: 120,
+        // OFF declares B12 but LLM doesn't see it
+        b12_ug: 1.2,
+      },
+    });
+    const llm = p({
+      nutrition: {
+        ...p({}).nutrition,
+        // LLM picks up vitamins OFF didn't expose
+        vit_c_mg: 40,
+        vit_e_mg: 3,
+        magnesium_mg: 80,
+        potassium_mg: 350,
+        b9_ug: 60,
+        omega_3_g: 0.8,
+      },
+    });
+    const merged = mergeOFFWithLLM(off, llm);
+    assert.equal(merged.nutrition.iron_mg, 2.5);
+    assert.equal(merged.nutrition.calcium_mg, 120);
+    assert.equal(merged.nutrition.b12_ug, 1.2);
+    assert.equal(merged.nutrition.vit_c_mg, 40);
+    assert.equal(merged.nutrition.vit_e_mg, 3);
+    assert.equal(merged.nutrition.magnesium_mg, 80);
+    assert.equal(merged.nutrition.potassium_mg, 350);
+    assert.equal(merged.nutrition.b9_ug, 60);
+    assert.equal(merged.nutrition.omega_3_g, 0.8);
+  });
+
+  it('unions declared_micronutrients lists from both sources', () => {
+    const off = p({ declared_micronutrients: ['Iron', 'Calcium'] });
+    const llm = p({ declared_micronutrients: ['Calcium', 'Vitamin C', 'Magnesium'] });
+    const merged = mergeOFFWithLLM(off, llm);
+    assert.deepEqual(
+      [...(merged.declared_micronutrients ?? [])].sort(),
+      ['Calcium', 'Iron', 'Magnesium', 'Vitamin C'],
+    );
+  });
+
+  it('keeps OFF eco-score (LLM cannot see it)', () => {
+    const off = p({ ecoscore_grade: 'b', ecoscore_value: 64 });
+    const llm = p({});
+    const merged = mergeOFFWithLLM(off, llm);
+    assert.equal(merged.ecoscore_grade, 'b');
+    assert.equal(merged.ecoscore_value, 64);
+  });
 });
 
 describe('detectSourceConflicts', () => {

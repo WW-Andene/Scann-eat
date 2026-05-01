@@ -84,8 +84,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
               source: 'merged',
               barcode: body.barcode,
             });
-          } catch {
-            // LLM failed — fall back to OFF alone.
+          } catch (llmErr) {
+            // LLM failed — fall back to OFF alone. Log first so the
+            // operator can see Groq is failing; user-facing path is
+            // unaffected because OFF-only scoring still works.
+            const m = llmErr instanceof Error ? llmErr.message : String(llmErr);
+            console.error('[/api/score] LLM augmentation failed, falling back to OFF:', m);
           }
         }
         const audit = scoreProduct(off);

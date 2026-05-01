@@ -1406,9 +1406,14 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
       );
     });
     // Subtract bad fat source (palm, coprah): should cancel the bump.
+    // Mirrors computeGlobalPenalties' palm-detection regex so the
+    // two stay in lockstep. The trailing `coconut oil palm` token in
+    // the previous version was a stale OR'd fragment that matched
+    // nothing real; replaced with the FR/EN palm variants the global
+    // penalty already covers.
     const hasBadFatSource = ingredients.some((ing) => {
       const n = ing.name.toLowerCase();
-      return /huile de palme|huile de palmiste|graisse de palme|coprah|coconut oil palm/.test(n);
+      return /huile de palme|huile de palmiste|graisse de palme|st[eé]arine de palme|ol[eé]ine de palme|palm oil|palm kernel|coprah/.test(n);
     });
     if (hasHealthyFatSource && !hasBadFatSource && fatScore < 5) {
       const before = fatScore;
@@ -1943,7 +1948,14 @@ function computeGlobalPenalties(product: ProductInput): Deduction[] {
 function checkVeto(product: ProductInput): VetoCondition {
   const { nutrition, category, ingredients } = product;
 
-  // Trans fats — no safe level
+  // Trans fats — no safe level. INTENTIONALLY cumulative with the
+  // -10 deduction in scoreNegativeNutrients: both penalties draw on
+  // independently authoritative bases (FSA "no safe level" guidance
+  // and the WHO REPLACE elimination target IARC-aligned). The pillar
+  // deduction expresses the within-pillar judgment; the veto cap
+  // expresses the engine-level "this product cannot be A/A+ regardless
+  // of whatever else it does well". Removing either would weaken a
+  // citation. See engine-trans-fat-tests.ts for the pinned behaviour.
   if ((nutrition.trans_fat_g ?? 0) > 0.1) {
     return { triggered: true, reason: 'Contains industrial trans fats — no safe level', cap: 40 };
   }
@@ -2019,19 +2031,14 @@ function buildFlags(audit: Omit<ScoreAudit, 'red_flags' | 'green_flags'>): {
   for (const b of allBonuses) {
     if (b.points >= 2) green.push(b.reason);
   }
-  // Fix #2 — surface ecoscore as a flag. Doesn't change the numeric
-  // score (keeps the 100-point contract stable and preserves the
-  // existing 5-pillar math), but ties environmental impact into the
-  // audit output so the flag list reflects it. Thresholds follow
-  // OFF's letter grades: A/B green, D/E red, C neutral.
-  // Fix #2 — surface ecoscore as a flag. Ecoscore fields are read
-  // via a typed side-channel (audit.eco) the caller writes in.
-  // Doesn't change the numeric score (preserves the 5-pillar 100-
-  // point contract), but folds environmental impact into the flag
-  // list so the user-facing audit reflects it. Thresholds follow
-  // OFF letter grades: A/B green, D/E red, C neutral.
-  type EcoSide = { eco?: { grade?: string; value?: number } };
-  const eco = (audit as unknown as EcoSide).eco;
+  // Surface ecoscore as a flag. Doesn't change the numeric score
+  // (preserves the 5-pillar 100-point contract), but folds
+  // environmental impact into the flag list so the user-facing
+  // audit reflects it. Thresholds follow OFF letter grades: A/B
+  // green, D/E red, C neutral. The `eco` field is on ScoreAudit
+  // proper now (was a side-channel cast through a local EcoSide
+  // type before; cleaned up alongside Phase-1 bug fixes).
+  const eco = audit.eco;
   if (eco?.grade) {
     const g = String(eco.grade).toLowerCase();
     if (g === 'a' || g === 'b') {
@@ -2105,7 +2112,7 @@ export function scoreProduct(product: ProductInput): ScoreAudit {
   score = Math.round(score);
   const grade = scoreToGrade(score);
 
-  const preAudit: Omit<ScoreAudit, 'red_flags' | 'green_flags'> & { eco?: { grade?: string; value?: number } } = {
+  const preAudit: Omit<ScoreAudit, 'red_flags' | 'green_flags'> = {
     product_name: product.name,
     category: product.category,
     score,

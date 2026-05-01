@@ -371,21 +371,53 @@ export function mergeOFFWithLLM(off: ProductInput, llm: ProductInput): ProductIn
     category: off.category !== 'other' ? off.category : llm.category,
     nova_class: off.nova_class || llm.nova_class,
     ingredients: emptyArr(off.ingredients) || off.ingredients.length < 3 ? llm.ingredients : off.ingredients,
+    // Nutrition merge: required macros use prefer() (OFF over LLM unless
+    // OFF is 0/missing); optional micronutrients use ??-cascade (the
+    // first non-null/non-undefined wins, so a 0 declared by OFF is
+    // preserved over an LLM hallucination). Previously only iron / Ca /
+    // vit_D / B12 were merged — every other micronutrient declared on a
+    // product was silently dropped on the merge path, including the
+    // vitamins (A, C, E, K, B-complex), the minerals (Mg, K, Zn, Na),
+    // and the macro subdivisions (poly/mono/ω-3/ω-6/cholesterol). Those
+    // fields are read by scoreNutritionalDensity's NRV-15% bonus loop,
+    // so dropping them silently lowered scores on multi-vitamin products
+    // that fell through the OFF-sparse → LLM merge path.
     nutrition: {
-      energy_kcal: prefer(off.nutrition.energy_kcal, llm.nutrition.energy_kcal, emptyNum),
-      fat_g: prefer(off.nutrition.fat_g, llm.nutrition.fat_g, emptyNum),
+      energy_kcal:     prefer(off.nutrition.energy_kcal,     llm.nutrition.energy_kcal,     emptyNum),
+      fat_g:           prefer(off.nutrition.fat_g,           llm.nutrition.fat_g,           emptyNum),
       saturated_fat_g: prefer(off.nutrition.saturated_fat_g, llm.nutrition.saturated_fat_g, emptyNum),
-      carbs_g: prefer(off.nutrition.carbs_g, llm.nutrition.carbs_g, emptyNum),
-      sugars_g: prefer(off.nutrition.sugars_g, llm.nutrition.sugars_g, emptyNum),
-      added_sugars_g: off.nutrition.added_sugars_g ?? llm.nutrition.added_sugars_g ?? null,
-      fiber_g: prefer(off.nutrition.fiber_g, llm.nutrition.fiber_g, emptyNum),
-      protein_g: prefer(off.nutrition.protein_g, llm.nutrition.protein_g, emptyNum),
-      salt_g: prefer(off.nutrition.salt_g, llm.nutrition.salt_g, emptyNum),
-      trans_fat_g: off.nutrition.trans_fat_g ?? llm.nutrition.trans_fat_g ?? null,
-      iron_mg: prefer(off.nutrition.iron_mg, llm.nutrition.iron_mg, emptyNum),
-      calcium_mg: prefer(off.nutrition.calcium_mg, llm.nutrition.calcium_mg, emptyNum),
-      vit_d_ug: prefer(off.nutrition.vit_d_ug, llm.nutrition.vit_d_ug, emptyNum),
-      b12_ug: prefer(off.nutrition.b12_ug, llm.nutrition.b12_ug, emptyNum),
+      carbs_g:         prefer(off.nutrition.carbs_g,         llm.nutrition.carbs_g,         emptyNum),
+      sugars_g:        prefer(off.nutrition.sugars_g,        llm.nutrition.sugars_g,        emptyNum),
+      added_sugars_g:  off.nutrition.added_sugars_g  ?? llm.nutrition.added_sugars_g  ?? null,
+      fiber_g:         prefer(off.nutrition.fiber_g,         llm.nutrition.fiber_g,         emptyNum),
+      protein_g:       prefer(off.nutrition.protein_g,       llm.nutrition.protein_g,       emptyNum),
+      salt_g:          prefer(off.nutrition.salt_g,          llm.nutrition.salt_g,          emptyNum),
+      trans_fat_g:     off.nutrition.trans_fat_g     ?? llm.nutrition.trans_fat_g     ?? null,
+      // Minerals
+      iron_mg:         off.nutrition.iron_mg         ?? llm.nutrition.iron_mg,
+      calcium_mg:      off.nutrition.calcium_mg      ?? llm.nutrition.calcium_mg,
+      magnesium_mg:    off.nutrition.magnesium_mg    ?? llm.nutrition.magnesium_mg,
+      potassium_mg:    off.nutrition.potassium_mg    ?? llm.nutrition.potassium_mg,
+      zinc_mg:         off.nutrition.zinc_mg         ?? llm.nutrition.zinc_mg,
+      sodium_mg:       off.nutrition.sodium_mg       ?? llm.nutrition.sodium_mg,
+      // Vitamins
+      vit_a_ug:        off.nutrition.vit_a_ug        ?? llm.nutrition.vit_a_ug,
+      vit_c_mg:        off.nutrition.vit_c_mg        ?? llm.nutrition.vit_c_mg,
+      vit_d_ug:        off.nutrition.vit_d_ug        ?? llm.nutrition.vit_d_ug,
+      vit_e_mg:        off.nutrition.vit_e_mg        ?? llm.nutrition.vit_e_mg,
+      vit_k_ug:        off.nutrition.vit_k_ug        ?? llm.nutrition.vit_k_ug,
+      b1_mg:           off.nutrition.b1_mg           ?? llm.nutrition.b1_mg,
+      b2_mg:           off.nutrition.b2_mg           ?? llm.nutrition.b2_mg,
+      b3_mg:           off.nutrition.b3_mg           ?? llm.nutrition.b3_mg,
+      b6_mg:           off.nutrition.b6_mg           ?? llm.nutrition.b6_mg,
+      b9_ug:           off.nutrition.b9_ug           ?? llm.nutrition.b9_ug,
+      b12_ug:          off.nutrition.b12_ug          ?? llm.nutrition.b12_ug,
+      // Macro subdivisions
+      polyunsaturated_fat_g: off.nutrition.polyunsaturated_fat_g ?? llm.nutrition.polyunsaturated_fat_g,
+      monounsaturated_fat_g: off.nutrition.monounsaturated_fat_g ?? llm.nutrition.monounsaturated_fat_g,
+      omega_3_g:       off.nutrition.omega_3_g       ?? llm.nutrition.omega_3_g,
+      omega_6_g:       off.nutrition.omega_6_g       ?? llm.nutrition.omega_6_g,
+      cholesterol_mg:  off.nutrition.cholesterol_mg  ?? llm.nutrition.cholesterol_mg,
     },
     weight_g: off.weight_g ?? llm.weight_g,
     origin: off.origin ?? llm.origin ?? null,
@@ -394,7 +426,16 @@ export function mergeOFFWithLLM(off: ProductInput, llm: ProductInput): ProductIn
     has_misleading_marketing: off.has_misleading_marketing || llm.has_misleading_marketing,
     named_oils: off.named_oils ?? llm.named_oils,
     origin_transparent: off.origin_transparent || llm.origin_transparent,
-    declared_micronutrients: off.declared_micronutrients,
+    // Union of declared micronutrients across both sources, deduped.
+    // Previously OFF-only — products where the LLM read additional
+    // declared nutrients off the panel had those dropped on merge.
+    declared_micronutrients: Array.from(new Set([
+      ...(off.declared_micronutrients ?? []),
+      ...(llm.declared_micronutrients ?? []),
+    ])),
+    // Eco fields are only ever known from OFF; LLM doesn't see them.
+    ecoscore_grade: off.ecoscore_grade,
+    ecoscore_value: off.ecoscore_value,
   };
 }
 
