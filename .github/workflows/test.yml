@@ -16,7 +16,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['20', '22']
+        # Node 22 minimum: `--experimental-strip-types` (the flag the
+        # test runner relies on per ADR-0005) landed in Node 22.6.
+        # Node 20 doesn't have it at all. 24 is the next LTS — pin
+        # both so a regression on either fails fast.
+        node-version: ['22', '24']
 
     steps:
       - uses: actions/checkout@v4

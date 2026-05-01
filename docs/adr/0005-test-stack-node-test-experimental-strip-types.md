@@ -23,7 +23,10 @@ Needs for the test harness:
 
 **Cons**: the `--experimental-strip-types` flag is still flagged
 experimental as of Node 22 — could be renamed or changed in minor
-versions.
+versions. **Minimum runtime: Node 22.6** (the version that landed
+the flag; Node 20 does not support it). Pinned via the
+`"engines": {"node": ">=22.6"}` field in `package.json` and the
+matrix in `.github/workflows/test.yml`.
 
 ### Option B — Vitest
 
