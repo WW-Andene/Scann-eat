@@ -1,77 +1,56 @@
 /**
  * Vercel Function: POST /api/score
- * Body: { imageBase64: string, mime?: string }
- * Response: { product, audit, warnings }
+ * Body: { images?: [{ base64, mime? }, ...], imageBase64?: string, mime?: string, barcode?: string }
+ * Response: { product, audit, warnings, source, barcode }
  *
- * GROQ_API_KEY must be set in Vercel project env vars.
+ * Hybrid scoring path:
+ *   1. If a barcode is provided, hit Open Food Facts first.
+ *   2. If OFF returns a record but it's sparse (missing core fields)
+ *      AND the user provided photos, run the LLM augmentation pass and
+ *      merge — surfacing source conflicts as warnings.
+ *   3. If OFF returns nothing, fall back to LLM-only.
+ *
+ * GROQ_API_KEY is required for LLM paths but NOT for OFF-only scoring,
+ * so we don't gate the whole handler on it — only the LLM-using branches
+ * fail with a 503 if the key is absent.
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { parseLabel } from '../ocr-parser.ts';
-import { fetchFromOFF, isOFFSparse, mergeOFFWithLLM, detectSourceConflicts } from '../off.ts';
-import { scoreProduct } from '../scoring-engine.ts';
+import { parseLabel } from '../src/ocr-parser.ts';
+import { fetchFromOFF, isOFFSparse, mergeOFFWithLLM, detectSourceConflicts } from '../src/off.ts';
+import { scoreProduct } from '../src/scoring-engine.ts';
+import {
+  mapErrorToPublicMessage,
+  normalizeImages,
+  readJsonBody,
+  requirePost,
+  sendJSON,
+} from './_lib.ts';
 
 export const config = {
   runtime: 'nodejs',
   maxDuration: 30, // Pro plan only; Hobby silently caps at 10s
 };
 
-const MAX_BODY_BYTES = 12 * 1024 * 1024;
-
-async function readBody(req: IncomingMessage): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    let total = 0;
-    req.on('data', (chunk: Buffer) => {
-      total += chunk.length;
-      if (total > MAX_BODY_BYTES) {
-        reject(new Error(`Body too large (>${MAX_BODY_BYTES} bytes)`));
-        req.destroy();
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
-}
-
-function sendJSON(res: ServerResponse, status: number, body: unknown) {
-  const payload = JSON.stringify(body);
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(payload),
-  });
-  res.end(payload);
-}
-
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  if (req.method !== 'POST') {
-    return sendJSON(res, 405, { error: 'Method not allowed' });
-  }
+  if (!requirePost(req, res)) return;
 
   try {
-    const raw = await readBody(req);
-    const body = JSON.parse(raw.toString('utf8')) as {
+    const body = await readJsonBody<{
       images?: Array<{ base64: string; mime?: string }>;
       imageBase64?: string;
       mime?: string;
       barcode?: string;
-    };
+    }>(req);
 
-    const images =
-      body.images && body.images.length > 0
-        ? body.images.map((img) => ({ base64: img.base64, mime: img.mime ?? 'image/jpeg' }))
-        : body.imageBase64
-          ? [{ base64: body.imageBase64, mime: body.mime ?? 'image/jpeg' }]
-          : [];
+    const images = normalizeImages(body);
 
     // OFF + optional LLM hybrid path.
     if (body.barcode) {
       const off = await fetchFromOFF(body.barcode);
       if (off) {
-        if (isOFFSparse(off) && images.length > 0) {
+        if (isOFFSparse(off) && images.length > 0 && process.env?.GROQ_API_KEY) {
           try {
             const parsed = await parseLabel(images);
             const merged = mergeOFFWithLLM(off, parsed.product);
@@ -106,6 +85,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     if (images.length === 0) {
       return sendJSON(res, 400, { error: 'Missing images' });
     }
+    if (!process.env?.GROQ_API_KEY) {
+      return sendJSON(res, 503, { error: 'service_unavailable', detail: 'GROQ_API_KEY not configured' });
+    }
 
     const parsed = await parseLabel(images);
     const audit = scoreProduct(parsed.product);
@@ -118,15 +100,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       barcode: parsed.barcode ?? null,
     });
   } catch (err) {
-    // Log the real error server-side; return a generic one to the client so
-    // internal state (stack traces, auth tokens in messages, etc.) never
-    // reaches a hostile caller.
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[/api/score]', message);
-    const publicMessage =
-      /body too large/i.test(message) ? 'Request body too large'
-      : /JSON/i.test(message) ? 'Invalid JSON body'
-      : 'Scoring failed';
-    return sendJSON(res, 500, { error: publicMessage });
+    const { status, publicMessage, internalMessage } = mapErrorToPublicMessage(err, 'Scoring failed');
+    console.error('[/api/score]', internalMessage);
+    return sendJSON(res, status, { error: publicMessage });
   }
 }

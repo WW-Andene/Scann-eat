@@ -11,44 +11,24 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { suggestRecipesFromPantry } from '../ocr-parser.ts';
+import { suggestRecipesFromPantry } from '../src/ocr-parser.ts';
+import {
+  mapErrorToPublicMessage,
+  readJsonBody,
+  requireGroqKey,
+  requirePost,
+  sendJSON,
+} from './_lib.ts';
 
 export const config = { runtime: 'nodejs', maxDuration: 30 };
 
 const MAX_BODY_BYTES = 64 * 1024;
 
-async function readBody(req: IncomingMessage): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    let total = 0;
-    req.on('data', (chunk: Buffer) => {
-      total += chunk.length;
-      if (total > MAX_BODY_BYTES) {
-        reject(new Error(`Body too large (>${MAX_BODY_BYTES} bytes)`));
-        req.destroy();
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
-}
-
-function sendJSON(res: ServerResponse, status: number, body: unknown) {
-  const payload = JSON.stringify(body);
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(payload),
-  });
-  res.end(payload);
-}
-
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  if (req.method !== 'POST') return sendJSON(res, 405, { error: 'Method not allowed' });
+  if (!requirePost(req, res)) return;
+  if (!requireGroqKey(res)) return;
   try {
-    const raw = await readBody(req);
-    const body = JSON.parse(raw.toString('utf8')) as { pantry?: string[] };
+    const body = await readJsonBody<{ pantry?: string[] }>(req, MAX_BODY_BYTES);
     const pantry = (Array.isArray(body.pantry) ? body.pantry : [])
       .filter((s) => typeof s === 'string' && s.trim().length > 0)
       .slice(0, 20);
@@ -57,12 +37,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const result = await suggestRecipesFromPantry(pantry);
     return sendJSON(res, 200, result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[/api/suggest-from-pantry]', message);
-    const publicMessage =
-      /body too large/i.test(message) ? 'Request body too large'
-      : /JSON/i.test(message) ? 'Invalid JSON body'
-      : 'Pantry suggestion failed';
-    return sendJSON(res, 500, { error: publicMessage });
+    const { status, publicMessage, internalMessage } = mapErrorToPublicMessage(err, 'Pantry suggestion failed');
+    console.error('[/api/suggest-from-pantry]', internalMessage);
+    return sendJSON(res, status, { error: publicMessage });
   }
 }

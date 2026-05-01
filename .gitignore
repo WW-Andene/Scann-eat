@@ -9,3 +9,14 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Claude Code skill artifacts — these are dev meta-tooling that
+# accidentally got tracked. Doc files reference them by name as
+# provenance notes (`Per app_development_SKILL.md §X.Y`); the
+# skills themselves live in ~/.claude/skills/ or in the user's
+# Claude Code installation, not in this repo.
+*-SKILL.md
+*_SKILL.md
+Claude_Skills.zip
+h5w-unified-*.zip
+h5w-unified/

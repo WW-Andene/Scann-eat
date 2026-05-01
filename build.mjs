@@ -1,6 +1,6 @@
 /**
- * Bundles the TS engine (scoring-engine.ts + ocr-parser.ts + off.ts) into a
- * single browser-friendly ESM file at public/engine.bundle.js.
+ * Bundles the TS engine (src/scoring-engine.ts + src/ocr-parser.ts + src/off.ts)
+ * into a single browser-friendly ESM file at public/engine.bundle.js.
  *
  * Also writes public/version.json with the current git commit so the running
  * app (web or APK) can self-compare against the latest GitHub Release and
@@ -44,9 +44,9 @@ try {
 await build({
   stdin: {
     contents: `
-      export { parseLabel, parseIngredientsText, identifyFood, identifyMultiFood, identifyMenu, identifyRecipe, suggestRecipes, suggestRecipesFromPantry } from './ocr-parser.ts';
-      export { scoreProduct, ADDITIVES_DB } from './scoring-engine.ts';
-      export { fetchFromOFF, searchOFFByCategory, rankAlternatives, suggestionTagFor } from './off.ts';
+      export { parseLabel, parseIngredientsText, identifyFood, identifyMultiFood, identifyMenu, identifyRecipe, suggestRecipes, suggestRecipesFromPantry } from './src/ocr-parser.ts';
+      export { scoreProduct, ADDITIVES_DB } from './src/scoring-engine.ts';
+      export { fetchFromOFF, searchOFFByCategory, rankAlternatives, suggestionTagFor } from './src/off.ts';
     `,
     resolveDir: '.',
     loader: 'ts',

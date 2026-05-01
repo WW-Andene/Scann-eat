@@ -26,16 +26,9 @@ export const config = {
 };
 
 const FETCH_TIMEOUT_MS = 8_000;
-const MAX_BODY_BYTES = 2 * 1024 * 1024;
+import { sendJSON } from './_lib.ts';
 
-function sendJSON(res: ServerResponse, status: number, body: unknown) {
-  const payload = JSON.stringify(body);
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(payload),
-  });
-  res.end(payload);
-}
+const MAX_BODY_BYTES = 2 * 1024 * 1024;
 
 // --- ISO 8601 duration parser (PT30M, PT1H15M) ---
 function parseISODuration(s: unknown): number | null {
