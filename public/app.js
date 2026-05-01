@@ -14,6 +14,10 @@ import { initVoiceDictate } from '/features/voice-dictate.js';
 import { initScanner, openCameraScanner, closeCameraScanner } from '/features/scanner.js';
 import { maybeShowOnboarding } from '/features/onboarding.js';
 import { initInstallBanner } from '/features/install-banner.js';
+import { initUpdateChecker } from '/features/update-checker.js';
+import { initComparison, maybeRenderComparison, compareArmed } from '/features/comparison.js';
+import { initPortionPanel } from '/features/portion-panel.js';
+import { initScanHistoryUi } from '/features/scan-history-ui.js';
 import { initBackupIO } from '/features/backup-io.js';
 import { initFasting, renderFasting, isFastingActive } from '/features/fasting.js';
 import { initAppearance, applyAppearance, applyTheme, applyReadingPrefs } from '/features/appearance.js';
@@ -124,9 +128,6 @@ const themeSelect = $('settings-theme');
 
 const LS_KEY = 'scanneat.groq_key';
 const LS_MODE = 'scanneat.mode';
-const LS_COMPARE_ARMED = 'scanneat.compare_armed';
-const LS_COMPARE_PREV = 'scanneat.compare_prev';
-const LS_DISMISSED_VERSION = 'scanneat.dismissed_update';
 const LS_PREFS = 'scanneat.prefs';
 const LS_THEME = 'scanneat.theme';
 const LS_FONT_SIZE = 'scanneat.font_size';     // 'normal' | 'large' | 'xlarge'
@@ -589,7 +590,7 @@ async function scanImage() {
     hide(statusEl);
     if (captureEl) captureEl.removeAttribute('aria-busy');
     lastData = data;
-    maybeRenderComparison(data);
+    maybeRenderComparison(data, _comparisonDeps());
     renderAudit(data);
     renderIngredients(data.product);
     renderNutrition(data.product);
@@ -1666,77 +1667,14 @@ function composeReadAloudText(data) {
 // Onboarding extracted to /features/onboarding.js. maybeShowOnboarding()
 // is a no-op after first dismissal (flag in localStorage).
 
-// ============================================================================
-// Comparison
-// ============================================================================
-
-// R34.I1: compare-armed expiry. Previously, "Compare next scan" stayed
-// armed forever — a user who armed it, got distracted, then scanned a
-// totally unrelated product days later would see a bogus diff. Expire
-// after 24 h so arming stays a session-scoped intent.
-const COMPARE_ARM_TTL_MS = 24 * 60 * 60 * 1000;
-const LS_COMPARE_ARMED_AT = 'scanneat.compare_armed_at';
-function compareArmed() {
-  if (localStorage.getItem(LS_COMPARE_ARMED) !== '1') return false;
-  const armedAt = Number(localStorage.getItem(LS_COMPARE_ARMED_AT) || 0);
-  if (!Number.isFinite(armedAt) || Date.now() - armedAt > COMPARE_ARM_TTL_MS) {
-    localStorage.removeItem(LS_COMPARE_ARMED);
-    localStorage.removeItem(LS_COMPARE_ARMED_AT);
-    localStorage.removeItem(LS_COMPARE_PREV);
-    return false;
-  }
-  return true;
-}
-function previousSnapshot() {
-  const raw = localStorage.getItem(LS_COMPARE_PREV);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
-function maybeRenderComparison(data) {
-  const prev = previousSnapshot();
-  if (compareArmed() && prev) {
-    const current = snapshotFromData(data);
-    $('a-grade').textContent = prev.grade; $('a-grade').dataset.grade = prev.grade;
-    $('a-name').textContent = prev.name; $('a-score').textContent = String(prev.score);
-    $('b-grade').textContent = current.grade; $('b-grade').dataset.grade = current.grade;
-    $('b-name').textContent = current.name; $('b-score').textContent = String(current.score);
-    const delta = current.score - prev.score;
-    const sign = delta > 0 ? '+' : '';
-    const direction = delta > 0 ? ` ${t('betterCurrent')}` : delta < 0 ? ` ${t('betterPrev')}` : '';
-    const prevIng = new Set(prev.ingredients.map((s) => s.toLowerCase()));
-    const curIng = new Set(current.ingredients.map((s) => s.toLowerCase()));
-    const added = [...curIng].filter((i) => !prevIng.has(i));
-    const lost = [...prevIng].filter((i) => !curIng.has(i));
-    const deltaEl = $('compare-delta');
-    deltaEl.textContent = ''; // clear safely
-    const makeDelta = () => {
-      const frag = document.createDocumentFragment();
-      frag.append(`${t('deltaScore')}: `);
-      const s = document.createElement('strong');
-      s.textContent = `${sign}${delta}`;
-      frag.appendChild(s);
-      frag.append(direction);
-      return frag;
-    };
-    deltaEl.appendChild(makeDelta());
-    if (added.length) {
-      deltaEl.append(' • ', `${t('newIngredients')}: ${added.slice(0, 4).join(', ')}${added.length > 4 ? '…' : ''}`);
-    }
-    if (lost.length) {
-      deltaEl.append(' • ', `${t('lostIngredients')}: ${lost.slice(0, 4).join(', ')}${lost.length > 4 ? '…' : ''}`);
-    }
-    show(comparisonEl);
-    localStorage.removeItem(LS_COMPARE_ARMED);
-    localStorage.removeItem(LS_COMPARE_PREV);
-  } else hide(comparisonEl);
-}
-function armComparison(data) {
-  localStorage.setItem(LS_COMPARE_ARMED, '1');
-  localStorage.setItem(LS_COMPARE_ARMED_AT, String(Date.now()));
-  localStorage.setItem(LS_COMPARE_PREV, JSON.stringify(snapshotFromData(data)));
-  compareNextBtn.textContent = t('compareWaiting');
-  compareNextBtn.disabled = true;
-}
+// Comparison logic moved to /features/comparison.js. The maybeRender
+// + compareArmed entry points are imported at the top; the buttons are
+// wired from the boot block via initComparison().
+const _comparisonDeps = () => ({
+  $, t, show, hide, comparisonEl, snapshotFromData,
+  compareNextBtn, compareClear,
+  getLastData: () => lastData,
+});
 
 // ============================================================================
 // Live barcode scanner
@@ -1822,234 +1760,12 @@ const recentScansEl = $('recent-scans');
 const recentListEl = $('recent-list');
 const clearHistoryBtn = $('clear-history');
 
-/**
- * Downscale a data-URL to a square JPEG thumbnail. Keeps IDB records tiny
- * so even 30 scans × 30 dashboard renders feel instant and stay well clear
- * of the browser quota. Returns the original if anything fails — safer to
- * waste a few KB than to lose the reference image.
- */
-async function makeThumbnail(dataUrl, size = 96) {
-  if (!dataUrl || !dataUrl.startsWith('data:image')) return '';
-  try {
-    const img = await new Promise((resolve, reject) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error('thumbnail decode failed'));
-      i.src = dataUrl;
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    // Cover-crop: fill the square, crop overflow so the result is a uniform
-    // tile regardless of the source aspect ratio.
-    const scale = Math.max(size / img.width, size / img.height);
-    const w = img.width * scale;
-    const h = img.height * scale;
-    ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
-    return canvas.toDataURL('image/jpeg', 0.7);
-  } catch {
-    return dataUrl; // fall back — original is still valid
-  }
-}
-
-async function persistToHistory(data) {
-  const raw = queue.find((q) => q.dataUrl && q.dataUrl.startsWith('data:image'))?.dataUrl
-    ?? '';
-  try {
-    const thumb = raw ? await makeThumbnail(raw, 96) : '';
-    await saveScan({
-      id: crypto.randomUUID(),
-      createdAt: Date.now(),
-      thumbnail: thumb,
-      name: data.audit.product_name || data.product.name,
-      grade: data.audit.grade,
-      score: data.audit.score,
-      category: data.audit.category,
-      source: data.source,
-      snapshot: data,
-    });
-    renderRecentScans();
-  } catch (err) {
-    // History is a convenience surface — never fail the scan flow because
-    // we couldn't persist the snapshot. Quota-recovery already tried once.
-    console.warn('[history] persist failed', err);
-  }
-}
-
-function timeAgo(ts) {
-  const b = timeAgoBucket(Date.now() - ts);
-  if (b.kind === 'justNow') return t('justNow');
-  if (b.kind === 'minutes') return t('minutesAgo', { n: b.n });
-  if (b.kind === 'hours') return t('hoursAgo', { n: b.n });
-  return t('daysAgo', { n: b.n });
-}
-
-async function renderRecentScans() {
-  const all = await listScans().catch(() => []);
-  recentListEl.textContent = '';
-  if (all.length === 0) { hide(recentScansEl); return; }
-  // R13.1: filter logic now lives in /core/presenters.js
-  // (filterScanHistory) so it's testable under node:test.
-  const items = filterScanHistory(all, {
-    query: historySearchInput?.value || '',
-    gradeFilter: historyGradeSelect?.value || '',
-  });
-  // R13.7: summary chip — "12 scans · 4A · 3B · 2C · 2D · 1F".
-  // Uses the unfiltered `all` (so the chip stays stable while the
-  // user filters the list), and only renders grade buckets that
-  // actually have entries — keeps the chip short on a small history.
-  // R15.6: each grade bucket is now a button that filters the list
-  // to that grade — saves a trip through the <select>.
-  const summaryEl = $('recent-summary');
-  if (summaryEl) {
-    summaryEl.textContent = '';
-    const sum = summarizeScanHistory(all);
-    const total = document.createElement('span');
-    total.textContent = t('recentSummaryTotal', { n: sum.total });
-    summaryEl.appendChild(total);
-    const activeGrade = historyGradeSelect?.value || '';
-    for (const g of ['A+', 'A', 'B', 'C', 'D', 'F']) {
-      if (sum.byGrade[g] === 0) continue;
-      summaryEl.appendChild(document.createTextNode(' · '));
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'recent-summary-grade';
-      btn.dataset.grade = g;
-      if (g === activeGrade) btn.dataset.active = 'true';
-      btn.textContent = `${sum.byGrade[g]}${g}`;
-      btn.setAttribute('aria-label', t('recentSummaryFilter', { n: sum.byGrade[g], grade: g }));
-      btn.setAttribute('aria-pressed', g === activeGrade ? 'true' : 'false');
-      btn.addEventListener('click', () => {
-        if (!historyGradeSelect) return;
-        // Toggle: clicking the active grade clears the filter.
-        historyGradeSelect.value = (g === activeGrade) ? '' : g;
-        renderRecentScans();
-      });
-      summaryEl.appendChild(btn);
-    }
-    show(summaryEl);
-  }
-  if (items.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'recent-empty';
-    li.textContent = '—';
-    recentListEl.appendChild(li);
-    show(recentScansEl);
-    return;
-  }
-  for (const item of items.slice(0, 12)) {
-    const li = document.createElement('li');
-    li.className = 'recent-item';
-    li.dataset.id = item.id;
-    const thumb = document.createElement('div');
-    thumb.className = 'recent-thumb';
-    if (item.thumbnail) {
-      const img = document.createElement('img');
-      img.src = item.thumbnail;
-      img.alt = '';
-      img.loading = 'lazy';
-      img.decoding = 'async';
-      img.width = 48;
-      img.height = 48;
-      thumb.appendChild(img);
-    } else {
-      thumb.textContent = '📦';
-    }
-    const meta = document.createElement('div');
-    meta.className = 'recent-meta';
-    const grade = document.createElement('span');
-    grade.className = 'recent-grade';
-    grade.dataset.grade = item.grade;
-    grade.textContent = item.grade;
-    const name = document.createElement('strong');
-    name.className = 'recent-name';
-    name.textContent = item.name;
-    const when = document.createElement('small');
-    when.className = 'recent-when';
-    when.textContent = `${item.score}/100 • ${timeAgo(item.createdAt)}`;
-    meta.appendChild(grade);
-    meta.appendChild(name);
-    meta.appendChild(when);
-    const del = document.createElement('button');
-    del.className = 'recent-del';
-    del.type = 'button';
-    // R13.4: aria-label includes the scan name so screen-reader users
-    // can disambiguate the row's delete button from the list of "×"
-    // buttons. Falls back to the generic label when name is missing.
-    del.setAttribute('aria-label', item.name
-      ? `${t('removeFromHistory')} — ${item.name}`
-      : t('removeFromHistory'));
-    del.textContent = '×';
-    del.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      await deleteScan(item.id);
-      renderRecentScans();
-    });
-    li.appendChild(thumb);
-    li.appendChild(meta);
-    li.appendChild(del);
-    // R24.1: makeActivatable adds role="button" + tabindex="0" +
-    // Enter/Space keyboard handler. Previously the recent-scan items
-    // were click-only — screen-reader and keyboard-only users had
-    // no way to reopen a historical scan.
-    makeActivatable(li, () => reopenScan(item));
-    li.setAttribute('aria-label', item.name
-      ? `${t('reopenScan')} — ${item.name}`
-      : t('reopenScan'));
-    recentListEl.appendChild(li);
-  }
-  // Hint about hidden entries — users otherwise can't tell the export
-  // includes items not shown in the list.
-  if (items.length > 12) {
-    const hint = document.createElement('li');
-    hint.className = 'recent-overflow';
-    hint.textContent = t('recentOverflow', { shown: 12, total: items.length });
-    recentListEl.appendChild(hint);
-  }
-  show(recentScansEl);
-}
-
-function reopenScan(item) {
-  if (!item.snapshot) return;
-  lastData = item.snapshot;
-  hide(errorEl);
-  hide(statusEl);
-  renderAudit(item.snapshot);
-  renderIngredients(item.snapshot.product);
-  renderNutrition(item.snapshot.product);
-  show(resultEl);
-  // Respect prefers-reduced-motion + the in-app motion preference so the
-  // screen doesn't lurch for users sensitive to smooth-scroll animations.
-  const reduced = document.body.classList.contains('reduce-motion')
-    || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  resultEl.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-}
-
-clearHistoryBtn?.addEventListener('click', async () => {
-  await clearScans();
-  renderRecentScans();
-});
-
-const exportHistoryBtn = $('export-history');
-exportHistoryBtn?.addEventListener('click', async () => {
-  const items = await listScans().catch(() => []);
-  if (items.length === 0) { toast(t('exportHistoryEmpty'), 'warn'); return; }
-  const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  // R8.4: todayISO() uses the user's local date via Intl.DateTimeFormat —
-  // replaces `new Date().toISOString().slice(0, 10)` which picks UTC and
-  // gave western-tz users a filename for tomorrow around midnight.
-  a.href = url;
-  a.download = `scanneat-history-${todayISO()}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
-  toast(t('exportHistoryDone', { n: items.length }), 'ok');
-});
-
-historySearchInput?.addEventListener('input', () => renderRecentScans());
-historyGradeSelect?.addEventListener('change', () => renderRecentScans());
+// Scan history UI moved to /features/scan-history-ui.js. The init
+// returns the entry points used elsewhere in this file.
+let _scanHistoryApi = null;
+async function renderRecentScans() { return _scanHistoryApi?.renderRecentScans(); }
+async function persistToHistory(data) { return _scanHistoryApi?.persistToHistory(data); }
+function reopenScan(item) { return _scanHistoryApi?.reopenScan(item); }
 
 // Keyboard shortcuts extracted to /features/keybindings.js.
 initKeybindings({
@@ -2061,47 +1777,8 @@ initKeybindings({
   t, toast,
 });
 
-// ============================================================================
-// Auto-update (APK only)
-// ============================================================================
-
-const GITHUB_REPO = 'WW-Andene/Scan\'eat';
-const UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
-
-async function currentCommit() {
-  try {
-    const r = await fetch('/version.json', { cache: 'no-cache' });
-    if (!r.ok) return null;
-    return (await r.json()).commit || null;
-  } catch { return null; }
-}
-async function latestRelease() {
-  try {
-    const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
-      headers: { Accept: 'application/vnd.github+json' }, cache: 'no-cache',
-    });
-    if (!r.ok) return null;
-    const rel = await r.json();
-    const apk = (rel.assets || []).find((a) => /\.apk$/i.test(a.name));
-    if (!apk) return null;
-    return { tag: rel.tag_name, commit: (rel.tag_name || '').replace(/^build-/, ''), apkUrl: apk.browser_download_url };
-  } catch { return null; }
-}
-async function checkForUpdate() {
-  if (!isCapacitor) return;
-  try {
-    const [cur, latest] = await Promise.all([currentCommit(), latestRelease()]);
-    if (!cur || !latest || latest.commit === cur) return;
-    if (localStorage.getItem(LS_DISMISSED_VERSION) === latest.tag) return;
-    updateVersionEl.textContent = latest.tag;
-    updateInstallBtn.setAttribute('href', latest.apkUrl);
-    show(updateBanner);
-  } catch {
-    // Network unavailable / GitHub rate limit / CDN issue — silently skip.
-    // Called from setInterval + visibilitychange without await, so a reject
-    // here would otherwise surface as an unhandled promise rejection.
-  }
-}
+// Auto-update logic moved to /features/update-checker.js. Started in
+// the boot block below via initUpdateChecker().
 
 // ============================================================================
 // Wiring
@@ -2142,12 +1819,7 @@ resetCameraBtn?.addEventListener('click', () => {
   resetScanState();
   openCameraScanner();
 });
-compareNextBtn?.addEventListener('click', () => { if (lastData) armComparison(lastData); });
-compareClear?.addEventListener('click', () => {
-  hide(comparisonEl);
-  localStorage.removeItem(LS_COMPARE_ARMED);
-  localStorage.removeItem(LS_COMPARE_PREV);
-});
+initComparison(_comparisonDeps());
 
 if (getBarcodeDetector()) show(barcodeLiveBtn);
 barcodeLiveBtn?.addEventListener('click', () => openCameraScanner());
@@ -2361,11 +2033,7 @@ $('profiles-delete')?.addEventListener('click', () => {
   setProfilesStatus(t('profilesDeleted', { name }));
 });
 
-updateDismissBtn?.addEventListener('click', () => {
-  const tag = updateVersionEl.textContent || '';
-  if (tag) localStorage.setItem(LS_DISMISSED_VERSION, tag);
-  hide(updateBanner);
-});
+// updateDismissBtn click handler is wired by initUpdateChecker().
 
 pendingRetry?.addEventListener('click', () => { retryPending(); });
 
@@ -2503,10 +2171,7 @@ if ('serviceWorker' in navigator && !isCapacitor) {
     if (files && files.length > 0) await addFiles(files);
   } catch { /* non-critical */ }
 })();
-if (compareArmed()) {
-  compareNextBtn?.setAttribute('disabled', 'true');
-  if (compareNextBtn) compareNextBtn.textContent = t('compareWaiting');
-}
+// Boot-time arming-state restore is handled inside initComparison().
 
 // ---------- PWA dynamic-shortcut intents ----------
 // Manifest declares shortcuts that launch the app with ?intent=... on
@@ -2529,16 +2194,10 @@ if (compareArmed()) {
   }, 50);
 })();
 
-checkForUpdate();
-// Hold the interval id so pagehide can clear it. Unbounded setInterval
-// stacking shows up under HMR / multiple-tab restores; a single clear
-// path on pagehide keeps us at one timer per tab lifetime.
-let _updateIntervalId = setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') { checkForUpdate(); updatePendingBanner(); }
-});
-window.addEventListener('pagehide', () => {
-  if (_updateIntervalId) { clearInterval(_updateIntervalId); _updateIntervalId = null; }
+initUpdateChecker({
+  isCapacitor,
+  updateBanner, updateVersionEl, updateInstallBtn, updateDismissBtn,
+  updatePendingBanner, show, hide,
 });
 
 // ============================================================================
@@ -2569,94 +2228,15 @@ const quickAddDialog = $('quick-add-dialog');
 const qaCancel = $('qa-cancel');
 const qaSave = $('qa-save');
 
-function setupPortionPanel(product) {
-  const weight = product?.weight_g;
-  const defaultG = weight && weight > 0 && weight < 2000 ? weight : 100;
-  portionInput.value = String(defaultG);
-  // Default meal matches time-of-day (same logic as Quick Add) so a user
-  // scanning a product at 8am sees "breakfast" pre-selected, not "snack".
-  if (portionMealSelect) {
-    portionMealSelect.value = defaultMealForHour(new Date().getHours());
-  }
-  // R13.1 — `(paquet)` was hard-coded French; EN users saw a French
-  // word in an otherwise-translated UI. Now resolved via t().
-  // R13.8 — also surface a half-pack chip when the package is large
-  // enough to make halving meaningful (≥40 g, so we don't show
-  // "8 g (½ paquet)" for a tiny chocolate square).
-  const halfPackEl = $('portion-preset-half-pack');
-  if (weight && weight > 0 && weight < 2000) {
-    portionPresetPack.textContent = t('portionPack', { g: weight });
-    portionPresetPack.dataset.portion = String(weight);
-    portionPresetPack.hidden = false;
-    if (halfPackEl) {
-      if (weight >= 40) {
-        const half = Math.round(weight / 2);
-        halfPackEl.textContent = t('portionHalfPack', { g: half });
-        halfPackEl.dataset.portion = String(half);
-        halfPackEl.hidden = false;
-      } else {
-        halfPackEl.hidden = true;
-      }
-    }
-  } else {
-    portionPresetPack.hidden = true;
-    if (halfPackEl) halfPackEl.hidden = true;
-  }
-  updateLogPreview(product);
-  hide(logToast);
-}
-
-function updateLogPreview(product) {
-  const g = Math.max(0, Number(portionInput.value) || 0);
-  const per100 = product?.nutrition?.energy_kcal ?? 0;
-  const kcal = Math.round((per100 * g) / 100);
-  logKcalPreview.textContent = kcal > 0 ? ` (${kcal} kcal)` : '';
-}
-
-portionInput?.addEventListener('input', () => {
-  if (lastData) updateLogPreview(lastData.product);
-});
-
-$('portion-panel')?.addEventListener('click', (e) => {
-  const btn = e.target.closest('.chip-btn[data-portion]');
-  if (!btn) return;
-  portionInput.value = btn.dataset.portion;
-  if (lastData) updateLogPreview(lastData.product);
-});
-
-// Unit conversion — cup/tbsp/oz → grams, density-aware via the
-// current scan's product name when available.
-function applyUnitConvert() {
-  const input = $('unit-convert-input');
-  const out = $('unit-convert-result');
-  const raw = (input?.value || '').trim();
-  if (!raw) return;
-  const parsed = parseUnitInput(raw);
-  const foodName = parsed?.name || lastData?.product?.name || '';
-  const grams = parsed ? toGrams(parsed.amount, parsed.unit, foodName) : null;
-  if (!grams || grams <= 0) {
-    if (out) {
-      out.textContent = t('unitConvertBadInput');
-      out.dataset.state = 'warn';
-      out.hidden = false;
-    }
-    return;
-  }
-  portionInput.value = String(Math.round(grams));
-  if (lastData) updateLogPreview(lastData.product);
-  if (out) {
-    out.textContent = t('unitConvertResult', {
-      amount: parsed.amount, unit: parsed.unit,
-      name: foodName || t('unitConvertNoName'),
-      grams: Math.round(grams),
-    });
-    delete out.dataset.state;
-    out.hidden = false;
-  }
-}
-$('unit-convert-apply')?.addEventListener('click', applyUnitConvert);
-$('unit-convert-input')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); applyUnitConvert(); }
+// Portion-panel logic moved to /features/portion-panel.js. The init
+// returns the setupPortionPanel + updateLogPreview entry points used
+// elsewhere in this file (post-scan hook + edit hook).
+const { setupPortionPanel, updateLogPreview } = initPortionPanel({
+  $, t, hide, show,
+  portionInput, portionMealSelect, portionPresetPack, logToast,
+  logKcalPreview,
+  defaultMealForHour, parseUnitInput, toGrams,
+  getLastData: () => lastData,
 });
 
 // `isFastingActive` is now exported from /features/fasting.js, which
@@ -4198,6 +3778,21 @@ $('progress-close')?.addEventListener('click', (e) => {
 
 // Meal reminders extracted to /features/reminders.js — initReminders()
 // wires scheduleReminders() + registers it on boot.
+
+// Init scan-history UI now that all renderAudit/renderIngredients/
+// renderNutrition + makeActivatable defs above are available.
+_scanHistoryApi = initScanHistoryUi({
+  $, t, hide, show, toast,
+  recentScansEl, recentListEl, historySearchInput, historyGradeSelect,
+  clearHistoryBtn, exportHistoryBtn: $('export-history'),
+  errorEl, statusEl, resultEl,
+  listScans, deleteScan, clearScans, saveScan,
+  filterScanHistory, summarizeScanHistory, timeAgoBucket, todayISO,
+  getQueue: () => queue,
+  setLastData: (d) => { lastData = d; },
+  renderAudit, renderIngredients, renderNutrition,
+  makeActivatable,
+});
 
 renderQueue();
 updatePendingBanner();
