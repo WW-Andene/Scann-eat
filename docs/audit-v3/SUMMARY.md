@@ -1,4 +1,4 @@
-# Scann-eat — UI/UX Audit v3 — Summary
+# Scan'eat — UI/UX Audit v3 — Summary
 
 **Scope:** Full-depth audit across 17 design-aesthetic / UX / a11y / i18n / character dimensions.
 **Method:** `design-aesthetic-audit-SKILL` + `app-audit-SKILL` "full deep design audit" scope.
@@ -126,7 +126,7 @@ Recommended as a single "low-risk warmup" commit batch before the larger refacto
 | F-DI-03 | emoji variation-selector sweep (`⚙` → `⚙️`) | Small grep+replace |
 | F-DH-03 | noscript `<h1>` → `<h2>` | 1 line |
 | F-DDV-03 | `.dash-bar` 1px border in light theme | 1 line |
-| F-N-04 | `<h1 data-i18n="appName">Scann-eat</h1>` | 1 line |
+| F-N-04 | `<h1 data-i18n="appName">Scan'eat</h1>` | 1 line |
 | F-N-05 | `detectDefaultLang` last return: `'en' → 'fr'` | 1 line |
 | F-CS-04 | add warm×data-dense note to CONTRIBUTING.md | Docs |
 | F-DSA-01 | document paper-grain as protected | Docs |

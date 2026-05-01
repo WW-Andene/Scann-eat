@@ -163,7 +163,7 @@ Spot-audit: for each of the 10 keyframes, verify its hosting selector also has `
 **Evidence:**
 Per art-direction-engine-SKILL §SIGNATURE: *"Identify the highest-frequency meaningful interaction; design a distinctive animation; protect it across updates."*
 
-Candidates in Scann-eat:
+Candidates in Scan'eat:
 - **Grade reveal** — `scanneat-grade-land` keyframe (900ms): a mid-drop bounce animation is the "moment of truth" after scanning.
 - **Scan sweep** — `scanneat-scanning-sweep` (2s): the coral-sweep overlay during camera scanning.
 

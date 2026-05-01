@@ -1,7 +1,7 @@
 # Art Direction Brief
 
 Canonical one-page brief, produced per `art-direction-engine-SKILL.md §BRIEF`.
-Every subsequent design decision in Scann-eat flows from this document.
+Every subsequent design decision in Scan'eat flows from this document.
 Complementary to `docs/design-system.md` (the implementation) and
 `docs/audit-v3/SUMMARY.md` (the 2026-04 audit that reviewed it end to
 end).
@@ -11,7 +11,7 @@ end).
 ```
 ━━━ ART DIRECTION BRIEF ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-SUBJECT:          Scann-eat — food-scan + nutrition-tracking PWA.
+SUBJECT:          Scan'eat — food-scan + nutrition-tracking PWA.
                   Photograph a label → 0-100 score + A+..F grade.
                   Also: meal logging, recipes, hydration, fasting,
                   activity, weight, progress charts.
@@ -216,7 +216,7 @@ VISUAL CONCEPT:   Warm cream paper under coral ambient light,
                   Warm × Data-dense. Unoccupied by Yuka
                   (warm-curated), MyFitnessPal (neutral-dense),
                   Cronometer (clinical-dense), Noom (psych-curated).
-                  Scann-eat owns this quadrant.
+                  Scan'eat owns this quadrant.
 
 ─── PROPORTIONS ──────────────────────────────────────────────
   Layout model:   Mobile-first vertical stack. `main`

@@ -440,7 +440,7 @@ On result render:
 
 ### Never-Called Functions
 
-Grep `grep "function render\|function update" /home/user/Scann-eat/public/app.js` + cross-reference calls:
+Grep `grep "function render\|function update" /home/user/Scan'eat/public/app.js` + cross-reference calls:
 
 - **No functions defined but never called.** Every render* and update* function is called from:
   - event handler (listener callback)

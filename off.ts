@@ -23,7 +23,7 @@ import type {
 } from './scoring-engine.ts';
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product';
-const USER_AGENT = 'scann-eat/0.1 (https://github.com/WW-Andene/Scann-eat)';
+const USER_AGENT = 'scaneat/0.1 (https://github.com/WW-Andene/Scann-eat)';
 
 export interface OFFLookupOptions {
   signal?: AbortSignal;

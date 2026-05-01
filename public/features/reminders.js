@@ -27,7 +27,7 @@ function notify(tag, body) {
   const { toast } = deps;
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
-      new Notification('Scann-eat', { body, icon: '/icon.svg', tag });
+      new Notification('Scan\'eat', { body, icon: '/icon.svg', tag });
     } catch { toast(body); }
   } else {
     toast(body);

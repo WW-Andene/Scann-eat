@@ -133,7 +133,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ steps.sha.outputs.short }}
-          name: Scann-eat build-${{ steps.sha.outputs.short }}
+          name: Scan'eat build-${{ steps.sha.outputs.short }}
           body: |
             Automated APK build for commit ${{ steps.sha.outputs.short }}.
 

@@ -1,4 +1,4 @@
-# Scann-eat — Brief
+# Scan'eat — Brief
 
 > Retroactive brief. Extracted from code + commit history on
 > `claude/improve-ocr-ingredient-parsing-zxgSf` as of commit `574dd27`.
@@ -8,7 +8,7 @@
 
 ## Identity
 
-- **Name**: Scann-eat.
+- **Name**: Scan'eat.
 - **Domain**: Food + nutrition tracking from label scans (barcode / OCR) and photos.
 - **Audience**: French-speaking home users managing their diet. **[ASSUMED]** — no
   evidence of non-FR / non-home-user targeting in the codebase; EN locale exists as

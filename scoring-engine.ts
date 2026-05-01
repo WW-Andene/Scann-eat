@@ -20,7 +20,7 @@
  *     - NOVA classification framework (Monteiro et al., Public Health Nutrition
  *       22:936–941, 2019).
  *
- *   EDITORIAL (Scann-eat's own judgment, not a medical authority):
+ *   EDITORIAL (Scan\'eat's own judgment, not a medical authority):
  *     - Pillar weights 20/25/25/15/15 and the A+ → F grade thresholds.
  *     - Category-specific adjustments to sat-fat / sugar thresholds.
  *     - NOVA auto-inference heuristic when input NOVA looks unreliable.
@@ -45,7 +45,7 @@
  * Grades: A+ (≥85) / A (≥70) / B (≥55) / C (≥40) / D (≥25) / F (<25)
  *         — EDITORIAL breakpoints. For a published, reproducible grade
  *         anchored to EU law, see the French Nutri-Score algorithm
- *         (not reimplemented here; Scann-eat is a complementary opinion).
+ *         (not reimplemented here; Scan\'eat is a complementary opinion).
  * ============================================================================
  */
 
@@ -246,7 +246,7 @@ export interface AdditiveInfo {
    *   "EU Regulation 1333/2008 Annex"
    *   "Santé publique France / ANSES <year>"
    *   or a specific primary study (author, journal, year).
-   * Entries marked "editorial" are Scann-eat's judgment without a direct
+   * Entries marked "editorial" are Scan\'eat's judgment without a direct
    * authoritative ruling on that specific additive.
    */
   source: string;
@@ -1005,7 +1005,7 @@ const GENERIC_OIL_TERMS = [
 //     BMJ 365:l1451 (2019, NutriNet-Santé cohort, n≈105k).
 //
 // EDITORIAL:
-//   - Base score per NOVA class (20 / 17 / 13 / 6) is Scann-eat's mapping
+//   - Base score per NOVA class (20 / 17 / 13 / 6) is Scan\'eat's mapping
 //     from the NOVA categorical framework to a 20-point scale. It is not
 //     a published calibration.
 //   - Auto-NOVA inference rules (see inferNovaClass) are heuristic: a clean
@@ -1220,7 +1220,7 @@ export function scoreProcessing(product: ProductInput): PillarScore {
 //
 // EDITORIAL:
 //   - The five sub-scores (protein 0-6, fiber 0-5, micro 0-5, fats 0-5,
-//     satiety 0-4) and their weighting are Scann-eat's design.
+//     satiety 0-4) and their weighting are Scan\'eat's design.
 //   - Category-specific protein/fiber thresholds (CATEGORY_THRESHOLDS) are
 //     estimates based on typical food composition, not a published standard.
 //   - Satiety index = P + 2·F − S is a reasonable proxy but not a
@@ -1488,7 +1488,7 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
 //       fatty acids from the food supply (WHO REPLACE programme, 2018).
 //
 // EDITORIAL: the granularity of the tiers (minor / moderate / major /
-// critical) and the points per tier (-3/-6/-9/-12) are Scann-eat's choice.
+// critical) and the points per tier (-3/-6/-9/-12) are Scan\'eat's choice.
 // The anchor values match the FSA "red" thresholds; tiers above and below
 // are proportional gradations.
 // ============================================================================
@@ -1608,7 +1608,7 @@ export function scoreNegativeNutrients(product: ProductInput): PillarScore {
 //     or a controlled human trial demonstrating harm (E466 FRESH trial).
 //
 // EDITORIAL:
-//   - The three-tier grouping (serious / moderate / minor) is Scann-eat's
+//   - The three-tier grouping (serious / moderate / minor) is Scan\'eat's
 //     synthesis; authorities generally speak in terms of specific ADI
 //     values or classifications, not in tiers.
 //   - Point values (-5 / -2 / -1) and caps (-10 / -6 / -3) are editorial.
@@ -1695,7 +1695,7 @@ export function countTier1Additives(product: ProductInput): number {
 // SECTION 9: PILLAR 5 — INGREDIENT INTEGRITY (max 15)
 // ============================================================================
 //
-// EDITORIAL: this entire pillar is Scann-eat's opinion layer.
+// EDITORIAL: this entire pillar is Scan\'eat's opinion layer.
 //
 // No authoritative body publishes "ingredient integrity" scores; the signals
 // we use (first-three-whole-food, recognizability, origin transparency,
@@ -1850,7 +1850,7 @@ export function scoreIngredientIntegrity(product: ProductInput): PillarScore {
 //   - Veto caps (30 / 40 / 45) for combinations the engine considers
 //     disqualifying regardless of other pillar scores.
 //   - Grade breakpoints A+ (≥85) / A (≥70) / B (≥55) / C (≥40) / D (≥25) /
-//     F (<25) are Scann-eat's mapping, not a published standard.
+//     F (<25) are Scan\'eat's mapping, not a published standard.
 //
 // AUTHORITATIVE anchor for the processed-meat veto:
 //   - Processed meat = IARC Group 1 (Monograph Vol 114, 2015). The veto

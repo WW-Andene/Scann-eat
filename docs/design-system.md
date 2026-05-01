@@ -1,6 +1,6 @@
 # Design system
 
-Scann-eat's visual language is a token set + a small component vocabulary,
+Scan'eat's visual language is a token set + a small component vocabulary,
 defined entirely in `public/styles.css`. There's no Figma file and no
 framework; the CSS IS the design system.
 
@@ -11,7 +11,7 @@ unified dialog chrome, scaled focus ring, shared motion speed.
 
 ## Vision (one-sentence)
 
-> Scann-eat looks like a scientist's notebook at a farmer's market:
+> Scan'eat looks like a scientist's notebook at a farmer's market:
 > warm cream paper, precise typography, nothing decorative, every
 > number earns its pixel.
 

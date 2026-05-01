@@ -455,7 +455,7 @@ export function formatMonthlyShare(rollup, opts = {}) {
       ? `Jours dans ±10% de la cible : ${onGoal}/${rollup.days_logged}`
       : `Days within ±10% of target: ${onGoal}/${rollup.days_logged}`);
   }
-  lines.push('— Scann-eat');
+  lines.push('— Scan\'eat');
   return lines.join('\n');
 }
 
@@ -547,7 +547,7 @@ export function formatDailySummary(totals, targets, burned, opts = {}) {
     const truncated = dayNote.length > 200 ? dayNote.slice(0, 200) + '…' : dayNote;
     lines.push(isFr ? `📝 Note : ${truncated}` : `📝 Note: ${truncated}`);
   }
-  lines.push('— Scann-eat');
+  lines.push('— Scan\'eat');
   return lines.join('\n');
 }
 
@@ -675,7 +675,7 @@ export function formatRecipeShare(recipe, opts = {}) {
       ? `• ${label} — ${grams} g · ${ck} kcal`
       : `• ${label} — ${ck} kcal`);
   }
-  lines.push('— Scann-eat');
+  lines.push('— Scan\'eat');
   return lines.join('\n');
 }
 
@@ -722,7 +722,7 @@ export function formatTemplateShare(template, opts = {}) {
       ? `• ${label} — ${grams} g · ${ck} kcal`
       : `• ${label} — ${ck} kcal`);
   }
-  lines.push('— Scann-eat');
+  lines.push('— Scan\'eat');
   return lines.join('\n');
 }
 
@@ -825,7 +825,7 @@ export function filterScanHistory(items, opts = {}) {
 }
 
 /**
- * R13.6 — summarizeScanHistory: counts items by Scann-eat grade.
+ * R13.6 — summarizeScanHistory: counts items by Scan\'eat grade.
  * Powers the recent-scans summary chip ("12 scans · 4A · 3B · 2C
  * · 2D · 1F") so the user sees their distribution at a glance
  * without scrolling the list.
@@ -877,8 +877,8 @@ export function formatPairingsShare(hit, opts = {}) {
     ? `Idée : commence avec ${hit.name}, ajoute 2–3 éléments ci-dessus, assaisonne.`
     : `Idea: start with ${hit.name}, add 2–3 items above, season to taste.`);
   lines.push(isFr
-    ? '— Scann-eat (corpus Ahn et al. 2011)'
-    : '— Scann-eat (Ahn et al. 2011 recipe corpus)');
+    ? '— Scan\'eat (corpus Ahn et al. 2011)'
+    : '— Scan\'eat (Ahn et al. 2011 recipe corpus)');
   return lines.join('\n');
 }
 

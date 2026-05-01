@@ -57,7 +57,7 @@ bump with a broken `onupgradeneeded`):
    the working code.
 
 2. **Advisory**: post to the release notes / status page:
-   > "If you installed Scann-eat between YYYY-MM-DD HH:MM and HH:MM, your
+   > "If you installed Scan'eat between YYYY-MM-DD HH:MM and HH:MM, your
    > diary may be affected. Export your data via Settings → Backup →
    > Export before uninstalling. Reinstall clears the affected database."
 

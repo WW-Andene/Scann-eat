@@ -106,7 +106,7 @@ describe('formatDailySummary', () => {
     assert.ok(out.includes('85 g protéines'));
     assert.ok(out.includes('28 g'));
     assert.ok(out.match(/82%|81%/)); // 1800/2200 = 81.8%
-    assert.ok(out.includes('Scann-eat'));
+    assert.ok(out.includes('Scan\'eat'));
   });
 
   it('produces an EN summary', () => {

@@ -113,11 +113,11 @@ The "signature" is an aspiration; the shipped calibration is inert.
 This is a strong positioning claim supported by the concrete craft choices. Both visually and voice-wise, the app does sit in an uncommon spot (most nutrition apps are medical-cold or marketing-fluffy).
 
 **Impact:**
-- An asset: the visual identity is distinctive enough that a user seeing a screenshot side-by-side with Yuka / MyFitnessPal can tell Scann-eat apart.
+- An asset: the visual identity is distinctive enough that a user seeing a screenshot side-by-side with Yuka / MyFitnessPal can tell Scan'eat apart.
 - Protect against "clean up" refactors that reintroduce clinical neutrality.
 
 **Recommendation:**
-Codify: add to `CONTRIBUTING.md`: *"Scann-eat lives in the warm × data-dense quadrant. Reject PRs that push toward clinical (stripped color, grayscale), marketing-warm (muted numeric precision), or premium-glass (frost instead of paper)."*
+Codify: add to `CONTRIBUTING.md`: *"Scan'eat lives in the warm × data-dense quadrant. Reject PRs that push toward clinical (stripped color, grayscale), marketing-warm (muted numeric precision), or premium-glass (frost instead of paper)."*
 
 **Effort:** Trivial.
 **Risk:** None.

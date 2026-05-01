@@ -1,4 +1,4 @@
-# Product Requirements — Scann-eat
+# Product Requirements — Scan'eat
 
 Retrofit per `app_development_SKILL.md §III`. The code ships; this doc
 describes what it does in the shape the skill expects — user stories with

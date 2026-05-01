@@ -1,6 +1,6 @@
 # UX flows + sitemap
 
-Scann-eat is a single-page PWA. Everything lives under one URL; the UI is
+Scan'eat is a single-page PWA. Everything lives under one URL; the UI is
 decomposed into persistent surfaces + modal dialogs. This doc maps the
 user-visible surfaces and the primary flows across them.
 

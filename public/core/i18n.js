@@ -1,5 +1,5 @@
 /**
- * Minimal i18n for Scann-eat. Keys are resolved against the user's chosen
+ * Minimal i18n for Scan\'eat. Keys are resolved against the user's chosen
  * language (fr/en) with French as the ultimate fallback. Engine output stays
  * in English — we only translate the UI chrome around it.
  */
@@ -8,7 +8,7 @@
 // Internal consumers in this file still access the local binding.
 export const STRINGS = {
   fr: {
-    appName: 'Scann-eat',
+    appName: 'Scan\'eat',
     tagline: 'Photographie une étiquette → note de 0 à 100',
     // F-N-01 — aria-label keys for 8 controls previously hardcoded in FR
     a11yProfileSwitch: 'Changer de profil',
@@ -205,7 +205,7 @@ export const STRINGS = {
     identifyFromPhoto: 'Photo de mon repas',
     identifyingFood: '📸 Identification en cours…',
     identifyLowConfidence: 'Estimation peu sûre — vérifie et ajuste si besoin.',
-    installBannerTitle: '📱 Installer Scann-eat ?',
+    installBannerTitle: '📱 Installer Scan\'eat ?',
     installBannerHint: 'Ajoute l\'app à ton écran d\'accueil — fonctionne hors ligne.',
     installBannerAccept: 'Installer',
     installBannerDismiss: 'Plus tard',
@@ -290,7 +290,7 @@ export const STRINGS = {
     mealPlanClearDay: 'Effacer le jour',
     mealPlanClearDayConfirm: 'Effacer le plan de ce jour ? Cette action est irréversible.',
     weeklyShare: '📤 Partager cette semaine',
-    weeklyShareTitle: 'Ma semaine Scann-eat',
+    weeklyShareTitle: 'Ma semaine Scan\'eat',
     weeklyShareEmpty: 'Aucune donnée à partager pour cette semaine.',
     weeklyShareCopied: '✓ Résumé de la semaine copié',
     weeklyShareFailed: 'Partage impossible — vérifie les permissions du navigateur.',
@@ -445,12 +445,12 @@ export const STRINGS = {
     backupImport: '📤 Importer…',
     backupExported: '✓ Sauvegarde téléchargée.',
     backupImported: '✓ Sauvegarde restaurée ({items} éléments).',
-    backupInvalid: 'Fichier invalide — ce n\'est pas une sauvegarde Scann-eat.',
+    backupInvalid: 'Fichier invalide — ce n\'est pas une sauvegarde Scan\'eat.',
     backupTooNew: 'Sauvegarde trop récente pour cette version de l\'app.',
     csvExport: '📊 CSV',
     csvExported: '✓ CSV téléchargé ({days} jours).',
     healthExport: '💊 Health JSON',
-    healthExportHint: 'Le JSON "Health" s\'importe dans Apple Health / Google Fit via une app passerelle (Shortcuts iOS, Health Auto Export). Scann-eat ne s\'intègre pas directement — une PWA n\'a pas accès aux bases de santé natives.',
+    healthExportHint: 'Le JSON "Health" s\'importe dans Apple Health / Google Fit via une app passerelle (Shortcuts iOS, Health Auto Export). Scan\'eat ne s\'intègre pas directement — une PWA n\'a pas accès aux bases de santé natives.',
     healthExported: '✓ Export Health téléchargé ({n} entrées).',
     ecoscoreChip: 'Éco-score {grade}',
     ecoscoreTooltip: 'Impact environnemental estimé par Open Food Facts',
@@ -468,7 +468,7 @@ export const STRINGS = {
     telemetryClearConfirm: 'Effacer le journal de télémétrie local ? Action irréversible.',
     telemetryExport: '💾 Exporter',
     telemetryExported: '✓ Journal exporté (.txt)',
-    telemetryTitle: 'Journal Scann-eat',
+    telemetryTitle: 'Journal Scan\'eat',
     profilesSection: 'Profils multiples',
     profilesHint: 'Plusieurs personnes partagent cette app ? Sauvegarde chaque profil (journal, poids, préférences) et change d\'un tap.',
     profilesActive: 'Profil actif :',
@@ -686,7 +686,7 @@ export const STRINGS = {
     share: 'Partager',
     shareCopied: '✓ Résumé du scan copié',
     shareFailed: 'Partage impossible',
-    shareText: '{name} : {score}/100 ({grade}) — scanné avec Scann-eat',
+    shareText: '{name} : {score}/100 ({grade}) — scanné avec Scan\'eat',
     theme: 'Thème',
     themeDark: 'Sombre',
     themeLight: 'Clair',
@@ -708,7 +708,7 @@ export const STRINGS = {
     portionHalfPack: '{g} g (½ paquet)',
     about: 'À propos',
     disclaimerTitle: 'Information, pas conseil médical',
-    disclaimerBody: `Scann-eat distingue explicitement deux types de données :
+    disclaimerBody: `Scan\'eat distingue explicitement deux types de données :
 
 AUTORITAIRES (traçables à une source nommée) :
 • Seuils des nutriments négatifs — FSA "Front of pack labelling guidance" 2016 (rouge sat ≥5 g/100 g, sucres ≥22,5 g/100 g, sel ≥1,5 g/100 g).
@@ -718,7 +718,7 @@ AUTORITAIRES (traçables à une source nommée) :
 • Charcuterie = IARC Groupe 1 — Monographie Vol 114 (2015).
 • Chaque additif dans la base a un champ 'source' citant EFSA, IARC, règlement UE ou étude primaire.
 
-ÉDITORIAUX (jugement Scann-eat) :
+ÉDITORIAUX (jugement Scan\'eat) :
 • Pondérations des piliers (20/25/25/15/15) et seuils de notes A+ → F.
 • Ajustements par catégorie (fromage sat fat, condiment sucre).
 • Auto-correction NOVA lorsque l'entrée semble fausse.
@@ -771,7 +771,7 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     scoringAnchors: 'Mifflin-St Jeor 1990 (BMR) · FAO/WHO/UNU 2004 (PAL) · WHO BMI 2000 · EFSA 2012 (PRI protéines)',
   },
   en: {
-    appName: 'Scann-eat',
+    appName: 'Scan\'eat',
     tagline: 'Photograph a label → score out of 100',
     // F-N-01 — aria-label keys for 8 controls previously hardcoded in FR
     a11yProfileSwitch: 'Change profile',
@@ -968,7 +968,7 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     identifyFromPhoto: 'Photo of my meal',
     identifyingFood: '📸 Identifying…',
     identifyLowConfidence: 'Low confidence estimate — double-check and adjust.',
-    installBannerTitle: '📱 Install Scann-eat?',
+    installBannerTitle: '📱 Install Scan\'eat?',
     installBannerHint: 'Add the app to your home screen — works offline.',
     installBannerAccept: 'Install',
     installBannerDismiss: 'Later',
@@ -1053,7 +1053,7 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     mealPlanClearDay: 'Clear day',
     mealPlanClearDayConfirm: 'Clear this day\'s plan? This cannot be undone.',
     weeklyShare: '📤 Share this week',
-    weeklyShareTitle: 'My Scann-eat week',
+    weeklyShareTitle: 'My Scan\'eat week',
     weeklyShareEmpty: 'No data to share this week.',
     weeklyShareCopied: '✓ Week summary copied',
     weeklyShareFailed: 'Share failed — check browser permissions.',
@@ -1208,12 +1208,12 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     backupImport: '📤 Import…',
     backupExported: '✓ Backup downloaded.',
     backupImported: '✓ Backup restored ({items} items).',
-    backupInvalid: 'Invalid file — this is not a Scann-eat backup.',
+    backupInvalid: 'Invalid file — this is not a Scan\'eat backup.',
     backupTooNew: 'Backup is newer than this app version.',
     csvExport: '📊 CSV',
     csvExported: '✓ CSV downloaded ({days} days).',
     healthExport: '💊 Health JSON',
-    healthExportHint: 'The Health JSON imports into Apple Health / Google Fit via a bridge app (iOS Shortcuts, Health Auto Export). Scann-eat doesn\'t integrate directly — a PWA has no access to native health stores.',
+    healthExportHint: 'The Health JSON imports into Apple Health / Google Fit via a bridge app (iOS Shortcuts, Health Auto Export). Scan\'eat doesn\'t integrate directly — a PWA has no access to native health stores.',
     healthExported: '✓ Health export downloaded ({n} entries).',
     ecoscoreChip: 'Eco-score {grade}',
     ecoscoreTooltip: 'Environmental impact estimated by Open Food Facts',
@@ -1230,7 +1230,7 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     telemetryClearConfirm: 'Clear the local telemetry log? This cannot be undone.',
     telemetryExport: '💾 Export',
     telemetryExported: '✓ Log exported (.txt)',
-    telemetryTitle: 'Scann-eat log',
+    telemetryTitle: 'Scan\'eat log',
     telemetryCleared: '✓ Log cleared.',
     profilesSection: 'Multiple profiles',
     profilesHint: 'Several people using this app? Save each profile (log, weight, preferences) and switch with one tap.',
@@ -1451,7 +1451,7 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     share: 'Share',
     shareCopied: '✓ Scan summary copied',
     shareFailed: 'Sharing failed',
-    shareText: '{name}: {score}/100 ({grade}) — scanned with Scann-eat',
+    shareText: '{name}: {score}/100 ({grade}) — scanned with Scan\'eat',
     theme: 'Theme',
     themeDark: 'Dark',
     themeLight: 'Light',
@@ -1473,7 +1473,7 @@ Cette app est une aide à la décision, pas un avis nutritionniste ou médical. 
     portionHalfPack: '{g} g (½ pack)',
     about: 'About',
     disclaimerTitle: 'Guidance, not medical advice',
-    disclaimerBody: `Scann-eat explicitly separates two data types:
+    disclaimerBody: `Scan\'eat explicitly separates two data types:
 
 AUTHORITATIVE (traceable to a named source):
 • Negative-nutrient thresholds — FSA "Front of pack labelling guidance" 2016 (Red sat fat ≥5 g/100 g, sugars ≥22.5 g/100 g, salt ≥1.5 g/100 g).
@@ -1483,7 +1483,7 @@ AUTHORITATIVE (traceable to a named source):
 • Processed meat = IARC Group 1 — Monograph Vol 114 (2015).
 • Every additive carries a 'source' field citing EFSA, IARC, EU regulation, or primary study.
 
-EDITORIAL (Scann-eat's own judgment):
+EDITORIAL (Scan\'eat's own judgment):
 • Pillar weights (20/25/25/15/15) and A+ → F grade breakpoints.
 • Category-specific adjustments (cheese sat-fat, condiment sugar).
 • Auto-NOVA correction when the input appears wrong.
@@ -1562,7 +1562,7 @@ STRINGS.es = {
   weightBtn: 'Peso',
   progressBtn: '📈 Progreso',
   mealPlanBtn: '📅 Plan',
-  installBannerTitle: '📱 ¿Instalar Scann-eat?',
+  installBannerTitle: '📱 ¿Instalar Scan\'eat?',
   installBannerHint: 'Añade la app a tu pantalla de inicio — funciona sin conexión.',
   installBannerAccept: 'Instalar',
   installBannerDismiss: 'Más tarde',
@@ -1584,7 +1584,7 @@ STRINGS.it = {
   weightBtn: 'Peso',
   progressBtn: '📈 Progressi',
   mealPlanBtn: '📅 Piano',
-  installBannerTitle: '📱 Installare Scann-eat?',
+  installBannerTitle: '📱 Installare Scan\'eat?',
   installBannerHint: 'Aggiungi l\'app alla schermata home — funziona offline.',
   installBannerAccept: 'Installa',
   installBannerDismiss: 'Più tardi',
@@ -1606,7 +1606,7 @@ STRINGS.de = {
   weightBtn: 'Gewicht',
   progressBtn: '📈 Fortschritt',
   mealPlanBtn: '📅 Plan',
-  installBannerTitle: '📱 Scann-eat installieren?',
+  installBannerTitle: '📱 Scan\'eat installieren?',
   installBannerHint: 'App zum Startbildschirm hinzufügen — funktioniert offline.',
   installBannerAccept: 'Installieren',
   installBannerDismiss: 'Später',

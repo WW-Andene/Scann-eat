@@ -77,7 +77,7 @@ export async function buildBackup() {
  */
 export async function restoreBackup(backup, opts = {}) {
   if (!backup || typeof backup !== 'object' || backup.app !== 'scann-eat') {
-    throw new Error('Not a Scann-eat backup file.');
+    throw new Error('Not a Scan\'eat backup file.');
   }
   if (Number(backup.backup_version) > BACKUP_VERSION) {
     throw new Error('Backup format is newer than this version of the app.');

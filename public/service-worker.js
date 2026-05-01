@@ -105,7 +105,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Share target: the user shared one or more images from their gallery to
-  // Scann-eat. Extract the files, buffer them, and redirect the browser to
+  // Scan\'eat. Extract the files, buffer them, and redirect the browser to
   // "/?shared=1" so the app knows to pull from the buffer on load.
   if (request.method === 'POST' && url.pathname === '/') {
     event.respondWith((async () => {

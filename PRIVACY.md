@@ -1,6 +1,6 @@
 # Privacy
 
-Scann-eat is local-first by design. This document describes what happens to
+Scan'eat is local-first by design. This document describes what happens to
 user data, where it's stored, what leaves the device, and when.
 
 > **Jurisdiction**: this document targets EU / EEA users under GDPR + the
@@ -63,7 +63,7 @@ they use the "Clear today" / "Switch profile" / per-item delete controls.
   which drops most EXIF in practice, but users with sensitive EXIF should
   strip before scanning.
 
-### What Scann-eat *does not* transmit
+### What Scan'eat *does not* transmit
 
 - No analytics (no Google Analytics, Plausible, Matomo, PostHog).
 - No crash reporting (no Sentry, Datadog, Rollbar).

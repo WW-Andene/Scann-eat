@@ -49,7 +49,7 @@ Plural-aware via `Intl.PluralRules(currentLang)` checking for `<key>_one` / `<ke
 
 | Key | FR | EN | Notes |
 |---|---|---|---|
-| `appName` | _not in dict — hardcoded "Scann-eat" in HTML_ | same | |
+| `appName` | _not in dict — hardcoded "Scan'eat" in HTML_ | same | |
 | `tagline` | "Photographie une étiquette → note de 0 à 100" | "Photograph a label → score out of 100" | Imperative; tu-form implicit |
 | `settingsKey` | "Clé API Groq" | "Groq API key" | Noun-style label |
 | `settingsKeyHint` | "Stockée uniquement sur ton appareil (localStorage). Nécessaire dans l'APK ou en mode direct." | "Stored only on your device (localStorage). Required inside the APK or in direct mode." | **Tu-form** in FR |
@@ -178,5 +178,5 @@ The language-picker in settings labels ES/IT/DE options with "(partiel · EN fal
 - **`{n} scan(s)` is parenthetical-plural style in both FR/EN** rather than using the plural-rules machinery (`exportHistoryDone_one` / `_other`). The plural machinery IS implemented and used elsewhere, but this key doesn't use it. Inconsistent.
 - **Hardcoded labels bypass i18n** — inventory 01 noted some aria-labels are hardcoded French (barcode input, grocery textarea). These would not translate when the user switches language.
 - **Default lang is `en`** when nav lang isn't FR/EN — the README/brief implies primary audience is French, but default fallback is English.
-- **No `appName` key** — "Scann-eat" is hardcoded in `<h1>`. Intentional? Or translation gap?
+- **No `appName` key** — "Scan'eat" is hardcoded in `<h1>`. Intentional? Or translation gap?
 - **No dedicated `disclaimer` or `medicalNotMedicalAdvice` keys found in the sample** — PRIVACY.md mentions "indicative values" but where is that phrase rendered?

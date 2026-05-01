@@ -82,8 +82,8 @@ Mapping (propose):
 **Location:** `public/index.html:18` + `:40`.
 
 **Evidence:**
-- Line 18: `<h1>Scann-eat</h1>` inside `<noscript>` fallback content.
-- Line 40: `<h1>Scann-eat</h1>` inside `<header role="banner">` — the shipped UI.
+- Line 18: `<h1>Scan'eat</h1>` inside `<noscript>` fallback content.
+- Line 40: `<h1>Scan'eat</h1>` inside `<header role="banner">` — the shipped UI.
 
 **Impact:**
 - With JS disabled, the noscript h1 shows; JS-enabled users never see it.

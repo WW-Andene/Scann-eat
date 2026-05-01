@@ -51,7 +51,7 @@ Samples:
 - Line 215: `<span class="ob-icon" aria-hidden="true">📷</span>` ✓
 - Line 225: `<span class="ob-icon">⚙</span>` ✗ (missing `aria-hidden`)
 - Line 475: `<button … data-i18n="mealPlanBtn">📅 Planning</button>` ✗ (emoji inline in button text, no split)
-- Line 397: `<span … data-i18n="installBannerTitle">📱 Installer Scann-eat ?</span>` ✗
+- Line 397: `<span … data-i18n="installBannerTitle">📱 Installer Scan'eat ?</span>` ✗
 - Line 692: `<h2 data-i18n="mealPlanTitle">📅 Planning de la semaine</h2>` ✗
 
 VoiceOver example on line 475 reads: "tear-off calendar Planning, button". That's noise — the calendar emoji is decorative, "Planning" is the content.

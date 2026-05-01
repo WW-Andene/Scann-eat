@@ -4,7 +4,7 @@
 
 ## Context
 
-Scann-eat needs to persist: product scan history, per-entry consumption log,
+Scan'eat needs to persist: product scan history, per-entry consumption log,
 weight log, activity log, recipes, meal templates, and a pending-scan queue
 for offline capture. Total data per active user is small (< 10 MB) but
 query patterns matter — dashboard renders join "all entries for today" with

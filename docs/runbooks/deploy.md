@@ -1,6 +1,6 @@
 # Deploy
 
-Shipping a new version of Scann-eat covers two artefacts: the **web shell**
+Shipping a new version of Scan'eat covers two artefacts: the **web shell**
 (Vercel) and the **Android APK** (GitHub Actions workflow `android.yml`).
 
 ## Preconditions

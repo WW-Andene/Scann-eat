@@ -121,7 +121,7 @@ export function initBackupIO(deps) {
     } catch (err) {
       console.error('[backup import]', err);
       const msg =
-        /Scann-eat backup/i.test(err.message) ? t('backupInvalid')
+        /Scan\'eat backup/i.test(err.message) ? t('backupInvalid')
         : /newer than this version/i.test(err.message) ? t('backupTooNew')
         : err.message || String(err);
       setBackupStatus(msg, 'error');

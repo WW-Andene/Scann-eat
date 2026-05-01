@@ -1,6 +1,6 @@
 # Surface Inventory (Phase 1)
 
-**Document**: `/home/user/Scann-eat/public/index.html`  
+**Document**: `/home/user/Scan'eat/public/index.html`  
 **File size**: ~65 KB | **Lines**: 1124 | **Unique IDs**: 361 | **Analyzed**: 2026-04-24
 
 ---
@@ -27,7 +27,7 @@
 ```html
 <noscript>
   <section class="noscript-warning">
-    <h1>Scann-eat</h1>
+    <h1>Scan'eat</h1>
     <p>Cette application nécessite JavaScript pour analyser les étiquettes. Merci de l'activer dans ton navigateur.</p>
     <p lang="en">This app needs JavaScript to read food labels. Please enable it in your browser.</p>
   </section>
@@ -74,7 +74,7 @@
 - **Contents**:
   - `#profile-btn` (emoji "👤", aria-label from data-i18n-aria-label="profile")
   - `#settings-btn` (emoji "⚙️", aria-label from data-i18n-aria-label="settings")
-  - `<h1>Scann-eat</h1>` (no id)
+  - `<h1>Scan'eat</h1>` (no id)
   - Tagline `<p>` with data-i18n="tagline"
 
 ---
@@ -87,7 +87,7 @@
 | `settings-btn` | button | ⚙️ | `settings` → "Réglages" | Yes |
 
 **Header structure**:
-- `<h1>` with plain text "Scann-eat" (no id, not i18n'd).
+- `<h1>` with plain text "Scan'eat" (no id, not i18n'd).
 - Tagline in `<p>` with `data-i18n="tagline"`.
 
 ---

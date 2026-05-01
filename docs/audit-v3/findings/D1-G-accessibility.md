@@ -148,7 +148,7 @@ Apply to all 21 dialogs. Or add `autofocus` to each dialog's first meaningful in
 Screen-reader rotor shows "banner, main" — functional but terse.
 
 **Impact:**
-- When the same page has multiple landmarks, explicit names help users jump between. Scann-eat has only 2 top-level landmarks, so the impact is smaller — but if F-DH-02 recommendations are adopted (add section landmarks), names become essential.
+- When the same page has multiple landmarks, explicit names help users jump between. Scan'eat has only 2 top-level landmarks, so the impact is smaller — but if F-DH-02 recommendations are adopted (add section landmarks), names become essential.
 
 **Recommendation:**
 - `<header role="banner" aria-label="App header">` — or equivalent i18n key.

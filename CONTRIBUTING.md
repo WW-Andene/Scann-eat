@@ -1,4 +1,4 @@
-# Contributing to Scann-eat
+# Contributing to Scan'eat
 
 Small, focused pull requests welcome. See `README.md §Contributing` for the
 provenance rules and the basic test-file convention. This doc focuses on
@@ -9,7 +9,7 @@ not drift across.
 
 ## Design character — the warm × data-dense quadrant
 
-Scann-eat occupies a specific design quadrant: **warm × data-dense**. Rivals
+Scan'eat occupies a specific design quadrant: **warm × data-dense**. Rivals
 cluster elsewhere:
 
 | Quadrant | Example apps |
@@ -17,7 +17,7 @@ cluster elsewhere:
 | Clinical × dense | Cronometer |
 | Warm × curated (low data) | Yuka |
 | Neutral | MyFitnessPal |
-| **Warm × data-dense** (Scann-eat) | *no direct competitor* |
+| **Warm × data-dense** (Scan'eat) | *no direct competitor* |
 
 The visual vocabulary that keeps the app in this quadrant:
 - **Coral paper** `--bg` + **cream card** `--panel` two-tone.

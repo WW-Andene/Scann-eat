@@ -1,4 +1,4 @@
-# Scann-eat
+# Scan'eat
 
 A PWA for French-speaking users that scans food products + food photos, scores
 them against the user's diet / allergen / health profile, and tracks the day's

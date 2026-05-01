@@ -850,9 +850,9 @@ describe('formatRecipeShare', () => {
     assert.ok(en.startsWith('🍽 Recipe'));
   });
 
-  it('ends with Scann-eat signature', () => {
+  it('ends with Scan\'eat signature', () => {
     const out = formatRecipeShare(recipe);
-    assert.ok(out.endsWith('— Scann-eat'));
+    assert.ok(out.endsWith('— Scan\'eat'));
   });
 
   it('each component becomes a bullet line', () => {
@@ -920,8 +920,8 @@ describe('formatTemplateShare', () => {
     assert.ok(en.includes('2 item(s)'));
   });
 
-  it('ends with Scann-eat signature', () => {
-    assert.ok(formatTemplateShare(tpl).endsWith('— Scann-eat'));
+  it('ends with Scan\'eat signature', () => {
+    assert.ok(formatTemplateShare(tpl).endsWith('— Scan\'eat'));
   });
 
   // R14.3: empty + legacy-sentinel handling for templates.

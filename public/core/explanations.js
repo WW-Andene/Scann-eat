@@ -7,7 +7,7 @@
  * year).
  *
  * Anything that reads as "general advice" without a citation is marked
- * "Editorial — …" so the reader knows it is Scann-eat's judgment.
+ * "Editorial — …" so the reader knows it is Scan\'eat's judgment.
  */
 
 const RULES_FR = [
@@ -44,7 +44,7 @@ const RULES_FR = [
   [/^Processed meat with nitrites/i,
    'VETO : charcuterie avec nitrites + sel élevé + amidon raffiné. La viande transformée est classée IARC Groupe 1 (cancérogène pour l\'humain, Monographie Vol 114, 2015).'],
   [/^Protein .* for category/i,
-   'Teneur en protéines insuffisante pour la catégorie attendue. Éditorial — les seuils par catégorie sont des estimations Scann-eat basées sur les compositions typiques.'],
+   'Teneur en protéines insuffisante pour la catégorie attendue. Éditorial — les seuils par catégorie sont des estimations Scan\'eat basées sur les compositions typiques.'],
   [/^Fiber .* for category/i,
    'Fibres insuffisantes. Valeur de référence EFSA : 25 g/jour adulte (EFSA Journal 2010;8(3):1462).'],
   [/^Energy .* outside category norm/i,
@@ -126,7 +126,7 @@ const RULES_EN = [
   [/^Processed meat with nitrites/i,
    'VETO: cured meat with nitrites + high salt + refined starch. Processed meat is IARC Group 1 (carcinogenic to humans, Monograph Vol 114, 2015).'],
   [/^Protein .* for category/i,
-   'Protein below the category expectation. Editorial — category thresholds are Scann-eat estimates based on typical compositions.'],
+   'Protein below the category expectation. Editorial — category thresholds are Scan\'eat estimates based on typical compositions.'],
   [/^Fiber .* for category/i,
    'Fibre too low. EFSA reference intake: 25 g/day for adults (EFSA Journal 2010;8(3):1462).'],
   [/^Energy .* outside category norm/i,

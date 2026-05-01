@@ -1,6 +1,6 @@
 {
   "appId": "fr.scanneat.app",
-  "appName": "Scann-eat",
+  "appName": "Scan'eat",
   "webDir": "public",
   "server": {
     "androidScheme": "https"

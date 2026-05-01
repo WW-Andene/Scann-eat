@@ -5,13 +5,13 @@
  * Client-side `fetch` to third-party recipe blogs is blocked by CORS.
  * This endpoint proxies the HTML, extracts the schema.org Recipe
  * (JSON-LD microdata that every major recipe site ships), and returns
- * a compact object the Scann-eat recipe editor can pre-fill.
+ * a compact object the Scan\'eat recipe editor can pre-fill.
  *
  * Safety:
  *   - URL must be http(s), public scheme.
  *   - 8 s fetch timeout (recipe blogs are often slow).
  *   - Response body capped at 2 MB — any sane recipe page is far under.
- *   - User-Agent spoof (Scann-eat) so sites know who's hitting them.
+ *   - User-Agent spoof (Scan\'eat) so sites know who's hitting them.
  *
  * No GROQ_API_KEY here — this endpoint is pure HTML fetch + parse,
  * no LLM dependency. The photo-to-recipe LLM flow lives in
@@ -196,7 +196,7 @@ async function fetchWithTimeout(url: string, ms: number): Promise<Response> {
       signal: ctrl.signal,
       redirect: 'follow',
       headers: {
-        'User-Agent': 'Scann-eat/1.0 (+https://scann-eat.local)',
+        'User-Agent': 'ScanEat/1.0 (+https://scann-eat.local)',
         'Accept': 'text/html,application/xhtml+xml',
       },
     });

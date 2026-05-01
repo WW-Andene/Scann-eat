@@ -22,7 +22,7 @@
  *
  * EDITORIAL: the point magnitudes (±2, ±3, ±4, ±5) and the flat -30 fall-
  * back when a diet violation is detected WITHOUT enough physiological data
- * are Scann-eat's choice, not validated calibrations. The hard "0 for diet
+ * are Scan\'eat's choice, not validated calibrations. The hard "0 for diet
  * violation" cap is the defensible behaviour from a user-decision standpoint.
  */
 

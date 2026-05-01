@@ -1,7 +1,7 @@
 # Runbooks
 
 Operational procedures for running, deploying, rotating, and recovering
-Scann-eat. Per `app_development_SKILL.md §XIII`.
+Scan'eat. Per `app_development_SKILL.md §XIII`.
 
 ## Index
 

@@ -112,7 +112,7 @@ Decision requires product-owner input. Default to **B** for purity unless there'
 **Location:** `public/index.html:18`, `:40`.
 
 **Evidence:**
-`<h1>Scann-eat</h1>` appears in the header. The app name itself is a brand; likely should not translate. But:
+`<h1>Scan'eat</h1>` appears in the header. The app name itself is a brand; likely should not translate. But:
 - Tagline IS i18n'd (`tagline` key).
 - The name is read by screen readers in whatever the html lang is; a user with DE lang will hear "scann-eat" with German phonetics.
 
@@ -121,7 +121,7 @@ Decision requires product-owner input. Default to **B** for purity unless there'
 - Consistency argument: having one i18n key `appName` makes the rename future-proof — if the product rebrands, one key update vs editing every HTML occurrence.
 
 **Recommendation:**
-Optional. If applied: `<h1 data-i18n="appName">Scann-eat</h1>` and `appName: 'Scann-eat'` (same in every locale). Zero runtime effect, future-proof for rebrands.
+Optional. If applied: `<h1 data-i18n="appName">Scan'eat</h1>` and `appName: 'Scan'eat'` (same in every locale). Zero runtime effect, future-proof for rebrands.
 
 **Effort:** Trivial.
 **Risk:** None.
@@ -185,7 +185,7 @@ Currently CSS uses `margin-left`/`right` literally (inventory 02 doesn't specifi
 - Documenting the gap prevents silent drift when a future contributor tries to add Arabic.
 
 **Recommendation:**
-1. Document in `ASSUMPTIONS.md`: "Scann-eat is LTR-only. Adding RTL locales requires (a) adopting CSS logical properties, (b) setting `<html dir>` from currentLang, (c) icon flip rules."
+1. Document in `ASSUMPTIONS.md`: "Scan'eat is LTR-only. Adding RTL locales requires (a) adopting CSS logical properties, (b) setting `<html dir>` from currentLang, (c) icon flip rules."
 2. Low-effort prep: for every NEW rule, prefer logical properties (`padding-inline`, `margin-block`, `border-inline-end`). Don't migrate existing rules — too much blast.
 
 **Effort:** Trivial (documentation).

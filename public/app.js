@@ -1601,7 +1601,7 @@ async function shareCurrentScan() {
     grade: lastData.audit.grade,
   });
   await shareOrCopy({
-    title: 'Scann-eat',
+    title: 'Scan\'eat',
     text,
     toasts: { copied: t('shareCopied'), failed: t('shareFailed') },
     toast,
@@ -2065,7 +2065,7 @@ initKeybindings({
 // Auto-update (APK only)
 // ============================================================================
 
-const GITHUB_REPO = 'WW-Andene/Scann-eat';
+const GITHUB_REPO = 'WW-Andene/Scan\'eat';
 const UPDATE_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 async function currentCommit() {
@@ -2483,8 +2483,8 @@ if ('serviceWorker' in navigator && !isCapacitor) {
 }
 
 // ---------- PWA share_target receiver ----------
-// The manifest declares Scann-eat as a share target for image/*. When the
-// user picks "Share → Scann-eat" from another app, the SW receives the POST,
+// The manifest declares Scan\'eat as a share target for image/*. When the
+// user picks "Share → Scan\'eat" from another app, the SW receives the POST,
 // stashes the files, and redirects us here with ?shared=1. Pull the files
 // from the SW via a MessageChannel and feed them straight into the capture
 // queue — zero-click scan from the gallery.
