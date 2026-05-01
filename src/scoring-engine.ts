@@ -1324,26 +1324,32 @@ export function scoreNutritionalDensity(product: ProductInput): PillarScore {
     }
   }
 
-  // Fix #1 — quantitative nutrient-density bonus. Counts how many of
-  // the expanded micronutrient fields hit the EU regulation
-  // 1924/2006 "source of" threshold (≥15% of NRV per 100g). If 3+
-  // nutrients qualify, bump +1; if 6+ qualify (nutrient-rich food),
-  // bump +2 total. Overrides the "declared" heuristic because
-  // declared-count can overcount (OFF lists any declared nutrient
-  // even if the amount is trivial).
-  const NRV_15_PCT = {
+  // Quantitative nutrient-density bonus. Counts how many of the
+  // expanded micronutrient fields hit the EU regulation 1924/2006
+  // "source of" threshold (≥15% of NRV per 100 g). If 3+ nutrients
+  // qualify, bump +1; if 6+ qualify (nutrient-rich food), bump +2
+  // total. Overrides the "declared" heuristic because declared-count
+  // can overcount (OFF lists any declared nutrient even if the amount
+  // is trivial).
+  //
+  // The keys are typed against NutritionPer100g via `keyof` so the
+  // table stays in lockstep with the interface — adding a new
+  // micronutrient field to the type without updating NRV_15_PCT is now
+  // a compile error instead of a silent miss. The previous version
+  // cast `nutrition as Record<string, number | undefined>` which lost
+  // exactly that protection.
+  const NRV_15_PCT: Partial<Record<keyof NutritionPer100g, number>> = {
     vit_a_ug: 120, vit_c_mg: 12, vit_d_ug: 0.75, vit_e_mg: 1.8, vit_k_ug: 11.25,
     b1_mg: 0.165, b2_mg: 0.21, b3_mg: 2.4, b6_mg: 0.21, b9_ug: 30, b12_ug: 0.375,
     potassium_mg: 300, calcium_mg: 120, magnesium_mg: 56, iron_mg: 2.1, zinc_mg: 1.5,
   };
   let densityHits = 0;
   const hitList: string[] = [];
-  for (const [key, threshold] of Object.entries(NRV_15_PCT)) {
-    const n = nutrition as unknown as Record<string, number | undefined>;
-    const v = Number(n[key] ?? 0);
+  for (const [key, threshold] of Object.entries(NRV_15_PCT) as Array<[keyof NutritionPer100g, number]>) {
+    const v = Number(nutrition[key] ?? 0);
     if (v >= threshold) {
       densityHits += 1;
-      hitList.push(key.replace(/_[mu]g$/, '').replace('_', ' '));
+      hitList.push(String(key).replace(/_[mu]g$/, '').replace('_', ' '));
     }
   }
   if (densityHits >= 6 && microScore < 5) {
